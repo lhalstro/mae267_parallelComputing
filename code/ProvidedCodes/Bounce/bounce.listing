@@ -1,0 +1,19 @@
+ Number of processors =            8
+compute-1-29.local
+compute-0-30.local
+compute-0-40.local
+compute-0-40.local
+msglen =        0 bytes,          elapsed time =    0.0024 msec
+msglen =       80 bytes,          elapsed time =    0.0028 msec
+msglen =      800 bytes,          elapsed time =    0.0037 msec
+msglen =     8000 bytes,          elapsed time =    0.0218 msec
+msglen =    80000 bytes,          elapsed time =    0.1253 msec
+compute-0-1.local
+compute-0-39.local
+compute-0-1.local
+compute-0-39.local
+msglen =   800000 bytes,          elapsed time =    1.8298 msec
+msglen =  8000000 bytes,          elapsed time =   18.1576 msec
+latency =   2.4 microseconds
+ bandwidth =    440.5856717617291       MBytes/sec
+(approximate values for mp_bsend/mp_brecv)
