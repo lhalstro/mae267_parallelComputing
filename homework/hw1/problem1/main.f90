@@ -28,7 +28,7 @@ program pendulumPeriod
 !       CALCULATE PENDULUM PERIOD
         T = 2 * pi * sqrt(L / g)
 
-        write (*,*) 'Period of a pendulum of L=', L, 'is T=', T, 's'
+        write (*,*) 'Period of a pendulum of L=', L, '(m) is T=', T, 's'
 
 !       PERFORM CALCULATIONS AGAIN IF DESIRED
         write (*,*) 'Perform more calculations? (y/n)'
