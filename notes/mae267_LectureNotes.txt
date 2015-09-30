@@ -1,0 +1,39 @@
+9/24
+hpc1 computing cluster
+    8 nodes 16 cores for mae 267
+        can use more nodes if not currently in use
+
+on hpc1 file system
+    /home/lhalstro/
+    to secure your files (user read/write/execute, nothing for anyone else):
+        cd /home
+        chmod 700 lhalstro
+
+SLURM is the queue system
+Jacob has TechPLOT, FIELDVIEW
+
+Homeworks:
+    Print out source code
+    Give answers to questions
+
+9/28
+Max fortran line length is 72, need to continue with &
+    Max with continues is 132
+
+doxygen --> see fortran code as a flow chart
+
+make sure all floats have decimal points
+    will lose points
+integer powers are evaluated much faster than real powers
+5x --> five spaces
+I5 -->  integer right justified within five spaces
+'implicit none' means you cant declare variables implicityly
+    avoids implicit variable confusion
+    have to declare all variables explicitly
+
+counting loops
+    DO icounter =  istart, iend, increment
+
+restart a do loop from current line --> 'cycle'
+
+logic tests are computationally expensive --> keep them out of loops
