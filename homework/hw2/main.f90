@@ -13,7 +13,7 @@ program leastSquares
 
 !   DECLARE VARIABLES
 !   Length of Input Vectors
-    real, parameter :: n=20
+    real, parameter :: n = 20
 !   Pendulum Parameters
     real, dimensions(1:n) :: x, y
 
