@@ -16,6 +16,11 @@ program cableTension
     real :: lp=8., lc=8., W=200., dmin=1., dmax=7., dd=0.1
 !   Stuff that needs more prescision
     double precision :: T, Tmin=999., d, dopt
+!   Number for i/o output
+    integer, parameter :: out_unit=20
+
+!   Create i/o output file
+    open (unit=out_unit,file="output.txt",action="write",status="replace")
 
     d = dmin
     do while(d < dmax)
@@ -32,7 +37,11 @@ program cableTension
     end do
 
     write (*,*) 'Minimum Tension:', Tmin, ' lbs.'
+    write (out_unit,*) 'Minimum Tension:', Tmin, ' lbs.'
     write (*,*) 'at optimal distance d=', dopt, ' ft'
+    write (out_unit,*) 'at optimal distance d=', dopt, ' ft'
+
+    close (out_unit)
 
 end program cableTension
 

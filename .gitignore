@@ -1,6 +1,10 @@
 .DS_Store
+writeup
+JohnMAE-267
 #Name of compiled main function
 main
+#i/o output record files
+output.txt
 # Compiled Object files
 *.slo
 *.lo
