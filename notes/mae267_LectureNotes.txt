@@ -37,3 +37,13 @@ counting loops
 restart a do loop from current line --> 'cycle'
 
 logic tests are computationally expensive --> keep them out of loops
+
+10/1
+write 'unformatted' type files to reduce file size (compared to 'formatted')
+
+faster to define array before compile so it doesnt have to do it during execution
+
+fortran is column major order array(column,row)
+    different than c++, etc
+
+nice diagram of indexing through arrays vs. through grid, slide 23
