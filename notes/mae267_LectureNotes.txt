@@ -47,3 +47,22 @@ fortran is column major order array(column,row)
     different than c++, etc
 
 nice diagram of indexing through arrays vs. through grid, slide 23
+
+10/6
+***check for allocated arrrays (i.e slide 7)
+    grading based on this
+
+pointer --> reduced need to make COPIES of data, save memory
+linked list --> each item linked to next
+    good for arrays that you dont know what size they'll be
+        (i.e. soring convergence histories, search results)
+
+keep coding as simple as possible, limit classes
+keep codes short --> put subroutines in separate files
+
+project 1
+xp, yp = x prime, y prime
+run code on CLUSTER NODE (see lecture 1)
+for residual history, only print first 10/last 10 iterations
+time entire run, AND iteration loop
+plot computational grid in techplot
