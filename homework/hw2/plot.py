@@ -114,10 +114,9 @@ ax.plot(x, y, label='Original Data', color='blue', linestyle='', linewidth=line,
                                         marker='.', markersize=mark*2)
 ax.plot(xfit, yfit, label='Least-Squares Fit', color='red',
                                         linestyle='-', linewidth=line)
-boxtext = 'Least-Squares Fit:\n\n$y={}x+{}$\nR={}'.format(m, b, r)
+boxtext = 'Least-Squares Fit:\n$y={}x+{}$\nR={}'.format(m, b, r)
 TextBox(ax, boxtext,)
 plt.legend(loc='lower right', fancybox=True, framealpha=0.5)
-plt.show()
 # plt.savefig('PlotFit.png', bbox_inches='tight')
-SavePlot('PlotFit.png')
+SavePlot('PlotFit.pdf')
 

@@ -32,14 +32,6 @@ program hw2
     -2.83, -1.16, 0.52, 0.21, 1.73, 3.96, 4.26, 5.75,     &
     6.67, 7.70, 7.31, 9.05, 10.95 /)
 
-    ! Write input data to file
-!     open (unit=x_unit,file="x.dat",action="write",status="replace")
-!     write (x_unit,*) x
-!     close (x_unit)
-!     open (unit=y_unit,file="y.dat",action="write",status="replace")
-!     write (y_unit,*) y
-!     close (y_unit)
-
     open (unit=x_unit,file="x.dat",action="write",status="replace")
     do i=1,n
         ! write newline separated file (delimiter is contained in '')
