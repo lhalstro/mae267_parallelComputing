@@ -66,3 +66,8 @@ run code on CLUSTER NODE (see lecture 1)
 for residual history, only print first 10/last 10 iterations
 time entire run, AND iteration loop
 plot computational grid in techplot
+
+10/8
+debug check --> use analytic solution, calculate 1st/2nd order derivaties at
+    each cell and compare
+    Errors will occur due to grid strechting, debug on uniform grid
