@@ -7,12 +7,12 @@ program heatTrans
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
 
-!   DECLARE VARIABLES
+    ! DECLARE VARIABLES
     implicit none
 
-!   MAKE GRID
+    ! MAKE GRID
 
-!   SOLVE HEAT CONDUCTION
+    ! SOLVE HEAT CONDUCTION
 
 
 
