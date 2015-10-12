@@ -6,6 +6,15 @@
 ! DESCRIPTION:  Modules used for solving heat conduction of steel plate.
 ! Initialize and store constants used in all subroutines.
 
+! CONTENTS:
+! CONSTANTS --> Initializes constants for simulation.  Sets grid size.
+! CLOCK --> Calculates clock wall-time of a process.
+! MAKEGRID --> Initialize grid with correct number of points and rotation,
+!                 set boundary conditions, etc.
+! CELLS -->  Initialize finite volume cells and do associated calculations
+! TEMPERATURE --> Calculate and store new temperature distribution
+!                     for given iteration
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! CONSTANTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -40,7 +49,7 @@ END MODULE CONSTANTS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE CLOCK
-    ! Clock wall-time of a process.
+    ! Calculates clock wall-time of a process.
     INTEGER clock_start, clock_end, clock_max, clock_rate
     REAL(KIND=8) wall_time
 
@@ -84,7 +93,7 @@ MODULE MAKEGRID
     END TYPE GRID
 
 CONTAINS
-    SUBROUTINE init_grid(mesh)
+    SUBROUTINE init_mesh(mesh)
         ! Mesh points (derived data type)
         TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
         ! Pointer for mesh points
@@ -107,9 +116,9 @@ CONTAINS
                 m%y = p%yp * COS(rot) + (m%xp) * SIN(rot)
             END DO
         END DO
-    END SUBROUTINE init_grid
+    END SUBROUTINE init_mesh
 
-    SUBROUTINE init_temp(p, T)
+    SUBROUTINE init_temp(m, T)
         ! Initialize temperature across mesh
         ! m --> pointer for mesh vector
         ! T --> initial temperature profile
@@ -137,7 +146,7 @@ MODULE CELLS
     END TYPE CELL
 
 CONTAINS
-    SUBROUTINE init_cells(cells, mesh)
+    SUBROUTINE init_cells(mesh, cells)
         ! cells --> derived data type containing cell info
         ! mesh --> derived data type containing mesh point info
         TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
@@ -153,7 +162,7 @@ CONTAINS
         END DO
     END SUBROUTINE init_cells
 
-    SUBROUTINE calc_2nd_areas(cells, m)
+    SUBROUTINE calc_2nd_areas(m, cells)
         ! calculate areas for secondary fluxes.
         ! cells --> derived data type with cell data, target for c
         ! m --> mesh points
@@ -196,7 +205,7 @@ CONTAINS
         END DO
     END SUBROUTINE calc_2nd_areas
 
-    SUBROUTINE calc_constants(cells, mesh)
+    SUBROUTINE calc_constants(mesh, cells)
         ! Calculate constants for a given iteration loop.  This way,
         ! they don't need to be calculated within the loop at each iteration
         TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
@@ -240,7 +249,7 @@ CONTAINS
     SUBROUTINE derivatives(m, c)
         ! Calculate first and second derivatives for finite-volume scheme
         TYPE(GRID), INTENT(INOUT) :: m(1:IMAX, 1:JMAX)
-        TYPE(MESH), INTENT(INOUT) :: m(1:IMAX-1, 1:JMAX-1)
+        TYPE(CELL), INTENT(INOUT) :: m(1:IMAX-1, 1:JMAX-1)
         ! Areas for first derivatives
         REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
         ! First partial derivatives of temperature in x and y directions
