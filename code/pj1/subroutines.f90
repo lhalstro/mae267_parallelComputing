@@ -1,5 +1,3 @@
-program subroutines
-
 ! MAE 267
 ! PROJECT 1
 ! LOGAN HALSTROM
@@ -12,5 +10,3 @@ program subroutines
 
 
 
-
-end program subroutines
