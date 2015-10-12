@@ -4,4 +4,4 @@ Fall 2015
 
 To compile a fortran code (.f90 extension) run 'gfortran -o outname progname.f90'
 
-
+To change from lower to upper case in sublime text: ctrl+k,u (l for lower)

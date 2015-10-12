@@ -125,6 +125,76 @@ END MODULE
 !!!! CELLS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+MODULE CELLS
+!   Initialize finite volume cells and do associated calculations
+    USE MAKEGRID
+    IMPLICIT NONE
+    TYPE CELL
+!       Cell volume
+        REAL(KIND=8) :: V
+!       Second-derivative weighting factors for alternative distribution scheme
+        REAL(KIND=8) :: yPP, yNP, yNN, yPN
+        REAL(KIND=8) :: xNN, xPN, xPP, xNP
+    END TYPE CELL
 
+CONTAINS
+    SUBROUTINE init_cells(cells, mesh)
+!       cells --> derived data type containing cell info
+!       mesh --> derived data type containing mesh point info
+        TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
+        TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
+        INTEGER :: i, j
+        DO J = 1, JMAX
+            DO I = 1, IMAX
+!               CALC CELL VOLUMES
+!                   (length in x-dir times length in y-dir)
+                cells(i,j)%V = (mesh(i+1,j)%xp - mesh(i,j)%xp) &
+                                    * (mesh(i,j+1).yp - mesh(i,j).yp)
+            END DO
+        END DO
+    END SUBROUTINE init_cells
+
+    SUBROUTINE calc_2nd_areas(cells, m)
+!       calculate areas for secondary fluxes.
+!       cells --> derived data type with cell data, target for c
+!       m --> mesh points
+        TYPE(GRID), TARGET :: m(1:IMAX, 1:JMAX)
+        TYPE(CELL), TARGET :: cells(1:IMAX-1, 1:JMAX-1)
+        TYPE(CELL), POINTER :: c
+        INTEGER :: i, j
+!       Areas used in alternative scheme to get fluxes for second-derivative
+        REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
+!       Areas used in counter-clockwise trapezoidal integration to get
+!       x and y first-derivatives for center of each cell (Green's thm)
+        REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
+
+!       CALC CELL AREAS
+        Axi(i,j) = m(i,j+1)%x - m(i,j)%x
+        Axj(i,j) = m(i+1,j)%x - m(i,j)%x
+        Ayi(i,j) = m(i,j+1)%y - m(i,j)%y
+        Ayj(i,j) = m(i+1,j)%y - m(i,j)%y
+
+        Axi_half(i,j) = ( Axi(i+1,j) + Axi(i,j) ) * 0.25D0
+        Axj_half(i,j) = ( Axj(i,j+1) + Axj(i,j) ) * 0.25D0
+        Ayi_half(i,j) = ( Ayi(i+1,j) + Ayi(i,j) ) * 0.25D0
+        Ayj_half(i,j) = ( Ayj(i,j+1) + Ayj(i,j) ) * 0.25D0
+
+!       Actual finite-volume scheme equation parameters
+        DO J = 1, JMAX
+            DO I = 1, IMAX
+!               (NN = 'negative-negative', PN = 'positive-negative',
+!                   see how fluxes are summed)
+                c%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )
+                c%xPN = (  Axi_half(i,j) - Axj_half(i,j) )
+                c%xPP = (  Axi_half(i,j) + Axj_half(i,j) )
+                c%xNP = ( -Axi_half(i,j) + Axj_half(i,j) )
+
+                c%yPP = (  Ayi_half(i,j) + Ayj_half(i,j) )
+                c%yNP = ( -Ayi_half(i,j) + Ayj_half(i,j) )
+                c%yNN = ( -Ayi_half(i,j) - Ayj_half(i,j) )
+                c%yPN = (  Ayi_half(i,j) - Ayj_half(i,j) )
+            END DO
+        END DO
+    END SUBROUTINE calc_2nd_areas
 
 
