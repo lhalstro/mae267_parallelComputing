@@ -59,7 +59,7 @@ CONTAINS
         CALL SYSTEM_CLOCK(count_max=clock_max, count_rate=clock_rate)
         ! Get start time
         CALL SYSTEM_CLOCK(clock_start)
-    END SUBROUTINE start_clock()
+    END SUBROUTINE start_clock
 
     SUBROUTINE end_clock()
         ! Get end time
