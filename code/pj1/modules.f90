@@ -39,8 +39,8 @@ CONTAINS
     SUBROUTINE GRIDSIZE(n)
         ! Set size of grid (square)
         INTEGER :: n
-        IMAX = N
-        JMAX = N
+        IMAX = n
+        JMAX = n
     END SUBROUTINE GRIDSIZE
 END MODULE CONSTANTS
 

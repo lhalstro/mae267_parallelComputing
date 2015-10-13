@@ -8,6 +8,7 @@
 ! CONTENTS:
 ! init --> Initialize the solution with dirichlet B.C.s
 ! solve --> Solve heat conduction equation with finite volume scheme
+! output --> Save solution parameters to file
 
 MODULE subroutines
     USE CONSTANTS
@@ -81,6 +82,41 @@ CONTAINS
           WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
         END IF
     END SUBROUTINE solve
+
+    SUBROUTINE output(mesh, iter)
+        ! Save solution parameters to file
+        TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
+        REAL(KIND=8), POINTER :: Temperature(:,:), tempTemperature(:,:)
+        INTEGER :: iter
+
+        Temperature => mesh(2:IMAX-1, 2:JMAX-1)%T
+        tempTemperature => mesh(2:IMAX-1, 2:JMAX-1)%Ttmp
+        ! Let's find the last cell to change temperature and write some output.
+        ! Write down the 'steady state' configuration.
+        OPEN(UNIT = 1, FILE = "SteadySoln.dat")
+        DO i = 1, IMAX
+            DO j = 1, JMAX
+                WRITE(1,'(F10.7, 5X, F10.7, 5X, F10.7, I5, F10.7)'), mesh(i,j)%x, mesh(i,j)%y, mesh(i,j)%T
+            END DO
+        END DO
+        CLOSE (1)
+
+        ! Output to the screen so we know something happened.
+        WRITE (*,*), "IMAX/JMAX", IMAX, JMAX
+        WRITE (*,*), "iters", iter
+        WRITE (*,*), "residual", MAXVAL(tempTemperature)
+        WRITE (*,*), "ij", MAXLOC(tempTemperature)
+
+        ! Write down info for project
+        OPEN (UNIT = 2, FILE = "SolnInfo.dat")
+        WRITE (2,*), "For a ", IMAX, " by ", JMAX, "size grid, we ran for: "
+        WRITE (2,*), iter, "iterations"
+        WRITE (2,*), wall_time, "seconds"
+        WRITE (2,*)
+        WRITE (2,*), "Found max residual of ", MAXVAL(tempTemperature)
+        WRITE (2,*), "At ij of ", MAXLOC(tempTemperature)
+        CLOSE (2)
+    END SUBROUTINE output
 END MODULE subroutines
 
 
