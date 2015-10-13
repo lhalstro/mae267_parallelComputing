@@ -10,8 +10,8 @@ main.f90
 
 PROG = main
 # FC = /export/apps/pgi10.9/linux86/10.9/bin/pgf90
-FC = /share/apps/openmpi-1.8.5/pgi-2015/bin/mpif90
-# FC = /usr/local/bin/gfortran
+# FC = /share/apps/openmpi-1.8.5/pgi-2015/bin/mpif90
+FC = /usr/bin/mpif90
 IDIR =
 LFLAGS =
 LIBS =
@@ -19,7 +19,7 @@ LIBS =
 #Set Optimization or Debug Flags
 #     -O3   = Full Optimizations
 #     -g    = Debug Mode
-OPTMZ = -O3 -O2 -fast
+OPTMZ = -O3 -O2 
 
 #Set Compiler Flags
 #       -c       = Compile Only Don't Link (Required)
