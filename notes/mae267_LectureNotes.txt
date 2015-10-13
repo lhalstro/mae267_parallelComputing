@@ -71,3 +71,7 @@ plot computational grid in techplot
 debug check --> use analytic solution, calculate 1st/2nd order derivaties at
     each cell and compare
     Errors will occur due to grid strechting, debug on uniform grid
+
+10/13
+Thread Safety --> guarantee that a message will arrive exactly as it was sent
+***clock function given by prof is different, uses MPI
