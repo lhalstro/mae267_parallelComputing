@@ -1,0 +1,2 @@
+
+gfortran -o main modules.f90 subroutines.f90 main.f90
