@@ -11,6 +11,6 @@ PROGRAM makeTest
     WRITE(*,*) "Print pi from main:", pi
     CALL hello()
     WRITE(*,*) "Print 3*pi with 'UseMod'"
-    CALL UseMod(3)
+    CALL UseMod(3.d0)
 
 END PROGRAM makeTest
