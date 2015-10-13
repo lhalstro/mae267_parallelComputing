@@ -1,0 +1,9 @@
+
+heatcond$(O): $(heatcond_SRC)/heatcond.f
+	$(FC) $(PROC) $(FFLAGS_heatcond) $(heatcond_SRC)/heatcond.f
+
+OBJ_PI_base= heatcond$(O)
+
+OBJ_PI_heatcond= $(OBJ_PI_base)
+
+INCL_DIRS_heatcond= -I$(heatcond_SRC)
