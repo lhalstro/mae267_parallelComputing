@@ -101,8 +101,8 @@ CONTAINS
         TYPE(GRID), POINTER :: m
         INTEGER :: i, j
 
-        DO J = 1, JMAX
-            DO I = 1, IMAX
+        DO j = 1, JMAX
+            DO i = 1, IMAX
                 m => mesh(i, j)
                 ! 'p' points to 'mesh', i is variable in derived data type
                     ! accessed by '%'
@@ -156,6 +156,7 @@ CONTAINS
         TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
         TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
         INTEGER :: i, j
+
         DO j = 1, JMAX
             DO i = 1, IMAX
                 ! CALC CELL VOLUMES
@@ -192,8 +193,9 @@ CONTAINS
         Ayj_half(i,j) = ( Ayj(i,j+1) + Ayj(i,j) ) * 0.25D0
 
         ! Actual finite-volume scheme equation parameters
-        DO J = 1, JMAX
-            DO I = 1, IMAX
+        DO j = 1, JMAX
+            DO i = 1, IMAX
+                c => cells(i, j)
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
                 c%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )
