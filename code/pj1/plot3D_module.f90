@@ -36,7 +36,7 @@ MODULE plot3D_module
         ! WRITE TO GRID FILE
         WRITE(gridUnit,10) nBlocks
         WRITE(gridUnit,20) IMAX,JMAX
-        WRITE(gridUnit,30) ((Points(i,j)%x,i=1,IMAX),j=1,JMAX), ((Points(i,j)%y,i=1,IMAX),j=1,JMAX)
+        WRITE(gridUnit,30) ((mesh(i,j)%x,i=1,IMAX),j=1,JMAX), ((mesh(i,j)%y,i=1,IMAX),j=1,JMAX)
 
         ! WRITE TO TEMPERATURE FILE
         WRITE(tempUnit,10) nBlocks

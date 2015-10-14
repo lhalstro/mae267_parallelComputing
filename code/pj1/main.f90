@@ -19,11 +19,11 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000
+    INTEGER :: max_iter = 1000000, iter = 0
 
     ! MAKE GRID
-    ! Set grid size
-    CALL GRIDSIZE(21)
+    ! Set grid sizei
+    CALL GRIDSIZE(101)
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
     ALLOCATE(cells(1:IMAX-1, 1:JMAX-1))
 
@@ -32,7 +32,7 @@ PROGRAM heatTrans
     ! MEASURE WALL TIME FOR OVERALL SOLUTION
     CALL start_clock()
     ! SOLVE
-    CALL solve(mesh, cells, min_res, max_iter)
+    CALL solve(mesh, cells, min_res, max_iter, iter)
     CALL end_clock()
     ! SAVE SOLUTION PARAMETERS
     CALL output(mesh, iter)

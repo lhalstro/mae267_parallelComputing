@@ -13,8 +13,9 @@
 MODULE subroutines
     USE CONSTANTS
     USE MAKEGRID
-    USE CELLS
+    USE MAKECELL
     USE TEMPERATURE
+    USE CLOCK
 
     IMPLICIT NONE
 
@@ -47,14 +48,15 @@ CONTAINS
         END DO
     END SUBROUTINE init
 
-    SUBROUTINE solve(mesh, cells, min_res, max_iter)
+    SUBROUTINE solve(mesh, cells, min_res, max_iter, iter)
         ! Solve heat conduction equation with finite volume scheme
         TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
         TYPE(CELL) :: cells(1:IMAX-1, 1:JMAX-1)
         ! Minimum residual criteria for iteration, actual residual
         REAL(KIND=8) :: min_res, res = 1000.D0
         ! iteration number, maximum number of iterations
-        INTEGER :: iter = 0, max_iter
+        ! iter in function inputs so it can be returned to main
+        INTEGER :: iter, max_iter
         INTEGER :: i, j
 
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
@@ -87,7 +89,7 @@ CONTAINS
         ! Save solution parameters to file
         TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
         REAL(KIND=8), POINTER :: Temperature(:,:), tempTemperature(:,:)
-        INTEGER :: iter
+        INTEGER :: iter, i, j
 
         Temperature => mesh(2:IMAX-1, 2:JMAX-1)%T
         tempTemperature => mesh(2:IMAX-1, 2:JMAX-1)%Ttmp

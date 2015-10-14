@@ -77,11 +77,12 @@ MODULE MAKEGRID
     ! Initialize grid with correct number of points and rotation,
     ! set boundary conditions, etc.
     USE CONSTANTS
-    IMPLICIT NONE
 
+    IMPLICIT NONE
     PUBLIC
-    ! Derived data type
+
     TYPE GRID
+        ! DERIVED DATA TYPE
         INTEGER :: i, j
         ! Grid points, see cooridinate rotaion equations in problem statement
         REAL(KIND=8) :: xp, yp, x, y
@@ -112,8 +113,8 @@ CONTAINS
                 m%xp = COS( 0.5D0 * pi * DFLOAT(IMAX - i) / DFLOAT(IMAX - 1) )
                 m%yp = COS( 0.5D0 * pi * DFLOAT(JMAX - j) / DFLOAT(JMAX - 1) )
 
-                m%x = p%xp * COS(rot) + (1.D0 - m%yp ) * SIN(rot)
-                m%y = p%yp * COS(rot) + (m%xp) * SIN(rot)
+                m%x = m%xp * COS(rot) + (1.D0 - m%yp ) * SIN(rot)
+                m%y = m%yp * COS(rot) + (m%xp) * SIN(rot)
             END DO
         END DO
     END SUBROUTINE init_mesh
@@ -133,12 +134,15 @@ END MODULE MAKEGRID
 !!!! CELLS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-MODULE CELLS
+MODULE MAKECELL
     ! Initialize finite volume cells and do associated calculations
     USE MAKEGRID
+
     IMPLICIT NONE
+    PUBLIC
+
     TYPE CELL
-        ! Cell volume
+        ! Cell volumes
         REAL(KIND=8) :: V
         ! Second-derivative weighting factors for alternative distribution scheme
         REAL(KIND=8) :: yPP, yNP, yNN, yPN
@@ -157,7 +161,7 @@ CONTAINS
                 ! CALC CELL VOLUMES
                     ! (length in x-dir times length in y-dir)
                 cells(i,j)%V = ( (mesh(i+1,j)%xp - mesh(i,j)%xp) ) &
-                                    * ( mesh(i,j+1).yp - mesh(i,j).yp )
+                                    * ( mesh(i,j+1)%yp - mesh(i,j)%yp )
             END DO
         END DO
     END SUBROUTINE init_cells
@@ -231,7 +235,7 @@ CONTAINS
             END DO
         END DO
     END SUBROUTINE calc_constants
-END MODULE CELLS
+END MODULE MAKECELL
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -240,7 +244,7 @@ END MODULE CELLS
 MODULE TEMPERATURE
     ! Calculate and store new temperature distribution for given iteration
     USE MAKEGRID
-    USE CELLS
+    USE MAKECELL
 
     IMPLICIT NONE
     PUBLIC
@@ -249,7 +253,7 @@ CONTAINS
     SUBROUTINE derivatives(m, c)
         ! Calculate first and second derivatives for finite-volume scheme
         TYPE(GRID), INTENT(INOUT) :: m(1:IMAX, 1:JMAX)
-        TYPE(CELL), INTENT(INOUT) :: m(1:IMAX-1, 1:JMAX-1)
+        TYPE(CELL), INTENT(INOUT) :: c(1:IMAX-1, 1:JMAX-1)
         ! Areas for first derivatives
         REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
         ! First partial derivatives of temperature in x and y directions
@@ -273,19 +277,19 @@ CONTAINS
                             -  ( m(i,  j)%T + m(i,  j+1)%T ) * Ayi(i,  j) &
                             -  ( m(i,j+1)%T + m(i+1,j+1)%T ) * Ayj(i,j+1) &
                             +  ( m(i,  j)%T + m(i+1,  j)%T ) * Ayj(i,  j) &
-                                ) / c(i, j)%V
+                                ) / c(i,j)%V
                 dTdy = - 0.5d0 &
                             * (( m(i+1,j)%T + m(i+1,j+1)%T ) * Axi(i+1,j) &
                             -  ( m(i,  j)%T + m(i,  j+1)%T ) * Axi(i,  j) &
                             -  ( m(i,j+1)%T + m(i+1,j+1)%T ) * Axj(i,j+1) &
                             +  ( m(i,  j)%T + m(i+1,  j)%T ) * Axj(i,  j) &
-                                ) / c(i, j)%V
+                                ) / c(i,j)%V
 
                 ! Alternate distributive scheme second-derivative operator.
-                m(i+1,  j)%Ttmp = m(i+1,  j)%Ttmp + p(i+1,  j)%term * ( c(i, j)%yNN * dTdx + c(i, j)%xPP * dTdy )
-                m(i,    j)%Ttmp = m(i,    j)%Ttmp + p(i,    j)%term * ( c(i, j)%yPN * dTdx + c(i, j)%xNP * dTdy )
-                m(i,  j+1)%Ttmp = m(i,  j+1)%Ttmp + p(i,  j+1)%term * ( c(i, j)%yPP * dTdx + c(i, j)%xNN * dTdy )
-                m(i+1,j+1)%Ttmp = m(i+1,j+1)%Ttmp + p(i+1,j+1)%term * ( c(i, j)%yNP * dTdx + c(i, j)%xPN * dTdy )
+                m(i+1,  j)%Ttmp = m(i+1,  j)%Ttmp + m(i+1,  j)%term * ( c(i,j)%yNN * dTdx + c(i,j)%xPP * dTdy )
+                m(i,    j)%Ttmp = m(i,    j)%Ttmp + m(i,    j)%term * ( c(i,j)%yPN * dTdx + c(i,j)%xNP * dTdy )
+                m(i,  j+1)%Ttmp = m(i,  j+1)%Ttmp + m(i,  j+1)%term * ( c(i,j)%yPP * dTdx + c(i,j)%xNN * dTdy )
+                m(i+1,j+1)%Ttmp = m(i+1,j+1)%Ttmp + m(i+1,j+1)%term * ( c(i,j)%yNP * dTdx + c(i,j)%xPN * dTdy )
             END DO
         END DO
     END SUBROUTINE derivatives
