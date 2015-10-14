@@ -1,0 +1,9 @@
+BASIC COMMANDS FOR SLURM JOB SCHEDULING SYSTEM
+
+see: http://www.arc.ox.ac.uk/content/slurm-job-scheduler#SLURMcommands
+
+sacct: report job accounting information about active or completed jobs
+scancel: cancel a pending or running job
+sinfo: reports the state of partitions and nodes managed by Slurm
+squeue: reports the state of jobs
+srun: used to submit a job for execution in real time
