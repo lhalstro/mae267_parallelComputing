@@ -59,16 +59,16 @@ CONTAINS
         INTEGER :: iter, max_iter
         INTEGER :: i, j
 
-        INCLUDE "mpif.h"
-        REAL(KIND=8) :: start_iter, end_iter
+!         INCLUDE "mpif.h"
+!         REAL(KIND=8) :: start_iter, end_iter
 
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
             ! iteration count reaches given maximum
 
 
-            ! CLOCK TOTAL TIME OF iteration loop
-            start_iter = MPI_Wtime()
+!             ! CLOCK TOTAL TIME OF iteration loop
+!             start_iter = MPI_Wtime()
 
             ! INCREMENT ITERATION COUNT
             iter = iter + 1
@@ -81,10 +81,10 @@ CONTAINS
                 END DO
             END DO
 
-            end_iter = MPI_Wtime()
-            IF (iter < 6) THEN
-                wall_time_iter(iter) = end_iter - start_iter
-            END IF
+!             end_iter = MPI_Wtime()
+!             IF (iter < 6) THEN
+!                 wall_time_iter(iter) = end_iter - start_iter
+!             END IF
 
             ! CALC RESIDUAL
             res = MAXVAL(ABS(mesh(2:IMAX-1, 2:JMAX-1)%Ttmp))
@@ -128,7 +128,7 @@ CONTAINS
         WRITE (2,*), iter, "iterations"
         WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
         WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
-        WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
+!         WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
         WRITE (2,*)
         WRITE (2,*), "Found max residual of ", MAXVAL(tempTemperature)
         WRITE (2,*), "At ij of ", MAXLOC(tempTemperature)
