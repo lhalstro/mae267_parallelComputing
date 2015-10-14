@@ -128,7 +128,7 @@ CONTAINS
         ! SET MESH POINTS WITH INITIAL TEMPERATURE PROFILE
         m%T = T
     END SUBROUTINE init_temp
-END MODULE MAKEGRID
+END MODULE MESHMOD
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! CELLS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -165,7 +165,7 @@ CONTAINS
                                     * ( mesh(i,j+1)%yp - mesh(i,j)%yp )
             END DO
         END DO
-    END SUBROUTINE init_cell
+    END SUBROUTINE init_cells
 
     SUBROUTINE calc_2nd_areas(m, cell)
         ! calculate areas for secondary fluxes.
