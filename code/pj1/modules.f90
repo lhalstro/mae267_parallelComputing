@@ -156,10 +156,12 @@ CONTAINS
         TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
         TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
         INTEGER :: i, j
-        DO j = 1, JMAX
-            DO i = 1, IMAX
+        write(*, *) 'yolo mama', IMAX, JMAX
+        DO j = 1, JMAX-1
+            DO i = 1, IMAX-1
                 ! CALC CELL VOLUMES
                     ! (length in x-dir times length in y-dir)
+                write(*,*) i, j
                 cells(i,j)%V = ( (mesh(i+1,j)%xp - mesh(i,j)%xp) ) &
                                     * ( mesh(i,j+1)%yp - mesh(i,j)%yp )
             END DO
@@ -192,8 +194,10 @@ CONTAINS
         Ayj_half(i,j) = ( Ayj(i,j+1) + Ayj(i,j) ) * 0.25D0
 
         ! Actual finite-volume scheme equation parameters
-        DO J = 1, JMAX
-            DO I = 1, IMAX
+        DO j = 1, JMAX-1
+            DO i = 1, IMAX-1
+                c => cells(i, j)
+                write(*, *) i, j
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
                 c%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )

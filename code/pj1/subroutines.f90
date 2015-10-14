@@ -27,6 +27,7 @@ CONTAINS
         INTEGER :: i, j
 
         ! INITIALIZE MESH
+        write(*,*) 'init_mesh'
         CALL init_mesh(mesh)
         ! INITIALIZE CELLS
         CALL init_cells(mesh, cells)
