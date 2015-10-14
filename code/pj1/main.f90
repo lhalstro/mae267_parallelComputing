@@ -8,7 +8,6 @@
 ! To compile: mpif90 -o main modules.f90 plot3D_module.f90 subroutines.f90 main.f90
 
 PROGRAM heatTrans
-    INCLUDE "mpif.h"
 !     USE CLOCK
     USE CONSTANTS
     USE subroutines
@@ -16,10 +15,6 @@ PROGRAM heatTrans
 
     IMPLICIT NONE
 
-    REAL(KIND=8) :: start_total, end_total, wall_time_total
-    REAL(KIND=8) :: start_solve, end_solve, wall_time_solve
-    ! CLOCK TOTAL TIME OF RUN
-    start_total = MPI_Wtime()
     ! GRID
     TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
@@ -29,6 +24,11 @@ PROGRAM heatTrans
     ! Maximum number of iterations
     INTEGER :: max_iter = 1000000, iter = 0
 
+    INCLUDE "mpif.h"
+    REAL(KIND=8) :: start_total, end_total
+    REAL(KIND=8) :: start_solve, end_solve
+    ! CLOCK TOTAL TIME OF RUN
+    start_total = MPI_Wtime()
 
 
     ! MAKE GRID
