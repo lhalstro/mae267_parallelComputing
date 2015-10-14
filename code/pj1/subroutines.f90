@@ -12,28 +12,28 @@
 
 MODULE subroutines
     USE CONSTANTS
-    USE MAKEGRID
-    USE MAKECELL
+    USE MESHMOD
+    USE CELLMOD
     USE TEMPERATURE
     USE CLOCK
 
     IMPLICIT NONE
 
 CONTAINS
-    SUBROUTINE init(mesh, cells)
+    SUBROUTINE init(mesh, cell)
         ! Initialize the solution with dirichlet B.C.s
-        TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
-        TYPE(CELL), TARGET :: cells(1:IMAX-1, 1:JMAX-1)
+        TYPE(MESHTYPE), TARGET :: mesh(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1, 1:JMAX-1)
         INTEGER :: i, j
 
         ! INITIALIZE MESH
         CALL init_mesh(mesh)
         ! INITIALIZE CELLS
-        CALL init_cells(mesh, cells)
+        CALL init_cells(mesh, cell)
         ! CALC SECONDARY AREAS OF INTEGRATION
-        CALL calc_2nd_areas(mesh, cells)
+        CALL calc_2nd_areas(mesh, cell)
         ! CALC CONSTANTS OF INTEGRATION
-        CALL calc_constants(mesh, cells)
+        CALL calc_constants(mesh, cell)
 
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         !PUT DEBUG BC HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -48,10 +48,10 @@ CONTAINS
         END DO
     END SUBROUTINE init
 
-    SUBROUTINE solve(mesh, cells, min_res, max_iter, iter)
+    SUBROUTINE solve(mesh, cell, min_res, max_iter, iter)
         ! Solve heat conduction equation with finite volume scheme
-        TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
-        TYPE(CELL) :: cells(1:IMAX-1, 1:JMAX-1)
+        TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE) :: cell(1:IMAX-1, 1:JMAX-1)
         ! Minimum residual criteria for iteration, actual residual
         REAL(KIND=8) :: min_res, res = 1000.D0
         ! iteration number, maximum number of iterations
@@ -66,7 +66,7 @@ CONTAINS
             ! INCREMENT ITERATION COUNT
             iter = iter + 1
             ! CALC NEW TEMPERATURE AT ALL POINTS
-            CALL derivatives(mesh, cells)
+            CALL derivatives(mesh, cell)
             ! SAVE NEW TEMPERATURE DISTRIBUTION
             DO j = 2, JMAX - 1
                 DO i = 2, IMAX - 1
@@ -87,7 +87,7 @@ CONTAINS
 
     SUBROUTINE output(mesh, iter)
         ! Save solution parameters to file
-        TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
+        TYPE(MESHTYPE), TARGET :: mesh(1:IMAX, 1:JMAX)
         REAL(KIND=8), POINTER :: Temperature(:,:), tempTemperature(:,:)
         INTEGER :: iter, i, j
 

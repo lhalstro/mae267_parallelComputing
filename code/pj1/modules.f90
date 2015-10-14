@@ -73,7 +73,7 @@ END MODULE CLOCK
 !!!! INITIALIZE GRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-MODULE MAKEGRID
+MODULE MESHMOD
     ! Initialize grid with correct number of points and rotation,
     ! set boundary conditions, etc.
     USE CONSTANTS
@@ -81,7 +81,7 @@ MODULE MAKEGRID
     IMPLICIT NONE
     PUBLIC
 
-    TYPE GRID
+    TYPE MESHTYPE
         ! DERIVED DATA TYPE
         INTEGER :: i, j
         ! Grid points, see cooridinate rotaion equations in problem statement
@@ -91,14 +91,14 @@ MODULE MAKEGRID
         ! Iteration Parameters: timestep, secondary cell volume,
                                     ! equation constant term
         REAL(KIND=8) :: dt, V2nd, term
-    END TYPE GRID
+    END TYPE MESHTYPE
 
 CONTAINS
     SUBROUTINE init_mesh(mesh)
         ! Mesh points (derived data type)
-        TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
+        TYPE(MESHTYPE), TARGET :: mesh(1:IMAX, 1:JMAX)
         ! Pointer for mesh points
-        TYPE(GRID), POINTER :: m
+        TYPE(MESHTYPE), POINTER :: m
         INTEGER :: i, j
 
         DO j = 1, JMAX
@@ -123,7 +123,7 @@ CONTAINS
         ! Initialize temperature across mesh
         ! m --> pointer for mesh vector
         ! T --> initial temperature profile
-        TYPE(GRID), INTENT(INOUT) :: m
+        TYPE(MESHTYPE), INTENT(INOUT) :: m
         REAL(KIND=8) :: T
         ! SET MESH POINTS WITH INITIAL TEMPERATURE PROFILE
         m%T = T
@@ -134,46 +134,46 @@ END MODULE MAKEGRID
 !!!! CELLS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-MODULE MAKECELL
+MODULE CELLMOD
     ! Initialize finite volume cells and do associated calculations
-    USE MAKEGRID
+    USE MESHMOD
 
     IMPLICIT NONE
     PUBLIC
 
-    TYPE CELL
+    TYPE CELLTYPE
         ! Cell volumes
         REAL(KIND=8) :: V
         ! Second-derivative weighting factors for alternative distribution scheme
         REAL(KIND=8) :: yPP, yNP, yNN, yPN
         REAL(KIND=8) :: xNN, xPN, xPP, xNP
-    END TYPE CELL
+    END TYPE CELLTYPE
 
 CONTAINS
-    SUBROUTINE init_cells(mesh, cells)
-        ! cells --> derived data type containing cell info
+    SUBROUTINE init_cells(mesh, cell)
+        ! cell --> derived data type containing cell info
         ! mesh --> derived data type containing mesh point info
-        TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
-        TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
+        TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1,1:JMAX-1)
         INTEGER :: i, j
 
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
                 ! CALC CELL VOLUMES
                     ! (length in x-dir times length in y-dir)
-                cells(i,j)%V = ( (mesh(i+1,j)%xp - mesh(i,j)%xp) ) &
+                cell(i,j)%V = ( (mesh(i+1,j)%xp - mesh(i,j)%xp) ) &
                                     * ( mesh(i,j+1)%yp - mesh(i,j)%yp )
             END DO
         END DO
-    END SUBROUTINE init_cells
+    END SUBROUTINE init_cell
 
-    SUBROUTINE calc_2nd_areas(m, cells)
+    SUBROUTINE calc_2nd_areas(m, cell)
         ! calculate areas for secondary fluxes.
-        ! cells --> derived data type with cell data, target for c
+        ! cell --> derived data type with cell data, target for c
         ! m --> mesh points
-        TYPE(GRID), TARGET :: m(1:IMAX, 1:JMAX)
-        TYPE(CELL), TARGET :: cells(1:IMAX-1, 1:JMAX-1)
-        TYPE(CELL), POINTER :: c
+        TYPE(MESHTYPE), TARGET :: m(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1, 1:JMAX-1)
+        TYPE(CELLTYPE), POINTER :: c
         INTEGER :: i, j
         ! Areas used in alternative scheme to get fluxes for second-derivative
         REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
@@ -195,7 +195,7 @@ CONTAINS
         ! Actual finite-volume scheme equation parameters
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
-                c => cells(i, j)
+                c => cell(i, j)
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
                 c%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )
@@ -211,24 +211,24 @@ CONTAINS
         END DO
     END SUBROUTINE calc_2nd_areas
 
-    SUBROUTINE calc_constants(mesh, cells)
+    SUBROUTINE calc_constants(mesh, cell)
         ! Calculate constants for a given iteration loop.  This way,
         ! they don't need to be calculated within the loop at each iteration
-        TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
-        TYPE(CELL), TARGET :: cells(1:IMAX-1, 1:JMAX-1)
+        TYPE(MESHTYPE), TARGET :: mesh(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1, 1:JMAX-1)
         INTEGER :: i, j
         DO j = 2, JMAX - 1
             DO i = 2, IMAX - 1
                 ! CALC TIMESTEP FROM CFL
-                mesh(i,j)%dt = ((CFL * 0.5D0) / alpha) * cells(i,j)%V ** 2 &
+                mesh(i,j)%dt = ((CFL * 0.5D0) / alpha) * cell(i,j)%V ** 2 &
                                 / ( (mesh(i+1,j)%xp - mesh(i,j)%xp)**2 &
                                     + (mesh(i,j+1)%yp - mesh(i,j)%yp)**2 )
                 ! CALC SECONDARY VOLUMES
                 ! (for rectangular mesh, just average volumes of the 4 cells
                 !  surrounding the point)
-                mesh(i,j)%V2nd = ( cells(i,j)%V &
-                                    + cells(i-1,j)%V + cells(i,j-1)%V &
-                                    + cells(i-1,j-1)%V ) * 0.25D0
+                mesh(i,j)%V2nd = ( cell(i,j)%V &
+                                    + cell(i-1,j)%V + cell(i,j-1)%V &
+                                    + cell(i-1,j-1)%V ) * 0.25D0
                 ! CALC CONSTANT TERM
                 ! (this term remains constant in the equation regardless of
                 !  iteration number, so only calculate once here,
@@ -237,7 +237,7 @@ CONTAINS
             END DO
         END DO
     END SUBROUTINE calc_constants
-END MODULE MAKECELL
+END MODULE CELLMOD
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -245,8 +245,8 @@ END MODULE MAKECELL
 
 MODULE TEMPERATURE
     ! Calculate and store new temperature distribution for given iteration
-    USE MAKEGRID
-    USE MAKECELL
+    USE MESHMOD
+    USE CELLMOD
 
     IMPLICIT NONE
     PUBLIC
@@ -254,8 +254,8 @@ MODULE TEMPERATURE
 CONTAINS
     SUBROUTINE derivatives(m, c)
         ! Calculate first and second derivatives for finite-volume scheme
-        TYPE(GRID), INTENT(INOUT) :: m(1:IMAX, 1:JMAX)
-        TYPE(CELL), INTENT(INOUT) :: c(1:IMAX-1, 1:JMAX-1)
+        TYPE(MESHTYPE), INTENT(INOUT) :: m(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE), INTENT(INOUT) :: c(1:IMAX-1, 1:JMAX-1)
         ! Areas for first derivatives
         REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
         ! First partial derivatives of temperature in x and y directions

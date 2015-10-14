@@ -14,8 +14,8 @@ PROGRAM heatTrans
 
     IMPLICIT NONE
     ! GRID
-    TYPE(GRID), TARGET, ALLOCATABLE :: mesh(:,:)
-    TYPE(CELL), TARGET, ALLOCATABLE :: cells(:,:)
+    TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
+    TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -24,23 +24,28 @@ PROGRAM heatTrans
 
     ! MAKE GRID
     ! Set grid sizei
-    CALL GRIDSIZE(501)
+    CALL GRIDSIZE(101)
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
-    ALLOCATE(cells(1:IMAX-1, 1:JMAX-1))
+    ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
     ! INIITIALIZE SOLUTION
-    CALL init(mesh, cells)
+    WRITE(*,*) 'Making mesh...'
+    CALL init(mesh, cell)
     ! MEASURE WALL TIME FOR OVERALL SOLUTION
+    WRITE(*,*) 'Starting clock for solver...'
     CALL start_clock()
     ! SOLVE
-    CALL solve(mesh, cells, min_res, max_iter, iter)
+    WRITE(*,*) 'Solving heat conduction...'
+    CALL solve(mesh, cell, min_res, max_iter, iter)
     CALL end_clock()
     ! SAVE SOLUTION PARAMETERS
+    WRITE(*,*) 'Writing results...'
     CALL output(mesh, iter)
     ! SAVE SOLUTION AS PLOT3D FILES
     CALL plot3D(mesh)
     ! CLEAN UP
     DEALLOCATE(mesh)
-    DEALLOCATE(cells)
+    DEALLOCATE(cell)
+    WRITE(*,*) 'Done!'
 
 END PROGRAM heatTrans

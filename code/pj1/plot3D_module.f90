@@ -7,7 +7,7 @@
 
 MODULE plot3D_module
     USE CONSTANTS
-    USE MAKEGRID
+    USE MESHMOD
     IMPLICIT NONE
 
     ! VARIABLES
@@ -21,7 +21,7 @@ MODULE plot3D_module
     SUBROUTINE plot3D(mesh)
         IMPLICIT NONE
 
-        TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
+        TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
         INTEGER :: i, j
 
         ! FORMAT STATEMENTS

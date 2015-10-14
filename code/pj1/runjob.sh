@@ -9,4 +9,4 @@ echo "starting at `date` on `hostname`"
 #Run Command (assumes pgi and openmpi)
 
 module load pgi openmpi hwloc
-./main > "listing"
+./main > "a.out"
