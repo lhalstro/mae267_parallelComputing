@@ -1,7 +1,7 @@
 ! MAE 267
 ! PROJECT 1
 ! LOGAN HALSTROM
-! 12 OCTOBER 2015LS
+! 12 OCTOBER 2015
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
@@ -43,23 +43,32 @@ PROGRAM heatTrans
     ! INIITIALIZE SOLUTION
     WRITE(*,*) 'Making mesh...'
     CALL init(mesh, cell)
+
     ! MEASURE WALL TIME FOR OVERALL SOLUTION
-    WRITE(*,*) 'Starting clock for solver...'
-!     CALL start_clock()
-    start_solve = MPI_Wtime()
+!     WRITE(*,*) 'Starting clock for solver...'
+! !     CALL start_clock()
+!     start_solve = MPI_Wtime()
+
     ! SOLVE
     WRITE(*,*) 'Solving heat conduction...'
     CALL solve(mesh, cell, min_res, max_iter, iter)
+
 !     CALL end_clock()
-    end_solve = MPI_Wtime()
-    end_total = MPI_Wtime()
-    wall_time_solve = start_solve - end_solve
-    wall_time_total = start_total - end_total
-    ! SAVE SOLUTION PARAMETERS
+!     end_solve = MPI_Wtime()
+!     end_total = MPI_Wtime()
+!     wall_time_solve = start_solve - end_solve
+!     wall_time_total = start_total - end_total
+
     WRITE(*,*) 'Writing results...'
-    CALL output(mesh, iter)
     ! SAVE SOLUTION AS PLOT3D FILES
     CALL plot3D(mesh)
+    ! CALC TOTAL WALL TIME
+    end_total = MPI_Wtime()
+    wall_time_total = start_total - end_total
+    ! SAVE SOLVER PERFORMANCE PARAMETERS
+    CALL output(mesh, iter)
+
+
     ! CLEAN UP
     DEALLOCATE(mesh)
     DEALLOCATE(cell)

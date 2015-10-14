@@ -59,8 +59,10 @@ CONTAINS
         INTEGER :: iter, max_iter
         INTEGER :: i, j
 
-!         INCLUDE "mpif.h"
-!         REAL(KIND=8) :: start_iter, end_iter
+        INCLUDE "mpif.h"
+        REAL(KIND=8) :: start_solve, end_solve
+        WRITE(*,*) 'Starting clock for solver...'
+        start_solve = MPI_Wtime()
 
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
@@ -89,6 +91,10 @@ CONTAINS
             ! CALC RESIDUAL
             res = MAXVAL(ABS(mesh(2:IMAX-1, 2:JMAX-1)%Ttmp))
         END DO iter_loop
+
+        ! CACL SOLVER WALL CLOCK TIME
+        end_solve = MPI_Wtime()
+        wall_time_solve = end_solve - start_solve
 
         ! SUMMARIZE OUTPUT
         IF (iter > max_iter) THEN
