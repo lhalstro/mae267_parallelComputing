@@ -8,7 +8,7 @@
 ! To compile: mpif90 -o main modules.f90 plot3D_module.f90 subroutines.f90 main.f90
 
 PROGRAM heatTrans
-    INCLUDE mpif.h
+    INCLUDE "mpif.h"
 !     USE CLOCK
     USE CONSTANTS
     USE subroutines
