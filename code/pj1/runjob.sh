@@ -8,5 +8,5 @@ echo "starting at `date` on `hostname`"
 
 #Run Command (assumes pgi and openmpi)
 
-module load pgi openmpi hwloc
-./main > "a.out"
+#module load pgi openmpi hwloc
+./main > "a.out" 
