@@ -64,7 +64,7 @@ PROGRAM heatTrans
     CALL plot3D(mesh)
     ! CALC TOTAL WALL TIME
     end_total = MPI_Wtime()
-    wall_time_total = start_total - end_total
+    wall_time_total = end_total - start_total
     ! SAVE SOLVER PERFORMANCE PARAMETERS
     CALL output(mesh, iter)
 
