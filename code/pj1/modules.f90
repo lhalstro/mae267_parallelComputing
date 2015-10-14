@@ -156,8 +156,8 @@ CONTAINS
         TYPE(CELL), TARGET :: cells(1:IMAX-1,1:JMAX-1)
         TYPE(GRID) :: mesh(1:IMAX, 1:JMAX)
         INTEGER :: i, j
-        DO J = 1, JMAX
-            DO I = 1, IMAX
+        DO j = 1, JMAX
+            DO i = 1, IMAX
                 ! CALC CELL VOLUMES
                     ! (length in x-dir times length in y-dir)
                 cells(i,j)%V = ( (mesh(i+1,j)%xp - mesh(i,j)%xp) ) &
@@ -215,8 +215,8 @@ CONTAINS
         TYPE(GRID), TARGET :: mesh(1:IMAX, 1:JMAX)
         TYPE(CELL), TARGET :: cells(1:IMAX-1, 1:JMAX-1)
         INTEGER :: i, j
-        DO J = 2, JMAX - 1
-            DO I = 2, IMAX - 1
+        DO j = 2, JMAX - 1
+            DO i = 2, IMAX - 1
                 ! CALC TIMESTEP FROM CFL
                 mesh(i,j)%dt = ((CFL * 0.5D0) / alpha) * cells(i,j)%V ** 2 &
                                 / ( (mesh(i+1,j)%xp - mesh(i,j)%xp)**2 &
