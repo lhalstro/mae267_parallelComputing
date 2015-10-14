@@ -24,7 +24,7 @@ PROGRAM heatTrans
 
     ! MAKE GRID
     ! Set grid sizei
-    CALL GRIDSIZE(101)
+    CALL GRIDSIZE(501)
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
     ALLOCATE(cells(1:IMAX-1, 1:JMAX-1))
 
