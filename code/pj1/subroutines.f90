@@ -38,13 +38,13 @@ CONTAINS
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         !PUT DEBUG BC HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         DO j = 1, JMAX
-          CALL init_temp(mesh(1,j), 3.D0 * mesh(1,j)%yp + 2.D0)
-          CALL init_temp(mesh(IMAX,j), 3.D0 * mesh(IMAX,j)%yp + 2.D0)
+            CALL init_temp(mesh(1,j), 3.D0 * mesh(1,j)%yp + 2.D0)
+            CALL init_temp(mesh(IMAX,j), 3.D0 * mesh(IMAX,j)%yp + 2.D0)
         END DO
 
         DO i = 1, IMAX
-          CALL init_temp(mesh(i,1), ABS(COS(pi * mesh(i,1)%xp)) + 1.D0)
-          CALL init_temp(mesh(i,JMAX), 5.D0 * (SIN(pi * mesh(i,JMAX)%xp) + 1.D0))
+            CALL init_temp(mesh(i,1), ABS(COS(pi * mesh(i,1)%xp)) + 1.D0)
+            CALL init_temp(mesh(i,JMAX), 5.D0 * (SIN(pi * mesh(i,JMAX)%xp) + 1.D0))
         END DO
     END SUBROUTINE init
 
@@ -111,9 +111,10 @@ CONTAINS
 
         ! Write down info for project
         OPEN (UNIT = 2, FILE = "SolnInfo.dat")
-        WRITE (2,*), "For a ", IMAX, " by ", JMAX, "size grid, we ran for: "
+        WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid took:"
         WRITE (2,*), iter, "iterations"
-        WRITE (2,*), wall_time, "seconds"
+        WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
+        WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
         WRITE (2,*)
         WRITE (2,*), "Found max residual of ", MAXVAL(tempTemperature)
         WRITE (2,*), "At ij of ", MAXLOC(tempTemperature)

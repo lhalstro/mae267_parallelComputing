@@ -23,7 +23,7 @@ PROGRAM heatTrans
     INTEGER :: max_iter = 1000000, iter = 0
 
     ! MAKE GRID
-    ! Set grid sizei
+    ! Set grid size
     CALL GRIDSIZE(101)
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
