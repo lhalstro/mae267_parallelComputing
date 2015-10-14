@@ -33,7 +33,7 @@ MODULE CONSTANTS
     ! Pi, grid rotation angle (30 deg)
     REAL(KIND=8), PARAMETER :: pi = 3.141592654D0, rot = 30.D0*pi/180.D0
     ! CPU Wall Times
-    REAL(KIND=8) :: wall_time_total, wall_time_solve
+    REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! Grid size
     INTEGER :: IMAX, JMAX
 
