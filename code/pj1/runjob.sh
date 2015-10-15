@@ -9,4 +9,5 @@ echo "starting at `date` on `hostname`"
 #Run Command (assumes pgi and openmpi)
 
 #module load pgi openmpi hwloc
-./main > "a.out" 
+#'&' will run process in background until it is complete
+./main > "a.out" & 
