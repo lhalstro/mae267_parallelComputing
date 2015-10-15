@@ -77,3 +77,11 @@ Thread Safety --> guarantee that a message will arrive exactly as it was sent
 ***clock function given by prof is different, uses MPI
 
 10/15
+use linked lists to store series of info that you dont know how long it will be
+    i.e. residual history
+*** save in PLOT3D formatted to show in report
+*** only need first and last few lines of file, whole thing is too big
+run in background:
+    'nohup ./main > 'listing' & --> run on front end of hpc1
+    'sbatch runscript.sh' --> run on compute nodes
+        see hpc1 wiki for notes on slurm
