@@ -1,0 +1,7 @@
+ Running a         501 by         501 grid took:
+      176325 iterations
+   1292.9043600559235      seconds (Total CPU walltime)
+   1292.8206429481506      seconds (Solver CPU walltime)
+
+ Found max residual of    9.9999431423345320E-006
+ At ij of          196         207

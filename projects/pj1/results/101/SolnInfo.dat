@@ -1,0 +1,7 @@
+ Running a         101 by         101 grid took:
+       15987 iterations
+   3.3772470951080322      seconds (Total CPU walltime)
+   3.3728578090667725      seconds (Solver CPU walltime)
+
+ Found max residual of    9.9976378598399043E-006
+ At ij of           39          39
