@@ -1,4 +1,4 @@
-#/bin/bash -l
+#!/bin/bash -l
 #SBATCH -J r_adia
 #SBATCH -o r_adia-%J.out
 #SBATCH -e r_adia-%J.err

@@ -9,6 +9,8 @@
     ! makes executable file 'main'
     ! run with ./main or ./runjob.sh
 ! 'rm *.mod' afterward to clean up unneeded compiled files
+! mpif90 -o main -O3 modules.f90 plot3D_module.f90 subroutines.f90 main.f90
+
 
 PROGRAM heatTrans
 !     USE CLOCK
@@ -36,7 +38,7 @@ PROGRAM heatTrans
 
     ! MAKE GRID
     ! Set grid size
-    CALL GRIDSIZE(101)
+    CALL GRIDSIZE(501)
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
