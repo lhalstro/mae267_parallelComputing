@@ -85,3 +85,32 @@ run in background:
     'nohup ./main > 'listing' & --> run on front end of hpc1
     'sbatch runscript.sh' --> run on compute nodes
         see hpc1 wiki for notes on slurm
+
+10/20
+do's and dont's of projects
+    DO
+        optimize compile -O3
+        comment code
+        in-line compiler option (put subroutines inline)
+        whole array operations --> dont use do loops for element-wise opertations
+        do j, then do i --> order is same as the pipe info is stored in
+    DONT
+        **put logic inside do loops
+        call subroutines inside loops
+        use debug compiler options --> very slow
+
+**actually calculate the cross-product of areas, dont use xp, yp
+**calculate projected areas/volumes ahead of time, only need to do once
+**test out CFL, use max that doesnt make it unstable
+**better to allocate an entire array instead of list of scalars.  so for derived data type, instead of mesh(i,j)%x do mesh%x(i,j)
+    allows better vectorization
+    **call kernal on a per block basis --> 'CALL KERNAL(variable you need)'
+    blocks(N)%u(imax,jmax,variable)
+    where blocks holds all data, N is block number, u is a container for all variables, ij are indicies for
+multiply by inverse of number is faster than divide
+    compiler optimization should do this but just in case
+
+hw3:
+calcpip bug --> status variable for sends and recieves needs to be an array, not a scalar
+staggar sends and recievies
+256 intervals, use 1, 2, 4, and 8 processors (divisible)
