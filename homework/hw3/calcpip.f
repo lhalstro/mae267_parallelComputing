@@ -1,5 +1,5 @@
       PROGRAM CALCPIP
-      ! TO COMPILE: mpif90 -o calcpip -O3 trap.f calcpip.f
+      ! TO COMPILE: mpif90 -o calcpip -O3 simp.f calcpip.f
       ! TO RUN COMPILED EXECUTABLE: mpirun -n number_of_processors executable_name
       IMPLICIT NONE
 
@@ -46,7 +46,8 @@
       BK = AK + REAL(NK)*H
 
       ! COMPUTE LOCAL INTEGRAL
-      CALL TRAP(AK,BK,NK,SUBPI)
+!       CALL TRAP(AK,BK,NK,SUBPI)
+      CALL SIMP(AK,BK,NK,SUBPI)
 
       ! SET UP A MASTER-SLAVE RELATIONSHIP WHERE THE MASTER
       ! IS RESPONSIBLE FOR ACCUMULATING THE SUB-INTEGRALS
@@ -79,12 +80,17 @@
         walltime = end - start
         ! OUTPUT
         OPEN (UNIT = 1, FILE = 'a.out')
-        WRITE (1,*), "Simposon's Rule"
-        WRITE (1,*), NPROCS, "Processors"
-        WRITE (1,*), walltime, "seconds, (Total wall time)"
-        WRITE (1,*), walltime/REAL(NPROCS), "seconds, (Per CPU wall time)"
-        WRITE (1,*), wall_time_total, "seconds (Total CPU walltime)"
-        WRITE (1,*), wall_time_solve, "seconds (Solver CPU walltime)"
+        WRITE (1,*), "Simpson's Rule"
+        WRITE (1,*), "# of sub-intervals:"
+        WRITE (1,*), N
+        WRITE (1,*), "# of Processors:"
+        WRITE (1,*), NPROCS
+        WRITE (1,*), "Result for Pi:"
+        WRITE (1,*), PI
+        WRITE (1,*), "Total wall time (seconds):"
+        WRITE (1,*), walltime
+        WRITE (1,*), "Wall time per CPU (seconds):"
+        WRITE (1,*), ( walltime/REAL(NPROCS) )
         CLOSE (1)
       END IF
 
