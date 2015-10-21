@@ -1,12 +1,13 @@
 #!/bin/bash -l
-#SBATCH -J r_adia
-#SBATCH -o r_adia-%J.out
-#SBATCH -e r_adia-%J.err
-#SBATCH -n 1
+#SBATCH -J calcpip
+#SBATCH -o slurm-%J.out
+#SBATCH -e slurm-%J.err
+NPROCS=2
+#SBATCH -n $NPROCS
 
 echo "starting at `date` on `hostname`"
 
 #Run Command (assumes pgi and openmpi)
 
 #module load pgi openmpi hwloc
-mpirun -n 1 calcpip > "a.out"
+mpirun -n $NPROCS calcpip > "a.out"
