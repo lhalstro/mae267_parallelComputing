@@ -1,0 +1,11 @@
+ Simpson's Rule
+ # of sub-intervals:
+         256
+ # of Processors:
+           4
+ Result for Pi:
+   3.1415901104582828     
+ Total wall time (seconds):
+   1.2919902801513672E-003
+ Wall time per CPU (seconds):
+   3.2299757003784180E-004

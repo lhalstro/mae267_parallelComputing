@@ -2,7 +2,7 @@
 #SBATCH -J calcpip
 #SBATCH -o slurm-%J.out
 #SBATCH -e slurm-%J.err
-NPROCS=2
+NPROCS=1
 #SBATCH -n $NPROCS
 
 echo "starting at `date` on `hostname`"

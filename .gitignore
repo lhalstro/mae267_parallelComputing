@@ -2,6 +2,8 @@
 results
 writeup
 JohnMAE-267
+*.err
+*.out
 #Name of compiled main function
 main
 *.dat

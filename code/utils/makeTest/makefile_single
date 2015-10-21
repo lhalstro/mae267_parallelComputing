@@ -1,0 +1,58 @@
+#Sample Makefile for Bounce
+#Written by Michael Ahlmann and modified by Roger Davis
+#Written for MAE267
+
+#Assumptions
+#	1) Prorgram is written in fortran
+#	2) All files are in current directory
+#	3) All files have .f, .f90, or .f95 extension
+
+#Set Compiler Flags (to pgi version of openmpi)
+FC = mpif90
+
+#Set Optimization or Debug Flags
+#     -fast = Full Optimizations
+#     -g    = Debug Mode
+OPTMZ = -fast
+
+#Set Compiler Flags
+#       -c       = Compile Only Don't Link (Required)
+CFLAGS = -c
+
+#Set Compiler Libraries
+LIBS =
+
+#Set Program Name
+PROG = main
+
+#List Object Files
+#	This section should include all files to be
+#	compiled with the .f, .f90, or .f95 extension replaced with
+# 	a .o extension. Use \ at the end of each line to
+#	extend across multiple lines
+OBJS = main.o \
+	subroutines.o \
+	modules.o
+
+#List Modules (follow same rules as for objects)
+MODULES =
+
+#Command Telling Make to Compile Program
+$(PROG): $(MODULES) $(OBJS)
+	$(FC) $(OBJS) $(MODULES) $(OPTMZ) -o $(PROG) 
+
+#Command Telling Make to Compile Modules
+$(MODULES): %.o: %.f90
+	$(FC) $(CFLAGS) $(OPTMZ) $< -o $@
+
+#Command Telling Make to Compile Object Files
+$(OBJS): %.o: %.f $(MODULES)
+	$(FC) $(CFLAGS) $(OPTMZ) $< -o $@
+
+#Command to Clean Directory if User Desires
+clean:
+	rm -f *.o
+	rm -f *.mod
+	rm $(PROG)
+	rm main.o*
+	rm main.po*
