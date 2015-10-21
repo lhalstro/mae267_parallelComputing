@@ -22,9 +22,14 @@
 
       ! have the first processor only read user i/o
       IF(MYID == 0) THEN
-        !READ THE NUMBER OF SUB-INTERVALS
-        PRINT *,'INPUT THE NUMBER OF SUB-INTERVALS'
-        READ(*,*) N
+        ! INPUT FILE
+        OPEN (UNIT = 2, FILE = 'a.in')
+        ! READ NUMBER OF SUB-INTERVALS FROM FIRST LINE
+        READ(2,*) N
+!         !READ THE NUMBER OF SUB-INTERVALS
+!         PRINT *,'INPUT THE NUMBER OF SUB-INTERVALS'
+!         READ(*,*) N
+        PRINT *, 'INTEGRATING', N, 'SUB-INTERVALS'
         PRINT *, 'RUNNING ON', NPROCS, 'PROCESSORS'
         ! CLOCK TIME OF RUN
         start = MPI_Wtime()
