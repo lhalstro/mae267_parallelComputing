@@ -79,7 +79,7 @@
         end = MPI_Wtime()
         walltime = end - start
         ! OUTPUT
-        OPEN (UNIT = 1, FILE = 'a.out')
+        OPEN (UNIT = 1, FILE = 'results.dat')
         WRITE (1,*), "Simpson's Rule"
         WRITE (1,*), "# of sub-intervals:"
         WRITE (1,*), N
