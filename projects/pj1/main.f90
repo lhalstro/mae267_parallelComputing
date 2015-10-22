@@ -19,6 +19,10 @@ PROGRAM heatTrans
 
     IMPLICIT NONE
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! INITIALIZE VARIABLES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     ! GRID
     TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
@@ -34,17 +38,22 @@ PROGRAM heatTrans
     ! CLOCK TOTAL TIME OF RUN
     start_total = MPI_Wtime()
 
-    ! READ INPUTS
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! READ INPUTS FROM FILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     OPEN (UNIT = 1, FILE = 'config.in')
-    ! READ NUMBER OF SUB-INTERVALS FROM FIRST LINE
-    DO I, 3
+    DO I = 1, 3
         ! Skip header lines
         READ(1,*)
     END DO
     ! READ GRIDSIZE (4th line)
     READ(1,*) n
 
-    ! MAKE GRID
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     ! Set grid size
     IMAX = n
     JMAX = n
@@ -52,23 +61,20 @@ PROGRAM heatTrans
     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
     ! INIITIALIZE SOLUTION
+
     WRITE(*,*) 'Making mesh...'
     CALL init(mesh, cell)
 
-    ! MEASURE WALL TIME FOR OVERALL SOLUTION
-!     WRITE(*,*) 'Starting clock for solver...'
-! !     CALL start_clock()
-!     start_solve = MPI_Wtime()
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! SOLVE
     WRITE(*,*) 'Solving heat conduction...'
     CALL solve(mesh, cell, min_res, max_iter, iter)
 
-!     CALL end_clock()
-!     end_solve = MPI_Wtime()
-!     end_total = MPI_Wtime()
-!     wall_time_solve = start_solve - end_solve
-!     wall_time_total = start_total - end_total
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     WRITE(*,*) 'Writing results...'
     ! SAVE SOLUTION AS PLOT3D FILES
@@ -79,8 +85,10 @@ PROGRAM heatTrans
     ! SAVE SOLVER PERFORMANCE PARAMETERS
     CALL output(mesh, iter)
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! CLEAN UP
     DEALLOCATE(mesh)
     DEALLOCATE(cell)
     WRITE(*,*) 'Done!'

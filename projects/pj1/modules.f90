@@ -23,7 +23,7 @@ MODULE CONSTANTS
     ! Initialize constants for simulation.  Set grid size.
     IMPLICIT NONE
     ! CFL number, for convergence (D0 is double-precision, scientific notation)
-    REAL(KIND=8), PARAMETER :: CFL = 0.5D0
+    REAL(KIND=8), PARAMETER :: CFL = 0.95D0
     ! Material constants (steel): thermal conductivity [W/(m*K)],
                                 ! density [kg/m^3],
                                 ! specific heat ratio [J/(kg*K)]
@@ -37,39 +37,7 @@ MODULE CONSTANTS
     ! Grid size
     INTEGER :: IMAX, JMAX
 
-CONTAINS
-    SUBROUTINE GRIDSIZE(n)
-        ! Set size of grid (square)
-        INTEGER :: n
-        IMAX = n
-        JMAX = n
-    END SUBROUTINE GRIDSIZE
 END MODULE CONSTANTS
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! WALL CLOCK TIME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-MODULE CLOCK
-    ! Calculates clock wall-time of a process.
-    INTEGER clock_start, clock_end, clock_max, clock_rate
-    REAL(KIND=8) wall_time
-
-CONTAINS
-    SUBROUTINE start_clock()
-        ! get clock parameters
-        CALL SYSTEM_CLOCK(count_max=clock_max, count_rate=clock_rate)
-        ! Get start time
-        CALL SYSTEM_CLOCK(clock_start)
-    END SUBROUTINE start_clock
-
-    SUBROUTINE end_clock()
-        ! Get end time
-        CALL SYSTEM_CLOCK(clock_end)
-        wall_time = DFLOAT(clock_end - clock_start) / DFLOAT(clock_rate)
-        PRINT*, 'Solver wall clock time (seconds):', wall_time
-    END SUBROUTINE end_clock
-END MODULE CLOCK
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! INITIALIZE GRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -98,32 +66,27 @@ MODULE MESHMOD
 CONTAINS
     SUBROUTINE init_mesh(mesh)
         ! Mesh points (derived data type)
-        TYPE(MESHTYPE), TARGET :: mesh(1:IMAX, 1:JMAX)
-        ! Pointer for mesh points
-        TYPE(MESHTYPE), POINTER :: m
+        TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
         INTEGER :: i, j
 
         DO j = 1, JMAX
             DO i = 1, IMAX
-                m => mesh(i, j)
-                ! 'p' points to 'mesh', i is variable in derived data type
-                    ! accessed by '%'
                 ! MAKE SQUARE GRID
-                m%i = i
-                m%j = j
+                mesh(i, j)%i = i
+                mesh(i, j)%j = j
                 ! ROTATE GRID
-                m%xp = COS( 0.5D0 * pi * DFLOAT(IMAX - i) / DFLOAT(IMAX - 1) )
-                m%yp = COS( 0.5D0 * pi * DFLOAT(JMAX - j) / DFLOAT(JMAX - 1) )
+                mesh(i, j)%xp = COS( 0.5D0 * pi * DFLOAT(IMAX - i) / DFLOAT(IMAX - 1) )
+                mesh(i, j)%yp = COS( 0.5D0 * pi * DFLOAT(JMAX - j) / DFLOAT(JMAX - 1) )
 
-                m%x = m%xp * COS(rot) + (1.D0 - m%yp ) * SIN(rot)
-                m%y = m%yp * COS(rot) + (m%xp) * SIN(rot)
+                mesh(i, j)%x = mesh(i, j)%xp * COS(rot) + (1.D0 - mesh(i, j)%yp ) * SIN(rot)
+                mesh(i, j)%y = mesh(i, j)%yp * COS(rot) + (mesh(i, j)%xp) * SIN(rot)
             END DO
         END DO
     END SUBROUTINE init_mesh
 
     SUBROUTINE init_temp(m, T)
         ! Initialize temperature across mesh
-        ! m --> pointer for mesh vector
+        ! m --> mesh vector
         ! T --> initial temperature profile
         TYPE(MESHTYPE), INTENT(INOUT) :: m
         REAL(KIND=8) :: T
@@ -156,7 +119,7 @@ CONTAINS
         ! cell --> derived data type containing cell info
         ! mesh --> derived data type containing mesh point info
         TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
-        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1,1:JMAX-1)
+        TYPE(CELLTYPE) :: cell(1:IMAX-1,1:JMAX-1)
         INTEGER :: i, j
 
         DO j = 1, JMAX-1
@@ -169,13 +132,12 @@ CONTAINS
         END DO
     END SUBROUTINE init_cells
 
-    SUBROUTINE calc_2nd_areas(m, cell)
+    SUBROUTINE calc_2nd_areas(m, c)
         ! calculate areas for secondary fluxes.
-        ! cell --> derived data type with cell data, target for c
+        ! c --> derived data type with cell data, target for c
         ! m --> mesh points
-        TYPE(MESHTYPE), TARGET :: m(1:IMAX, 1:JMAX)
-        TYPE(CELLTYPE), TARGET :: cell(1:IMAX-1, 1:JMAX-1)
-        TYPE(CELLTYPE), POINTER :: c
+        TYPE(MESHTYPE) :: m(1:IMAX, 1:JMAX)
+        TYPE(CELLTYPE) :: c(1:IMAX-1, 1:JMAX-1)
         INTEGER :: i, j
         ! Areas used in alternative scheme to get fluxes for second-derivative
         REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
@@ -197,18 +159,17 @@ CONTAINS
         ! Actual finite-volume scheme equation parameters
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
-                c => cell(i, j)
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
-                c%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )
-                c%xPN = (  Axi_half(i,j) - Axj_half(i,j) )
-                c%xPP = (  Axi_half(i,j) + Axj_half(i,j) )
-                c%xNP = ( -Axi_half(i,j) + Axj_half(i,j) )
+                c(i, j)%xNN = ( -Axi_half(i,j) - Axj_half(i,j) )
+                c(i, j)%xPN = (  Axi_half(i,j) - Axj_half(i,j) )
+                c(i, j)%xPP = (  Axi_half(i,j) + Axj_half(i,j) )
+                c(i, j)%xNP = ( -Axi_half(i,j) + Axj_half(i,j) )
 
-                c%yPP = (  Ayi_half(i,j) + Ayj_half(i,j) )
-                c%yNP = ( -Ayi_half(i,j) + Ayj_half(i,j) )
-                c%yNN = ( -Ayi_half(i,j) - Ayj_half(i,j) )
-                c%yPN = (  Ayi_half(i,j) - Ayj_half(i,j) )
+                c(i, j)%yPP = (  Ayi_half(i,j) + Ayj_half(i,j) )
+                c(i, j)%yNP = ( -Ayi_half(i,j) + Ayj_half(i,j) )
+                c(i, j)%yNN = ( -Ayi_half(i,j) - Ayj_half(i,j) )
+                c(i, j)%yPN = (  Ayi_half(i,j) - Ayj_half(i,j) )
             END DO
         END DO
     END SUBROUTINE calc_2nd_areas
