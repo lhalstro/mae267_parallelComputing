@@ -114,3 +114,6 @@ hw3:
 calcpip bug --> status variable for sends and recieves needs to be an array, not a scalar
 staggar sends and recievies
 256 intervals, use 1, 2, 4, and 8 processors (divisible)
+
+10/22
+

@@ -5,11 +5,10 @@
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
-! To compile: mpif90 -o main modules.f90 plot3D_module.f90 subroutines.f90 main.f90
+! To compile: mpif90 -o main -O3 modules.f90 plot3D_module.f90 subroutines.f90 main.f90
     ! makes executable file 'main'
-    ! run with ./main or ./runjob.sh
-! 'rm *.mod' afterward to clean up unneeded compiled files
-! mpif90 -o main -O3 modules.f90 plot3D_module.f90 subroutines.f90 main.f90
+    ! 'rm *.mod' afterward to clean up unneeded compiled files
+! To run: ./main or ./run.sh or sbatch run.sh on hpc1
 
 
 PROGRAM heatTrans
@@ -27,7 +26,7 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000, iter = 0
+    INTEGER :: I, n, max_iter = 1000000, iter = 0
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
@@ -35,10 +34,20 @@ PROGRAM heatTrans
     ! CLOCK TOTAL TIME OF RUN
     start_total = MPI_Wtime()
 
+    ! READ INPUTS
+    OPEN (UNIT = 1, FILE = 'config.in')
+    ! READ NUMBER OF SUB-INTERVALS FROM FIRST LINE
+    DO I, 3
+        ! Skip header lines
+        READ(1,*)
+    END DO
+    ! READ GRIDSIZE (4th line)
+    READ(1,*) n
 
     ! MAKE GRID
     ! Set grid size
-    CALL GRIDSIZE(501)
+    IMAX = n
+    JMAX = n
     ALLOCATE(mesh(1:IMAX, 1:JMAX))
     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
