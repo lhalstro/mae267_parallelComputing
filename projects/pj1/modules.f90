@@ -60,6 +60,8 @@ MODULE MESHMOD
         ! Iteration Parameters: timestep, secondary cell volume,
                                     ! equation constant term
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: dt, V2nd, term
+        ! Areas used in alternative scheme to get fluxes for second-derivative
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: Ayi, Axi, Ayj, Axj
     END TYPE MESHTYPE
 
 CONTAINS
@@ -78,6 +80,11 @@ CONTAINS
         ALLOCATE( mesh%dt(  1:IMAX, 1:JMAX) )
         ALLOCATE( mesh%V2nd(1:IMAX, 1:JMAX) )
         ALLOCATE( mesh%term(1:IMAX, 1:JMAX) )
+
+        ALLOCATE( mesh%Ayi(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Axi(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Ayj(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Axj(1:IMAX, 1:JMAX) )
 
         DO j = 1, JMAX
             DO i = 1, IMAX
@@ -166,37 +173,46 @@ CONTAINS
         TYPE(MESHTYPE) :: m
         TYPE(CELLTYPE) :: c
         INTEGER :: i, j
-        ! Areas used in alternative scheme to get fluxes for second-derivative
-        REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
         ! Areas used in counter-clockwise trapezoidal integration to get
         ! x and y first-derivatives for center of each cell (Green's thm)
         REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
 
-        ! CALC CELL AREAS
-        Axi(i,j) = m%x(i,j+1) - m%x(i,j)
-        Axj(i,j) = m%x(i+1,j) - m%x(i,j)
-        Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
-        Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
+!         ! CALC CELL AREAS
+!         m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
+!         m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
+!         m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
+!         m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
 
-        Axi_half(i,j) = ( Axi(i+1,j) + Axi(i,j) ) * 0.25D0
-        Axj_half(i,j) = ( Axj(i,j+1) + Axj(i,j) ) * 0.25D0
-        Ayi_half(i,j) = ( Ayi(i+1,j) + Ayi(i,j) ) * 0.25D0
-        Ayj_half(i,j) = ( Ayj(i,j+1) + Ayj(i,j) ) * 0.25D0
+!         Axi_half(i,j) = ( m%Axi(i+1,j) + m%Axi(i,j) ) * 0.25D0
+!         Axj_half(i,j) = ( m%Axj(i,j+1) + m%Axj(i,j) ) * 0.25D0
+!         Ayi_half(i,j) = ( m%Ayi(i+1,j) + m%Ayi(i,j) ) * 0.25D0
+!         Ayj_half(i,j) = ( m%Ayj(i,j+1) + m%Ayj(i,j) ) * 0.25D0
 
         ! Actual finite-volume scheme equation parameters
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
+                ! CALC CELL AREAS
+                m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
+                m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
+                m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
+                m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
+
+                Axi_half = ( m%Axi(i+1,j) + m%Axi(i,j) ) * 0.25D0
+                Axj_half = ( m%Axj(i,j+1) + m%Axj(i,j) ) * 0.25D0
+                Ayi_half = ( m%Ayi(i+1,j) + m%Ayi(i,j) ) * 0.25D0
+                Ayj_half = ( m%Ayj(i,j+1) + m%Ayj(i,j) ) * 0.25D0
+
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
-                c%xNN(i, j) = ( -Axi_half(i,j) - Axj_half(i,j) )
-                c%xPN(i, j) = (  Axi_half(i,j) - Axj_half(i,j) )
-                c%xPP(i, j) = (  Axi_half(i,j) + Axj_half(i,j) )
-                c%xNP(i, j) = ( -Axi_half(i,j) + Axj_half(i,j) )
+                c%xNN(i, j) = ( -Axi_half - Axj_half )
+                c%xPN(i, j) = (  Axi_half - Axj_half )
+                c%xPP(i, j) = (  Axi_half + Axj_half )
+                c%xNP(i, j) = ( -Axi_half + Axj_half )
 
-                c%yPP(i, j) = (  Ayi_half(i,j) + Ayj_half(i,j) )
-                c%yNP(i, j) = ( -Ayi_half(i,j) + Ayj_half(i,j) )
-                c%yNN(i, j) = ( -Ayi_half(i,j) - Ayj_half(i,j) )
-                c%yPN(i, j) = (  Ayi_half(i,j) - Ayj_half(i,j) )
+                c%yPP(i, j) = (  Ayi_half + Ayj_half )
+                c%yNP(i, j) = ( -Ayi_half + Ayj_half )
+                c%yNN(i, j) = ( -Ayi_half - Ayj_half )
+                c%yPN(i, j) = (  Ayi_half - Ayj_half )
             END DO
         END DO
     END SUBROUTINE calc_2nd_areas
@@ -246,17 +262,9 @@ CONTAINS
         ! Calculate first and second derivatives for finite-volume scheme
         TYPE(MESHTYPE), INTENT(INOUT) :: m
         TYPE(CELLTYPE), INTENT(INOUT) :: c
-        ! Areas for first derivatives
-        REAL(KIND=8) :: Ayi, Axi, Ayj, Axj
         ! First partial derivatives of temperature in x and y directions
         REAL(KIND=8) :: dTdx, dTdy
         INTEGER :: i, j
-
-        ! CALC CELL AREAS
-        Axi(i,j) = m%x(i,j+1) - m%x(i,j)
-        Axj(i,j) = m%x(i+1,j) - m%x(i,j)
-        Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
-        Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
 
         ! RESET SUMMATION
         m%Ttmp = 0.D0
@@ -265,16 +273,16 @@ CONTAINS
             DO i = 1, IMAX - 1
                 ! CALC FIRST DERIVATIVES
                 dTdx = + 0.5d0 &
-                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * Ayi(i+1,j) &
-                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * Ayi(i,  j) &
-                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * Ayj(i,j+1) &
-                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * Ayj(i,  j) &
+                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * m%Ayi(i+1,j) &
+                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Ayi(i,  j) &
+                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Ayj(i,j+1) &
+                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Ayj(i,  j) &
                                 ) / c%V(i,j)
                 dTdy = - 0.5d0 &
-                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * Axi(i+1,j) &
-                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * Axi(i,  j) &
-                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * Axj(i,j+1) &
-                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * Axj(i,  j) &
+                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * m%Axi(i+1,j) &
+                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Axi(i,  j) &
+                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Axj(i,j+1) &
+                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Axj(i,  j) &
                                 ) / c%V(i,j)
 
                 ! Alternate distributive scheme second-derivative operator.
