@@ -24,8 +24,10 @@ PROGRAM heatTrans
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! GRID
-    TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
-    TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
+!     TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
+!     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
+    TYPE(MESHTYPE) :: mesh
+    TYPE(CELLTYPE) :: cell
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -57,8 +59,8 @@ PROGRAM heatTrans
     ! Set grid size
     IMAX = n
     JMAX = n
-    ALLOCATE(mesh(1:IMAX, 1:JMAX))
-    ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
+!     ALLOCATE(mesh(1:IMAX, 1:JMAX))
+!     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
     ! INIITIALIZE SOLUTION
 
