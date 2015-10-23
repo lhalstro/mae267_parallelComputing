@@ -177,25 +177,24 @@ CONTAINS
         ! x and y first-derivatives for center of each cell (Green's thm)
         REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
 
-!         ! CALC CELL AREAS
-!         m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
-!         m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
-!         m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
-!         m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
-
-!         Axi_half(i,j) = ( m%Axi(i+1,j) + m%Axi(i,j) ) * 0.25D0
-!         Axj_half(i,j) = ( m%Axj(i,j+1) + m%Axj(i,j) ) * 0.25D0
-!         Ayi_half(i,j) = ( m%Ayi(i+1,j) + m%Ayi(i,j) ) * 0.25D0
-!         Ayj_half(i,j) = ( m%Ayj(i,j+1) + m%Ayj(i,j) ) * 0.25D0
+        DO j = 1, JMAX
+            DO i = 1, IMAX-1
+                ! CALC CELL AREAS
+                m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
+                m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
+            END DO
+        END DO
+        DO j = 1, JMAX-1
+            DO i = 1, IMAX
+                ! CALC CELL AREAS
+                m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
+                m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
+            END DO
+        END DO
 
         ! Actual finite-volume scheme equation parameters
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
-                ! CALC CELL AREAS
-                m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
-                m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
-                m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
-                m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
 
                 Axi_half = ( m%Axi(i+1,j) + m%Axi(i,j) ) * 0.25D0
                 Axj_half = ( m%Axj(i,j+1) + m%Axj(i,j) ) * 0.25D0
