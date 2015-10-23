@@ -21,7 +21,7 @@ MODULE plot3D_module
     SUBROUTINE plot3D(mesh)
         IMPLICIT NONE
 
-        TYPE(MESHTYPE) :: mesh(1:IMAX, 1:JMAX)
+        TYPE(MESHTYPE) :: mesh
         INTEGER :: i, j
 
         ! FORMAT STATEMENTS
@@ -53,15 +53,15 @@ MODULE plot3D_module
             ! (Paraview likes unformatted better)
         WRITE(gridUnit) nBlocks
         WRITE(gridUnit) IMAX,JMAX
-        WRITE(gridUnit) ((mesh(i,j)%x,i=1,IMAX),j=1,JMAX), ((mesh(i,j)%y,i=1,IMAX),j=1,JMAX)
+        WRITE(gridUnit) ((mesh%x(i,j),i=1,IMAX),j=1,JMAX), ((mesh%y(i,j),i=1,IMAX),j=1,JMAX)
 
         ! WRITE TO TEMPERATURE FILE
             ! When read in paraview, 'density' will be equivalent to temperature
         WRITE(tempUnit) nBlocks
         WRITE(tempUnit) IMAX,JMAX
         WRITE(tempUnit) tRef,dum,dum,dum
-        WRITE(tempUnit) ((mesh(i,j)%T,i=1,IMAX),j=1,JMAX), ((mesh(i,j)%T,i=1,IMAX),j=1,JMAX), &
-                           ((mesh(i,j)%T,i=1,IMAX),j=1,JMAX), ((mesh(i,j)%T,i=1,IMAX),j=1,JMAX)
+        WRITE(tempUnit) ((mesh%T(i,j),i=1,IMAX),j=1,JMAX), ((mesh%T(i,j),i=1,IMAX),j=1,JMAX), &
+                           ((mesh%T(i,j),i=1,IMAX),j=1,JMAX), ((mesh%T(i,j),i=1,IMAX),j=1,JMAX)
 
         ! CLOSE FILES
         CLOSE(gridUnit)

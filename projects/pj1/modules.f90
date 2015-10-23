@@ -54,12 +54,12 @@ MODULE MESHMOD
     TYPE MESHTYPE
         ! DERIVED DATA TYPE
         ! Grid points, see cooridinate rotaion equations in problem statement
-        REAL(KIND=8) :: xp(1:IMAX, 1:JMAX), yp(1:IMAX, 1:JMAX), x(1:IMAX, 1:JMAX), y(1:IMAX, 1:JMAX)
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xp, yp, x, y
         ! Temperature at each point, temporary variable to hold temperature sum
-        REAL(KIND=8) :: T(1:IMAX, 1:JMAX), Ttmp(1:IMAX, 1:JMAX)
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: T, Ttmp
         ! Iteration Parameters: timestep, secondary cell volume,
                                     ! equation constant term
-        REAL(KIND=8) :: dt(1:IMAX, 1:JMAX), V2nd(1:IMAX, 1:JMAX), term(1:IMAX, 1:JMAX)
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: dt, V2nd, term
     END TYPE MESHTYPE
 
 CONTAINS
@@ -67,6 +67,17 @@ CONTAINS
         ! Mesh points (derived data type)
         TYPE(MESHTYPE) :: mesh
         INTEGER :: i, j
+
+        ! ALLOCATE MESH INFORMATION
+        ALLOCATE( mesh%xp(  1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%yp(  1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%x(   1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%y(   1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%T(   1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Ttmp(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%dt(  1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%V2nd(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%term(1:IMAX, 1:JMAX) )
 
         DO j = 1, JMAX
             DO i = 1, IMAX
@@ -113,10 +124,10 @@ MODULE CELLMOD
 
     TYPE CELLTYPE
         ! Cell volumes
-        REAL(KIND=8) :: V(1:IMAX-1,1:JMAX-1)
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: V
         ! Second-derivative weighting factors for alternative distribution scheme
-        REAL(KIND=8) :: yPP(1:IMAX-1,1:JMAX-1), yNP(1:IMAX-1,1:JMAX-1), yNN(1:IMAX-1,1:JMAX-1), yPN(1:IMAX-1,1:JMAX-1)
-        REAL(KIND=8) :: xNN(1:IMAX-1,1:JMAX-1), xPN(1:IMAX-1,1:JMAX-1), xPP(1:IMAX-1,1:JMAX-1), xNP(1:IMAX-1,1:JMAX-1)
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: yPP, yNP, yNN, yPN
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
     END TYPE CELLTYPE
 
 CONTAINS
@@ -126,6 +137,17 @@ CONTAINS
         TYPE(MESHTYPE) :: mesh
         TYPE(CELLTYPE) :: cell
         INTEGER :: i, j
+
+        ! ALLOCATE CELL INFORMATION
+        ALLOCATE( cell%V(  1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%yPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%yNP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%yNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%yPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%xNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%xPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%xPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( cell%xNP(1:IMAX-1, 1:JMAX-1) )
 
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
@@ -247,13 +269,13 @@ CONTAINS
                             -  ( m%T(i,  j) + m%T(i,  j+1) ) * Ayi(i,  j) &
                             -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * Ayj(i,j+1) &
                             +  ( m%T(i,  j) + m%T(i+1,  j) ) * Ayj(i,  j) &
-                                ) / c(i,j)%V
+                                ) / c%V(i,j)
                 dTdy = - 0.5d0 &
                             * (( m%T(i+1,j) + m%T(i+1,j+1) ) * Axi(i+1,j) &
                             -  ( m%T(i,  j) + m%T(i,  j+1) ) * Axi(i,  j) &
                             -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * Axj(i,j+1) &
                             +  ( m%T(i,  j) + m%T(i+1,  j) ) * Axj(i,  j) &
-                                ) / c(i,j)%V
+                                ) / c%V(i,j)
 
                 ! Alternate distributive scheme second-derivative operator.
                 m%Ttmp(i+1,  j) = m%Ttmp(i+1,  j) + m%term(i+1,  j) * ( c%yNN(i,j) * dTdx + c%xPP(i,j) * dTdy )

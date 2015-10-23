@@ -91,8 +91,26 @@ PROGRAM heatTrans
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    DEALLOCATE(mesh)
-    DEALLOCATE(cell)
+    DEALLOCATE( mesh%xp   )
+    DEALLOCATE( mesh%yp   )
+    DEALLOCATE( mesh%x    )
+    DEALLOCATE( mesh%y    )
+    DEALLOCATE( mesh%T    )
+    DEALLOCATE( mesh%Ttmp )
+    DEALLOCATE( mesh%dt   )
+    DEALLOCATE( mesh%V2nd )
+    DEALLOCATE( mesh%term )
+
+    DEALLOCATE( cell%V  )
+    DEALLOCATE( cell%yPP)
+    DEALLOCATE( cell%yNP)
+    DEALLOCATE( cell%yNN)
+    DEALLOCATE( cell%yPN)
+    DEALLOCATE( cell%xNN)
+    DEALLOCATE( cell%xPN)
+    DEALLOCATE( cell%xPP)
+    DEALLOCATE( cell%xNP)
+
     WRITE(*,*) 'Done!'
 
 
