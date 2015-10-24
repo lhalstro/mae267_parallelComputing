@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 1
+! PROJECT 2
 ! LOGAN HALSTROM
-! 12 OCTOBER 2015
+! 23 OCTOBER 2015
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
@@ -32,7 +32,7 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: I, n, max_iter = 1000000, iter = 0
+    INTEGER :: I, nx, N, M, max_iter = 1000000, iter = 0
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
@@ -50,15 +50,21 @@ PROGRAM heatTrans
         READ(1,*)
     END DO
     ! READ GRIDSIZE (4th line)
-    READ(1,*) n
+    READ(1,*) nx
+    ! READ BLOCKS (6th and 8th line)
+    READ(1,*)
+    READ(1,*) M
+    READ(1,*)
+    READ(1,*) N
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Set grid size
-    IMAX = n
-    JMAX = n
+    IMAX = nx
+    JMAX = nx
 !     ALLOCATE(mesh(1:IMAX, 1:JMAX))
 !     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
 
