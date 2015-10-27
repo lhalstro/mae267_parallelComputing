@@ -13,6 +13,9 @@ main
 #i/o output record files
 output.txt
 
+calcpip
+calcpi
+
 # Compiled Object files
 *.o
 # Precompiled Headers
