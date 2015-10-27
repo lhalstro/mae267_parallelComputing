@@ -27,7 +27,8 @@ MODULE CONSTANTS
     ! Material constants (steel): thermal conductivity [W/(m*K)],
                                 ! density [kg/m^3],
                                 ! specific heat ratio [J/(kg*K)]
-    REAL(KIND=8), PARAMETER :: k = 18.8D0, rho = 8000.D0, cp = 500.D0
+                                ! initial temperature
+    REAL(KIND=8), PARAMETER :: k = 18.8D0, rho = 8000.D0, cp = 500.D0, T0 = 3.5D0
     ! Thermal diffusivity [m^2/s]
     REAL(KIND=8), PARAMETER :: alpha = k / (cp * rho)
     ! Pi, grid rotation angle (30 deg)
@@ -304,95 +305,133 @@ CONTAINS
         END DO
     END SUBROUTINE init_mesh
 
-    SUBROUTINE init_temp(mesh)
+    SUBROUTINE init_temp(blocks)
         ! Initialize temperature across mesh
-        ! mesh --> mesh data type
-        TYPE(MESHTYPE), INTENT(INOUT) :: mesh
-        INTEGER :: i, j
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET  :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: b
+        TYPE(MESHTYPE), POINTER :: m
+        INTEGER :: IBLK, I, J
+
 
         !PUT DEBUG BC HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
-        DO j = 1, JMAX
-            mesh%T(1,j) = 3.D0 * mesh%yp(1,j) + 2.D0
-            mesh%T(IMAX,j) = 3.D0 * mesh%yp(IMAX,j) + 2.D0
-        END DO
-        DO i = 1, IMAX
-            mesh%T(i,1) = ABS(COS(pi * mesh%xp(i,1))) + 1.D0
-            mesh%T(i,JMAX) = 5.D0 * (SIN(pi * mesh%xp(i,JMAX)) + 1.D0)
+        DO IBLK = 1, NBLK
+            b => blocks(IBLK)
+            m => blocks(IBLK)%mesh
+            ! FIRST, INITIALIZE ALL POINT TO INITIAL TEMPERATURE (T0)
+            m%T(1:IMAXBLK, 1:JMAXBLK) = T0
+            ! THEN, INITIALIZE BOUNDARIES DIRICHLET B.C.
+            ! face on north boundary
+            IF (b%FaceN%BC == NBND) THEN
+                DO I = 1, IMAXBLK
+                    m%T(I,JMAX) = 5.D0 * (SIN(pi * m%xp(I,JMAX)) + 1.D0)
+                END DO
+            END IF
+            IF (b%FaceS%BC == SBND) THEN
+                DO I = 1, IMAXBLK
+                    m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                END DO
+            END IF
+            IF (b%FaceE%BC == EBND) THEN
+                DO J = 1, JMAXBLK
+                    m%T(IMAX,J) = 3.D0 * m%yp(IMAX,J) + 2.D0
+                END DO
+            END IF
+            IF (b%FaceW%BC == WBND) THEN
+                DO J = 1, JMAXBLK
+                    m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                END DO
+            END IF
+
+!             DO J = 1, JMAXBLK
+!                 b(IBLK)%mesh%T(1,J) = 3.D0 * b(IBLK)%mesh%yp(1,J) + 2.D0
+!                 b(IBLK)%mesh%T(IMAX,J) = 3.D0 * b(IBLK)%mesh%yp(IMAX,J) + 2.D0
+!             END DO
+!             DO I = 1, IMAXBLK
+!                 b(IBLK)%mesh%T(I,1) = ABS(COS(pi * b(IBLK)%mesh%xp(I,1))) + 1.D0
+!                 b(IBLK)%mesh%T(I,JMAX) = 5.D0 * (SIN(pi * b(IBLK)%mesh%xp(I,JMAX)) + 1.D0)
+!             END DO
         END DO
     END SUBROUTINE init_temp
 
-    SUBROUTINE calc_2nd_areas(m)
+    SUBROUTINE calc_2nd_areas(blocks)
         ! calculate areas for secondary fluxes.
-        ! m --> mesh points
-        TYPE(MESHTYPE) :: m
-        INTEGER :: i, j
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(MESHTYPE), POINTER :: m
+        INTEGER :: IBLK, I, J
         ! Areas used in counter-clockwise trapezoidal integration to get
         ! x and y first-derivatives for center of each cell (Green's thm)
         REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
 
-        DO j = 1, JMAX
-            DO i = 1, IMAX-1
-                ! CALC CELL AREAS
-                m%Axj(i,j) = m%x(i+1,j) - m%x(i,j)
-                m%Ayj(i,j) = m%y(i+1,j) - m%y(i,j)
+        DO IBLK = 1, NBLK
+            m => blocks(IBLK)%mesh
+            DO J = 1, JMAX
+                DO I = 1, IMAX-1
+                    ! CALC CELL AREAS
+                    m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
+                    m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
+                END DO
             END DO
-        END DO
-        DO j = 1, JMAX-1
-            DO i = 1, IMAX
-                ! CALC CELL AREAS
-                m%Axi(i,j) = m%x(i,j+1) - m%x(i,j)
-                m%Ayi(i,j) = m%y(i,j+1) - m%y(i,j)
+            DO J = 1, JMAX-1
+                DO I = 1, IMAX
+                    ! CALC CELL AREAS
+                    m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
+                    m%Ayi(I,J) = m%y(I,J+1) - m%y(I,J)
+                END DO
             END DO
-        END DO
 
-        ! Actual finite-volume scheme equation parameters
-        DO j = 1, JMAX-1
-            DO i = 1, IMAX-1
+            ! Actual finite-volume scheme equation parameters
+            DO J = 1, JMAX-1
+                DO I = 1, IMAX-1
 
-                Axi_half = ( m%Axi(i+1,j) + m%Axi(i,j) ) * 0.25D0
-                Axj_half = ( m%Axj(i,j+1) + m%Axj(i,j) ) * 0.25D0
-                Ayi_half = ( m%Ayi(i+1,j) + m%Ayi(i,j) ) * 0.25D0
-                Ayj_half = ( m%Ayj(i,j+1) + m%Ayj(i,j) ) * 0.25D0
+                    Axi_half = ( m%Axi(I+1,J) + m%Axi(I,J) ) * 0.25D0
+                    Axj_half = ( m%Axj(I,J+1) + m%Axj(I,J) ) * 0.25D0
+                    Ayi_half = ( m%Ayi(I+1,J) + m%Ayi(I,J) ) * 0.25D0
+                    Ayj_half = ( m%Ayj(I,J+1) + m%Ayj(I,J) ) * 0.25D0
 
-                ! (NN = 'negative-negative', PN = 'positive-negative',
-                    ! see how fluxes are summed)
-                m%xNN(i, j) = ( -Axi_half - Axj_half )
-                m%xPN(i, j) = (  Axi_half - Axj_half )
-                m%xPP(i, j) = (  Axi_half + Axj_half )
-                m%xNP(i, j) = ( -Axi_half + Axj_half )
-
-                m%yPP(i, j) = (  Ayi_half + Ayj_half )
-                m%yNP(i, j) = ( -Ayi_half + Ayj_half )
-                m%yNN(i, j) = ( -Ayi_half - Ayj_half )
-                m%yPN(i, j) = (  Ayi_half - Ayj_half )
+                    ! (NN = 'negative-negative', PN = 'positive-negative',
+                        ! see how fluxes are summed)
+                    m%xNN(I, J) = ( -Axi_half - Axj_half )
+                    m%xPN(I, J) = (  Axi_half - Axj_half )
+                    m%xPP(I, J) = (  Axi_half + Axj_half )
+                    m%xNP(I, J) = ( -Axi_half + Axj_half )
+                    m%yPP(I, J) = (  Ayi_half + Ayj_half )
+                    m%yNP(I, J) = ( -Ayi_half + Ayj_half )
+                    m%yNN(I, J) = ( -Ayi_half - Ayj_half )
+                    m%yPN(I, J) = (  Ayi_half - Ayj_half )
+                END DO
             END DO
         END DO
     END SUBROUTINE calc_2nd_areas
 
-    SUBROUTINE calc_constants(mesh)
+    SUBROUTINE calc_constants(blocks)
         ! Calculate constants for a given iteration loop.  This way,
         ! they don't need to be calculated within the loop at each iteration
-        TYPE(MESHTYPE), TARGET :: mesh
-        INTEGER :: i, j
-        DO j = 2, JMAX - 1
-            DO i = 2, IMAX - 1
-                ! CALC TIMESTEP FROM CFL
-                mesh%dt(i,j) = ((CFL * 0.5D0) / alpha) * mesh%V(i,j) ** 2 &
-                                / ( (mesh%xp(i+1,j) - mesh%xp(i,j))**2 &
-                                    + (mesh%yp(i,j+1) - mesh%yp(i,j))**2 )
-                ! CALC SECONDARY VOLUMES
-                ! (for rectangular mesh, just average volumes of the 4 cells
-                !  surrounding the point)
-                mesh%V2nd(i,j) = ( mesh%V(i,j) &
-                                    + mesh%V(i-1,j) + mesh%V(i,j-1) &
-                                    + mesh%V(i-1,j-1) ) * 0.25D0
-                ! CALC CONSTANT TERM
-                ! (this term remains constant in the equation regardless of
-                !  iteration number, so only calculate once here,
-                !  instead of in loop)
-                mesh%term(i,j) = mesh%dt(i,j) * alpha / mesh%V2nd(i,j)
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(MESHTYPE), POINTER :: m
+        INTEGER :: IBLK, I, J
+        DO IBLK = 1, NBLK
+            m => blocks(IBLK)%mesh
+            DO J = 2, JMAX - 1
+                DO I = 2, IMAX - 1
+                    ! CALC TIMESTEP FROM CFL
+                    m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
+                                    / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
+                                        + (m%yp(I,J+1) - m%yp(I,J))**2 )
+                    ! CALC SECONDARY VOLUMES
+                    ! (for rectangular mesh, just average volumes of the 4 cells
+                    !  surrounding the point)
+                    m%V2nd(I,J) = ( m%V(I,J) &
+                                        + m%V(I-1,J) + m%V(I,J-1) &
+                                        + m%V(I-1,J-1) ) * 0.25D0
+                    ! CALC CONSTANT TERM
+                    ! (this term remains constant in the equation regardless of
+                    !  iteration number, so only calculate once here,
+                    !  instead of in loop)
+                    m%term(I,J) = m%dt(I,J) * alpha / m%V2nd(I,J)
+                END DO
             END DO
         END DO
     END SUBROUTINE calc_constants
@@ -401,37 +440,42 @@ CONTAINS
     !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    SUBROUTINE calc_temp(m)
+    SUBROUTINE calc_temp(blocks)
         ! Calculate first and second derivatives for finite-volume scheme
-        TYPE(MESHTYPE), INTENT(INOUT) :: m
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(MESHTYPE), POINTER :: m
         ! First partial derivatives of temperature in x and y directions
         REAL(KIND=8) :: dTdx, dTdy
-        INTEGER :: i, j
+        INTEGER :: IBLK, I, J
 
-        ! RESET SUMMATION
-        m%Ttmp = 0.D0
+        DO IBLK = 1, NBLK
+            m => blocks(IBLK)%mesh
 
-        DO j = 1, JMAX - 1
-            DO i = 1, IMAX - 1
-                ! CALC FIRST DERIVATIVES
-                dTdx = + 0.5d0 &
-                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * m%Ayi(i+1,j) &
-                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Ayi(i,  j) &
-                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Ayj(i,j+1) &
-                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Ayj(i,  j) &
-                                ) / m%V(i,j)
-                dTdy = - 0.5d0 &
-                            * (( m%T(i+1,j) + m%T(i+1,j+1) ) * m%Axi(i+1,j) &
-                            -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Axi(i,  j) &
-                            -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Axj(i,j+1) &
-                            +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Axj(i,  j) &
-                                ) / m%V(i,j)
+            ! RESET SUMMATION
+            m%Ttmp = 0.D0
 
-                ! Alternate distributive scheme second-derivative operator.
-                m%Ttmp(i+1,  j) = m%Ttmp(i+1,  j) + m%term(i+1,  j) * ( m%yNN(i,j) * dTdx + m%xPP(i,j) * dTdy )
-                m%Ttmp(i,    j) = m%Ttmp(i,    j) + m%term(i,    j) * ( m%yPN(i,j) * dTdx + m%xNP(i,j) * dTdy )
-                m%Ttmp(i,  j+1) = m%Ttmp(i,  j+1) + m%term(i,  j+1) * ( m%yPP(i,j) * dTdx + m%xNN(i,j) * dTdy )
-                m%Ttmp(i+1,j+1) = m%Ttmp(i+1,j+1) + m%term(i+1,j+1) * ( m%yNP(i,j) * dTdx + m%xPN(i,j) * dTdy )
+            DO J = 1, JMAX - 1
+                DO I = 1, IMAX - 1
+                    ! CALC FIRST DERIVATIVES
+                    dTdx = + 0.5d0 &
+                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Ayi(I+1,J) &
+                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Ayi(I,  J) &
+                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Ayj(I,J+1) &
+                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Ayj(I,  J) &
+                                    ) / m%V(I,J)
+                    dTdy = - 0.5d0 &
+                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Axi(I+1,J) &
+                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Axi(I,  J) &
+                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Axj(I,J+1) &
+                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Axj(I,  J) &
+                                    ) / m%V(I,J)
+
+                    ! Alternate distributive scheme second-derivative operator.
+                    m%Ttmp(I+1,  J) = m%Ttmp(I+1,  J) + m%term(I+1,  J) * ( m%yNN(I,J) * dTdx + m%xPP(I,J) * dTdy )
+                    m%Ttmp(I,    J) = m%Ttmp(I,    J) + m%term(I,    J) * ( m%yPN(I,J) * dTdx + m%xNP(I,J) * dTdy )
+                    m%Ttmp(I,  J+1) = m%Ttmp(I,  J+1) + m%term(I,  J+1) * ( m%yPP(I,J) * dTdx + m%xNN(I,J) * dTdy )
+                    m%Ttmp(I+1,J+1) = m%Ttmp(I+1,J+1) + m%term(I+1,J+1) * ( m%yNP(I,J) * dTdx + m%xPN(I,J) * dTdy )
+                END DO
             END DO
         END DO
     END SUBROUTINE calc_temp

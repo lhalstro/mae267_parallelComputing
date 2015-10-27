@@ -31,7 +31,7 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000, iter = 0
+    INTEGER :: max_iter = 1000000, iter = 0, IBLK
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
@@ -63,7 +63,7 @@ PROGRAM heatTrans
 
     WRITE(*,*) 'Writing results...'
     ! SAVE SOLUTION AS PLOT3D FILES
-    CALL plot3D(mesh)
+    CALL plot3D(blocks)
     ! CALC TOTAL WALL TIME
     end_total = MPI_Wtime()
     wall_time_total = end_total - start_total
@@ -74,24 +74,26 @@ PROGRAM heatTrans
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    DEALLOCATE( mesh%xp   )
-    DEALLOCATE( mesh%yp   )
-    DEALLOCATE( mesh%x    )
-    DEALLOCATE( mesh%y    )
-    DEALLOCATE( mesh%T    )
-    DEALLOCATE( mesh%Ttmp )
-    DEALLOCATE( mesh%dt   )
-    DEALLOCATE( mesh%V  )
-    DEALLOCATE( mesh%V2nd )
-    DEALLOCATE( mesh%term )
-    DEALLOCATE( mesh%yPP)
-    DEALLOCATE( mesh%yNP)
-    DEALLOCATE( mesh%yNN)
-    DEALLOCATE( mesh%yPN)
-    DEALLOCATE( mesh%xNN)
-    DEALLOCATE( mesh%xPN)
-    DEALLOCATE( mesh%xPP)
-    DEALLOCATE( mesh%xNP)
+    DO IBLK = 1, NBLK
+        DEALLOCATE( blocks(IBLK)%mesh%xp   )
+        DEALLOCATE( blocks(IBLK)%mesh%yp   )
+        DEALLOCATE( blocks(IBLK)%mesh%x    )
+        DEALLOCATE( blocks(IBLK)%mesh%y    )
+        DEALLOCATE( blocks(IBLK)%mesh%T    )
+        DEALLOCATE( blocks(IBLK)%mesh%Ttmp )
+        DEALLOCATE( blocks(IBLK)%mesh%dt   )
+        DEALLOCATE( blocks(IBLK)%mesh%V  )
+        DEALLOCATE( blocks(IBLK)%mesh%V2nd )
+        DEALLOCATE( blocks(IBLK)%mesh%term )
+        DEALLOCATE( blocks(IBLK)%mesh%yPP)
+        DEALLOCATE( blocks(IBLK)%mesh%yNP)
+        DEALLOCATE( blocks(IBLK)%mesh%yNN)
+        DEALLOCATE( blocks(IBLK)%mesh%yPN)
+        DEALLOCATE( blocks(IBLK)%mesh%xNN)
+        DEALLOCATE( blocks(IBLK)%mesh%xPN)
+        DEALLOCATE( blocks(IBLK)%mesh%xPP)
+        DEALLOCATE( blocks(IBLK)%mesh%xNP)
+    END DO
 
     WRITE(*,*) 'Done!'
 
