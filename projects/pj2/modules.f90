@@ -34,8 +34,49 @@ MODULE CONSTANTS
     REAL(KIND=8), PARAMETER :: pi = 3.141592654D0, rot = 30.D0*pi/180.D0
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
-    ! Grid size
-    INTEGER :: IMAX, JMAX
+    ! read square grid size, Total grid size, size of grid on each block
+    INTEGER :: nx, IMAX, JMAX, IBLK, JBLK
+    ! Dimensions of block layout, Number of Blocks,
+    INTEGER :: M, N, NBLK
+
+CONTAINS
+
+    SUBROUTINE read_input()
+        INTEGER :: I
+
+        ! READ INPUTS FROM FILE
+        WRITE(*,*) 'Reading input...'
+        OPEN (UNIT = 1, FILE = 'config.in')
+        DO I = 1, 3
+            ! Skip header lines
+            READ(1,*)
+        END DO
+        ! READ GRIDSIZE (4th line)
+        READ(1,*) nx
+        ! READ BLOCKS (6th and 8th line)
+        READ(1,*)
+        READ(1,*) M
+        READ(1,*)
+        READ(1,*) N
+
+        ! SET GRID SIZE
+        IMAX = nx
+        JMAX = nx
+        ! CALC NUMBER OF BLOCKS
+        NBLK = M * N
+        ! SET SIZE OF EACH BLOCK
+        IBLK = 1 + (IMAX - 1) / N
+        JBLK = 1 + (JMAX - 1) / M
+
+        ! OUTPUT TO SCREEN
+        WRITE(*,*) ''
+        WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
+        WRITE(*,*) 'With MxN blocks:', M, 'x', N
+        WRITE(*,*) 'Number of blocks:', NBLK
+        WRITE(*,*) ''
+
+    END SUBROUTINE read_input
+
 
 END MODULE CONSTANTS
 
@@ -66,6 +107,11 @@ MODULE BLOCKMOD
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: yPP, yNP, yNN, yPN
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
     END TYPE MESHTYPE
+
+    TYPE BLCKTYPE
+        ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
+
+    END TYPE BLCKTYPE
 
 CONTAINS
     SUBROUTINE init_mesh(mesh)

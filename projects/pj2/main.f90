@@ -29,7 +29,7 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: I, nx, N, M, max_iter = 1000000, iter = 0
+    INTEGER :: max_iter = 1000000, iter = 0
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
@@ -38,29 +38,11 @@ PROGRAM heatTrans
     start_total = MPI_Wtime()
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! READ INPUTS FROM FILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    OPEN (UNIT = 1, FILE = 'config.in')
-    DO I = 1, 3
-        ! Skip header lines
-        READ(1,*)
-    END DO
-    ! READ GRIDSIZE (4th line)
-    READ(1,*) nx
-    ! READ BLOCKS (6th and 8th line)
-    READ(1,*)
-    READ(1,*) M
-    READ(1,*)
-    READ(1,*) N
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! Set grid size
-    IMAX = nx
-    JMAX = nx
+    ! READ INPUTS FROM FILE
+    CALL read_input()
     ! INIITIALIZE SOLUTION
     WRITE(*,*) 'Making mesh...'
     CALL init(mesh)
