@@ -143,6 +143,7 @@ CONTAINS
         ! mesh --> derived data type containing mesh point info
         TYPE(MESHTYPE) :: mesh
         TYPE(CELLTYPE) :: cell
+        REAL(KIND=8) :: p, q
         INTEGER :: i, j
 
         ! ALLOCATE CELL INFORMATION
@@ -158,10 +159,21 @@ CONTAINS
 
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
+                ! CALC CELL VOLUME
+                    ! cross product of cell diagonals p, q
+                    ! where p has x,y components px, py and q likewise.
+                    ! Thus, p cross q = px*qy - qx*py
+                    ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
+                    ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
+                cell%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
+                            * ( mesh%y(i,  j+1) - mesh%y(i+1,j) ) &
+                            - ( mesh%x(i,  j+1) - mesh%x(i+1,j) ) &
+                            * ( mesh%y(i+1,j+1) - mesh%y(i,  j) )
+
                 ! CALC CELL VOLUMES
                     ! (length in x-dir times length in y-dir)
-                cell%V(i,j) = ( (mesh%xp(i+1,j) - mesh%xp(i,j)) ) &
-                                    * ( mesh%yp(i,j+1) - mesh%yp(i,j) )
+!                 cell%V(i,j) = ( (mesh%xp(i+1,j) - mesh%xp(i,j)) ) &
+!                                     * ( mesh%yp(i,j+1) - mesh%yp(i,j) )
             END DO
         END DO
     END SUBROUTINE init_cells
