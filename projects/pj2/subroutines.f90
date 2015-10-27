@@ -27,13 +27,13 @@ CONTAINS
         ! WRITE BLOCK CONNECTIVITY FILE
         CALL write_blocks(blocks)
         ! INITIALIZE MESH
-        CALL init_mesh(mesh)
-        ! CALC SECONDARY AREAS OF INTEGRATION
-        CALL calc_2nd_areas(mesh)
-        ! CALC CONSTANTS OF INTEGRATION
-        CALL calc_constants(mesh)
-        ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
-        CALL init_temp(mesh)
+        CALL init_mesh(blocks)
+!         ! CALC SECONDARY AREAS OF INTEGRATION
+!         CALL calc_2nd_areas(mesh)
+!         ! CALC CONSTANTS OF INTEGRATION
+!         CALL calc_constants(mesh)
+!         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
+!         CALL init_temp(mesh)
     END SUBROUTINE init
 
     SUBROUTINE solve(mesh, min_res, max_iter, iter)

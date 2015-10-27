@@ -40,7 +40,7 @@ MODULE CONSTANTS
     INTEGER :: M, N, NBLK
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
-    INTEGER :: NBND = -1, SBND = -2, EBND = -3, WBND = -4
+    INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
 
 CONTAINS
 
@@ -114,8 +114,7 @@ MODULE BLOCKMOD
 
     TYPE NBRTYPE
         ! STORE NUMBER OF NEIGHBOR BLOCK, OR NUMBER OF BOUNDARY CONDITION
-            ! Positive for block numbers, negative for BCs
-        INTEGER :: BND
+        INTEGER :: BC, NB
     END TYPE NBRTYPE
 
     ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
@@ -162,26 +161,39 @@ CONTAINS
 
                 ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
-                b(IBLK)%FaceN%BND = IBLK + N
-                b(IBLK)%FaceS%BND = IBLK - N
-                b(IBLK)%FaceE%BND = IBLK + 1
-                b(IBLK)%FaceW%BND = IBLK - 1
+                b(IBLK)%FaceN%NB = IBLK + N
+                b(IBLK)%FaceS%NB = IBLK - N
+                b(IBLK)%FaceE%NB = IBLK + 1
+                b(IBLK)%FaceW%NB = IBLK - 1
 
                 ! ASSIGN FACE BOUNDARY CONDITIONS
+                    ! initialize as all internal
+                b(IBLK)%FaceN%BC = -1
+                b(IBLK)%FaceS%BC = -1
+                b(IBLK)%FaceE%BC = -1
+                b(IBLK)%FaceW%BC = -1
                 ! Assign faces on boundary of the actual computational grid
                 ! with number corresponding to which boundary they are on
                 IF ( b(IBLK)%JMAX == JMAX ) THEN
                     ! NORTH BLOCK FACE IS ON MESH NORTH BOUNDARY
-                    b(IBLK)%FaceN%BND = NBND
-                ELSE IF ( b(IBLK)%IMAX == IMAX ) THEN
+                    b(IBLK)%FaceN%BC = NBND
+                    ! un-assign neighbor that wasnt real
+                    b(IBLK)%FaceN%NB = -1
+                END IF
+                IF ( b(IBLK)%IMAX == IMAX ) THEN
                     ! EAST BLOCK FACE IS ON MESH EAST BOUNDARY
-                    b(IBLK)%FaceE%BND = EBND
-                ELSE IF ( b(IBLK)%JMIN == 1 ) THEN
+                    b(IBLK)%FaceE%BC = EBND
+                    b(IBLK)%FaceE%NB = -1
+                END IF
+                IF ( b(IBLK)%JMIN == 1 ) THEN
                     ! SOUTH BLOCK FACE IS ON MESH SOUTH BOUNDARY
-                    b(IBLK)%FaceS%BND = SBND
-                ELSE IF ( b(IBLK)%IMIN == 1 ) THEN
+                    b(IBLK)%FaceS%BC = SBND
+                    b(IBLK)%FaceS%NB = -1
+                END IF
+                IF ( b(IBLK)%IMIN == 1 ) THEN
                     ! WEST BLOCK FACE IS ON MESH WEST BOUNDARY
-                    b(IBLK)%FaceW%BND = WBND
+                    b(IBLK)%FaceW%BC = WBND
+                    b(IBLK)%FaceW%NB = -1
                 END IF
 
                 ! BLOCK ORIENTATION
@@ -199,80 +211,95 @@ CONTAINS
         TYPE(BLKTYPE) :: b(:)
         INTEGER :: I, BLKFILE = 99
 
-        OPEN (UNIT = BLKFILE , FILE = "blocks.dat", form='formatted')
+        11 format(3I5)
+        22 format(33I5)
+
+        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
+        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
         DO I = 1, NBLK
-            ! WRITE BLOCK NUMBER
-            WRITE(BLKFILE, *), b(I)%ID
-            ! WRITE NORTH, SOUTH, EAST, WEST NEIGHBOR INFO
-                ! (positive number is block number, negative number is BC)
-            WRITE(BLKFILE, *), b(I)%FaceN%BND
-            WRITE(BLKFILE, *), b(I)%FaceS%BND
-            WRITE(BLKFILE, *), b(I)%FaceE%BND
-            WRITE(BLKFILE, *), b(I)%FaceW%BND
-            ! WRITE BLOCK ORIENTATION
-            WRITE(BLKFILE, *), b(I)%orientation
-            ! WRITE LOCAL MESH POINTS
-!             WRITE(BLKFILE, *),
-            ! NEW LINE BEFORE NEXT BLOCK
-            WRITE(BLKFILE, *)
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, AND STARTING GLOBAL INDICES.
+            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+            ! NORTH EAST SOUTH WEST
+            WRITE(BLKFILE, 22) b(I)%ID, b(I)%IMIN, b(I)%JMIN, &
+                b(I)%FaceN%BC, b(I)%FaceN%NB, &
+                b(I)%FaceE%BC, b(I)%FaceE%NB, &
+                b(I)%FaceS%BC, b(I)%FaceS%NB, &
+                b(I)%FaceW%BC, b(I)%FaceW%NB, &
+                b(I)%orientation
+
+!             ! WRITE BLOCK NUMBER
+!             WRITE(BLKFILE, *), b(I)%ID
+!             ! WRITE NORTH, SOUTH, EAST, WEST NEIGHBOR INFO
+!                 ! (positive number is block number, negative number is BC)
+!             WRITE(BLKFILE, *), b(I)%FaceN%BND
+!             WRITE(BLKFILE, *), b(I)%FaceS%BND
+!             WRITE(BLKFILE, *), b(I)%FaceE%BND
+!             WRITE(BLKFILE, *), b(I)%FaceW%BND
+!             ! WRITE BLOCK ORIENTATION
+!             WRITE(BLKFILE, *), b(I)%orientation
+!             ! NEW LINE BEFORE NEXT BLOCK
+!             WRITE(BLKFILE, *)
         END DO
+        CLOSE(BLKFILE)
     END SUBROUTINE write_blocks
 
+    SUBROUTINE init_mesh(b)
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE) :: b(:)
+        INTEGER :: IBLK, I, J
 
-    SUBROUTINE init_mesh(mesh)
-        ! Mesh points (derived data type)
-        TYPE(MESHTYPE) :: mesh
-        INTEGER :: i, j
+        DO IBLK = 1, NBLK
 
-        ! ALLOCATE MESH INFORMATION
-        ALLOCATE( mesh%xp(  1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%yp(  1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%x(   1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%y(   1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%T(   1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Ttmp(1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%dt(  1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%V2nd(1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%term(1:IMAX, 1:JMAX) )
+            ! ALLOCATE MESH INFORMATION
+                ! ADD EXTRA INDEX AT BEGINNING AND END FOR GHOST NODES
+            ALLOCATE( b(IBLK)%mesh%xp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%yp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%x(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%y(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%T(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%Ttmp(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%dt(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%V2nd(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%term(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%Ayi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%Axi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%Ayj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%Axj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( b(IBLK)%mesh%V(   0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%yPP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%yNP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%yNN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%yPN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%xNN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%xPN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%xPP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%xNP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
 
-        ALLOCATE( mesh%Ayi( 1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Axi( 1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Ayj( 1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Axj( 1:IMAX, 1:JMAX) )
-
-        ! ALLOCATE CELL INFORMATION
-        ALLOCATE( mesh%V(  1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yNP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xNP(1:IMAX-1, 1:JMAX-1) )
-
-        DO j = 1, JMAX
-            DO i = 1, IMAX
-                ! MAKE SQUARE GRID
-                mesh%xp(i, j) = COS( 0.5D0 * pi * DFLOAT(IMAX - i) / DFLOAT(IMAX - 1) )
-                mesh%yp(i, j) = COS( 0.5D0 * pi * DFLOAT(JMAX - j) / DFLOAT(JMAX - 1) )
-                ! ROTATE GRID
-                mesh%x(i, j) = mesh%xp(i, j) * COS(rot) + (1.D0 - mesh%yp(i, j) ) * SIN(rot)
-                mesh%y(i, j) = mesh%yp(i, j) * COS(rot) + (mesh%xp(i, j)) * SIN(rot)
+            DO J = 0, JMAXBLK+1
+                DO I = 0, IMAXBLK+1
+                    ! MAKE SQUARE GRID
+                    b(IBLK)%mesh%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - (I + b(IBLK)%IMIN - 1) ) / DFLOAT(IMAX - 1) )
+                    b(IBLK)%mesh%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - (J + b(IBLK)%JMIN - 1) ) / DFLOAT(JMAX - 1) )
+                    ! ROTATE GRID
+                    b(IBLK)%mesh%x(I, J) = b(IBLK)%mesh%xp(I, J) * COS(rot) + (1.D0 - b(IBLK)%mesh%yp(I, J) ) * SIN(rot)
+                    b(IBLK)%mesh%y(I, J) = b(IBLK)%mesh%yp(I, J) * COS(rot) + (b(IBLK)%mesh%xp(I, J)) * SIN(rot)
+                END DO
             END DO
-        END DO
-        DO j = 1, JMAX-1
-            DO i = 1, IMAX-1
-                ! CALC CELL VOLUME
-                    ! cross product of cell diagonals p, q
-                    ! where p has x,y components px, py and q likewise.
-                    ! Thus, p cross q = px*qy - qx*py
-                    ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
-                    ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                mesh%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
-                            * ( mesh%y(i,  j+1) - mesh%y(i+1,j) ) &
-                            - ( mesh%x(i,  j+1) - mesh%x(i+1,j) ) &
-                            * ( mesh%y(i+1,j+1) - mesh%y(i,  j) )
+            DO J = 0, JMAXBLK+1-1
+                DO I = 0, IMAXBLK+1-1
+                    ! CALC CELL VOLUME
+                        ! cross product of cell diagonals p, q
+                        ! where p has x,y components px, py and q likewise.
+                        ! Thus, p cross q = px*qy - qx*py
+                        ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
+                        ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
+                    b(IBLK)%mesh%V(I,J) = ( b(IBLK)%mesh%x(I+1,J+1) &
+                                          - b(IBLK)%mesh%x(I,  J) ) &
+                            * ( b(IBLK)%mesh%y(I,  J+1) - b(IBLK)%mesh%y(I+1,J) ) &
+                            - ( b(IBLK)%mesh%x(I,  J+1) - b(IBLK)%mesh%x(I+1,J) ) &
+                            * ( b(IBLK)%mesh%y(I+1,J+1) - b(IBLK)%mesh%y(I,  J) )
+                END DO
             END DO
         END DO
     END SUBROUTINE init_mesh
