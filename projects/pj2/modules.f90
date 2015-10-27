@@ -158,7 +158,6 @@ CONTAINS
 
     SUBROUTINE calc_2nd_areas(m)
         ! calculate areas for secondary fluxes.
-        ! c --> derived data type with cell data, target for c
         ! m --> mesh points
         TYPE(MESHTYPE) :: m
         INTEGER :: i, j
@@ -235,7 +234,7 @@ CONTAINS
     !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    SUBROUTINE derivatives(m)
+    SUBROUTINE calc_temp(m)
         ! Calculate first and second derivatives for finite-volume scheme
         TYPE(MESHTYPE), INTENT(INOUT) :: m
         ! First partial derivatives of temperature in x and y directions
@@ -268,7 +267,7 @@ CONTAINS
                 m%Ttmp(i+1,j+1) = m%Ttmp(i+1,j+1) + m%term(i+1,j+1) * ( m%yNP(i,j) * dTdx + m%xPN(i,j) * dTdy )
             END DO
         END DO
-    END SUBROUTINE derivatives
+    END SUBROUTINE calc_temp
 END MODULE BLOCKMOD
 
 

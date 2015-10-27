@@ -24,8 +24,6 @@ PROGRAM heatTrans
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! GRID
-!     TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
-!     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
     TYPE(MESHTYPE) :: mesh
     ! ITERATION PARAMETERS
     ! Minimum Residual
@@ -56,7 +54,6 @@ PROGRAM heatTrans
     READ(1,*)
     READ(1,*) N
 
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -64,11 +61,7 @@ PROGRAM heatTrans
     ! Set grid size
     IMAX = nx
     JMAX = nx
-!     ALLOCATE(mesh(1:IMAX, 1:JMAX))
-!     ALLOCATE(cell(1:IMAX-1, 1:JMAX-1))
-
     ! INIITIALIZE SOLUTION
-
     WRITE(*,*) 'Making mesh...'
     CALL init(mesh)
 

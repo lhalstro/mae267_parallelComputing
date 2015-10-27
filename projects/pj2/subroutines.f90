@@ -55,7 +55,7 @@ CONTAINS
             ! INCREMENT ITERATION COUNT
             iter = iter + 1
             ! CALC NEW TEMPERATURE AT ALL POINTS
-            CALL derivatives(mesh)
+            CALL calc_temp(mesh)
             ! SAVE NEW TEMPERATURE DISTRIBUTION
             DO j = 2, JMAX - 1
                 DO i = 2, IMAX - 1
@@ -87,8 +87,7 @@ CONTAINS
 
         Temperature => mesh%T(2:IMAX-1, 2:JMAX-1)
         tempTemperature => mesh%Ttmp(2:IMAX-1, 2:JMAX-1)
-        ! Let's find the last cell to change temperature and write some output.
-        ! Write down the 'steady state' configuration.
+        ! Write final maximum residual and location of max residual
         OPEN(UNIT = 1, FILE = "SteadySoln.dat")
         DO i = 1, IMAX
             DO j = 1, JMAX
@@ -97,13 +96,13 @@ CONTAINS
         END DO
         CLOSE (1)
 
-        ! Output to the screen so we know something happened.
+        ! Screen output
         WRITE (*,*), "IMAX/JMAX", IMAX, JMAX
         WRITE (*,*), "iters", iter
         WRITE (*,*), "residual", MAXVAL(tempTemperature)
         WRITE (*,*), "ij", MAXLOC(tempTemperature)
 
-        ! Write down info for project
+        ! Write to file
         OPEN (UNIT = 2, FILE = "SolnInfo.dat")
         WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid took:"
         WRITE (2,*), iter, "iterations"
