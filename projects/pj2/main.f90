@@ -23,6 +23,8 @@ PROGRAM heatTrans
     !!! INITIALIZE VARIABLES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    ! BLOCKS
+    TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
     ! GRID
     TYPE(MESHTYPE) :: mesh
     ! ITERATION PARAMETERS
@@ -43,16 +45,17 @@ PROGRAM heatTrans
 
     ! READ INPUTS FROM FILE
     CALL read_input()
+    ALLOCATE( blocks(NBLK) )
     ! INIITIALIZE SOLUTION
     WRITE(*,*) 'Making mesh...'
-    CALL init(mesh)
+    CALL init(blocks, mesh)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     WRITE(*,*) 'Solving heat conduction...'
-    CALL solve(mesh, min_res, max_iter, iter)
+!     CALL solve(mesh, min_res, max_iter, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -65,7 +68,7 @@ PROGRAM heatTrans
     end_total = MPI_Wtime()
     wall_time_total = end_total - start_total
     ! SAVE SOLVER PERFORMANCE PARAMETERS
-    CALL output(mesh, iter)
+!     CALL output(mesh, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

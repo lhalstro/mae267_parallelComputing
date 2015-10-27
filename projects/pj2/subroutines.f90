@@ -17,10 +17,15 @@ MODULE subroutines
     IMPLICIT NONE
 
 CONTAINS
-    SUBROUTINE init(mesh)
+    SUBROUTINE init(blocks, mesh)
         ! Initialize the solution with dirichlet B.C.s
-        TYPE(MESHTYPE), TARGET :: mesh
+        TYPE(BLKTYPE)  :: blocks(:)
+        TYPE(MESHTYPE) :: mesh
 
+        ! INITIALIZE BLOCKS
+        CALL init_blocks(blocks)
+        ! WRITE BLOCK CONNECTIVITY FILE
+        CALL write_blocks(blocks)
         ! INITIALIZE MESH
         CALL init_mesh(mesh)
         ! CALC SECONDARY AREAS OF INTEGRATION
