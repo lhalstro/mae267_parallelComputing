@@ -34,10 +34,14 @@ MODULE CONSTANTS
     REAL(KIND=8), PARAMETER :: pi = 3.141592654D0, rot = 30.D0*pi/180.D0
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
-    ! read square grid size, Total grid size, size of grid on each block
-    INTEGER :: nx, IMAX, JMAX, IBLK, JBLK
+    ! read square grid size, Total grid size, size of grid on each block (local)
+    INTEGER :: nx, IMAX, JMAX, IMAXBLK, JMAXBLK
     ! Dimensions of block layout, Number of Blocks,
     INTEGER :: M, N, NBLK
+    ! Block boundary condition identifiers
+        ! If block face is on North,east,south,west of main grid, identify which
+        ! if block face is internal (has neighbor block) assign -1
+    INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4, NOBND = -1
 
 CONTAINS
 
@@ -65,9 +69,9 @@ CONTAINS
         JMAX = nx
         ! CALC NUMBER OF BLOCKS
         NBLK = M * N
-        ! SET SIZE OF EACH BLOCK
-        IBLK = 1 + (IMAX - 1) / N
-        JBLK = 1 + (JMAX - 1) / M
+        ! SET SIZE OF EACH BLOCK (LOCAL MAXIMUM I, J)
+        IMAXBLK = 1 + (IMAX - 1) / N
+        JMAXBLK = 1 + (JMAX - 1) / M
 
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
@@ -107,18 +111,100 @@ MODULE BLOCKMOD
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
     END TYPE MESHTYPE
 
+    ! DATA TYPE FOR INFORMATION ABOUT NEIGHBORS
+
+    TYPE NBRTYPE
+        INTEGER :: NBR, BC
+    END TYPE NBRTYPE
+
     ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
 
-    TYPE BLCKTYPE
+    TYPE BLKTYPE
         ! DER. DATA TYPE STORES LOCAL MESH INFO
         TYPE(MESHTYPE) :: mesh
+        ! Information about face neighbors (north, east, south, west)
+        TYPE(NBRTYPE) :: FaceN, FaceE, FaceS, FaceW
         ! BLOCK NUMBER
-        INTEGER :: BLKNUM
+        INTEGER :: ID
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM OF LOCAL INDICIES FOR BLOCK
-        INTEGER :: IMINBLK, IMAXBLK, JMINBLK, JMAXBLK
-    END TYPE BLCKTYPE
+        INTEGER :: IMIN, IMAX, JMIN, JMAX
+    END TYPE BLKTYPE
 
 CONTAINS
+    SUBROUTINE init_blocks(blks)
+        TYPE(BLKTYPE) :: blks(:)
+        ! COUNTER VARIABLES
+            ! IM, IN COUNT BLOCK INDICIES
+            ! (IBLK COUNTS BLOCK NUMBERS, INBR IS BLOCK NEIGHBOR INDEX)
+        INTEGER :: IM, IN, IBLK, INBR
+
+        ! STEP THROUGH BLOCKS, ASSIGN IDENTIFYING INFO
+
+
+        ! START AT BLOCK 1 (INCREMENT IN LOOP)
+        IBLK = 0
+
+        DO IM = 1, M
+            DO IN = 1, N
+                ! INCREMENT BLOCK NUMBER
+                IBLK = IBLK + 1
+                ! ASSIGN BLOCK NUMBER
+                blks(IBLK)%ID
+                ! ASSIGN GLOBAL MIN/MAX INDICIES OF LOCAL GRID
+                blks(IBLK)%IMAX = 1 + IN * (IMAXBLK - 1)
+                blks(IBLK)%JMAX = 1 + IM * (JMAXBLK - 1)
+                blks(IBLK)%IMIN = blks(IBLK)%IMAX - (IMAXBLK - 1)
+                blks(IBLK)%JMIN = blks(IBLK)%JMAX - (JMAXBLK - 1)
+
+                ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
+                    !if boundary face, assign bc later
+                blks(IBLK)%FaceN%NBR = IBLK + N
+                blks(IBLK)%FaceS%NBR = IBLK - N
+                blks(IBLK)%FaceE%NBR = IBLK + 1
+                blks(IBLK)%FaceW%NBR = IBLK - 1
+                ! ASSIGN FACE BOUNDARY CONDITIONS
+                ! First, assign all as internal
+                blks(IBLK)%FaceN%BC = -1
+                blks(IBLK)%FaceS%BC = -1
+                blks(IBLK)%FaceE%BC = -1
+                blks(IBLK)%FaceW%BC = -1
+                ! Assign faces on boundary of the actual computational grid
+                ! with number corresponding to which boundary they are on
+                IF ( blks(IBLK)%JMAX == JMAX ) THEN
+                    ! NORTH BLOCK FACE IS ON MESH NORTH BOUNDARY
+                    blks(IBLK)%FaceN%BC = NBND
+                    ! un-assign neighbor that didnt really exist
+                    blks(IBLK)%FaceN%NBR = -1
+                ELSE IF ( blks(IBLK)%IMAX == IMAX ) THEN
+                    ! EAST BLOCK FACE IS ON MESH EAST BOUNDARY
+                    blks(IBLK)%FaceE%BC = EBND
+                    blks(IBLK)%FaceE%NBR = -1
+                ELSE IF ( blks(IBLK)%JMIN == 1 ) THEN
+                    ! SOUTH BLOCK FACE IS ON MESH SOUTH BOUNDARY
+                    blks(IBLK)%FaceS%BC = SBND
+                    blks(IBLK)%FaceS%NBR = -1
+                ELSE IF ( blks(IBLK)%IMIN == 1 ) THEN
+                    ! WEST BLOCK FACE IS ON MESH WEST BOUNDARY
+                    blks(IBLK)%FaceW%BC = WBND
+                    blks(IBLK)%FaceW%NBR = -1
+                END IF
+
+            END DO
+        END DO
+
+    SUBROUTINE write_blocks(blks)
+        ! WRITE BLOCK CONNECTIVITY FILE
+        INTEGER I, BLKFILE = 99
+
+        OPEN (UNIT = BLKFILE , FILE = "blocks.dat", form='formatted')
+        DO I = 1, NBLK
+            ! WRITE BLOCK NUMBER
+            WRITE(BLKFILE, *), blks(I)%ID
+            !
+        END DO
+
+
+
     SUBROUTINE init_mesh(mesh)
         ! Mesh points (derived data type)
         TYPE(MESHTYPE) :: mesh
@@ -135,10 +221,10 @@ CONTAINS
         ALLOCATE( mesh%V2nd(1:IMAX, 1:JMAX) )
         ALLOCATE( mesh%term(1:IMAX, 1:JMAX) )
 
-        ALLOCATE( mesh%Ayi(1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Axi(1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Ayj(1:IMAX, 1:JMAX) )
-        ALLOCATE( mesh%Axj(1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Ayi( 1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Axi( 1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Ayj( 1:IMAX, 1:JMAX) )
+        ALLOCATE( mesh%Axj( 1:IMAX, 1:JMAX) )
 
         ! ALLOCATE CELL INFORMATION
         ALLOCATE( mesh%V(  1:IMAX-1, 1:JMAX-1) )
