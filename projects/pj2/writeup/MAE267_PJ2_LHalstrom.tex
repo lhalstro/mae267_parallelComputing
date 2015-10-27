@@ -89,7 +89,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Statement of Problem}
 
-This analysis details the solution of the steady-state temperature distribution on a 1m x 1m block of steel with Dirichlet boundary conditions (Eqn~\ref{dirichlet}).  Solutions were performed on square, non-uniform grids rotatated in the positive z-direction by $rot=30^o$.  Two grids of 101x101 points and 501x501 points were used to solve the equation of heat transfer.  Temperature was uniformly initialized to a value of 3.5 and the solution was iterated until the maximum residual found was less than $1.0x10^{-5}$.  The equation for heat conduction (Eqn~\ref{heat}) was solved using an explicit, node-centered, finite-volume scheme, with an alternative distributive scheme for the second-derivative operator.  Steady-state temperature distribution was saved in a PLOT3D unformatted file, and CPU wall time of the solver was recorded.
+This analysis details the solution of the steady-state temperature distribution on a 1m x 1m block of steel with Dirichlet boundary conditions (Eqn~\ref{dirichlet}).  Single-processor solutions were previously performed on a square, non-uniform grids rotatated in the positive z-direction by $rot=30^o$.  Two grids of 101x101 points and 501x501 points were used to solve the equation of heat transfer.  Temperature was uniformly initialized to a value of 3.5 and the solution was iterated until the maximum residual found was less than $1.0x10^{-5}$.  The equation for heat conduction (Eqn~\ref{heat}) was solved using an explicit, node-centered, finite-volume scheme, with an alternative distributive scheme for the second-derivative operator.  Steady-state temperature distribution was saved in a PLOT3D unformatted file, and CPU wall time of the solver was recorded.
+
+Now, the code has been modified to decompose the domain into sub-domains refered to as blocks.  Boundary and neighbor information for each block is stored so that connectivity can be accurately assessed when communication between blocks is required.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Equations and Algorithms}
@@ -147,58 +149,58 @@ y(i,j) &= y_p \cos(rot) + x_p \sin(rot)
 \noindent A similar scheme is used to find the first-derivative in the y-direction.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Images/101x5x4.png}
+\caption{101x101 grid decomposed into 5x4 blocks}
+\label{101x5x4}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Images/101x10x10.png}
+\caption{101x101 grid decomposed into 10x10 blocks}
+\label{101x10x10}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Images/501x5x4.png}
+\caption{501x501 grid decomposed into 5x4 blocks}
+\label{501x5x4}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{Images/501x10x10.png}
+\caption{501x501 grid decomposed into 10x10 blocks}
+\label{501x10x10}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
 \section{Results and Discussion}
 
-Both grids used in this analysis were non-uniformly distributed according to the same function and can be observed in Figs~\ref{grid101} and ~\ref{grid501}
+Both grids used in this analysis were non-uniformly distributed according to the same function and decomposed into 10x10 and 5x4 block systems.
 
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../results/101/Grid.png}
-\caption{101x101 point mesh}
-\label{grid101}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../results/501/Grid.png}
-\caption{501x501 point mesh}
-\label{grid501}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../results/101/Temperature.png}
-\caption{Steady-state temperature distribution on a 101x101 mesh}
-\label{temp101}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../results/501/Temperature.png}
-\caption{Steady-state temperature distribution on a 501x501 mesh}
-\label{temp501}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-\noindent It can be seen that the mesh becomes more refined nearer $i_{max}$ and $j_{max}$, and that the 501x501 point mesh is significantly more dense than its counterpart, which resulted in much longer wall times for solutions.
-
-Figs~\ref{temp101} and ~\ref{temp501} show the steady-state temperature distribution on the steel plate for each mesh.  Very little difference is apparent, with the 501x501 mesh being slightly more dissipative near the hot/cold boundaries.
+Comparing the two grids, it can be seen that the block sizes for a given block decomposition are the same between the coarse and fine grid.  The fine grid, however, has many more points contained in each block than does the coarse grid.  It is also interesting to note that the edges of the grid that are most refined have the smallest blocks, and block size tends to decrease as a function of grid spacing.  This decrease in area is required, since blocks are constrained to contain the same number of points.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
 
-This project has produced a functional algorithm for solving steady-state heat conduction in serial.  Though CPU wall time of the 101x101 point grid was minimal (16.88 seconds), significant wall time was required to converge the solution for the 501x501 point grid (4763 seconds).  See Appendix A for more run parameter output.  Wall time could be reduced by parallelizing the code.
+Decomposing the domain is the first step towards solving a computational grid with parallel computing.  Much more is still required, however, to create the complete infrastructure of such a solver.  In the next project, the block decomposition will be improved with multi-block solver running on a single processor.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \section{References}
@@ -217,17 +219,23 @@ This project has produced a functional algorithm for solving steady-state heat c
 % \clearpage
 \onecolumn
 \appendix       %%% starting appendix
-\section*{Appendix A: Sample Output}
-\lstinputlisting[caption=Sample output for 101x101 grid solution, language={}]{../results/101/SolnInfo.dat}
-\lstinputlisting[caption=Sample output for 501x501 grid solution, language={}]{../results/501/SolnInfo.dat}
 
-\section*{Appendix B: Source Code}
+\section*{Appendix A: Grid Decomposition Code}
+\lstinputlisting[caption=Grids are decomposed into blocks and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
 
-\lstinputlisting[caption=Wrapper program for solution of 2D heat conduction, language=Fortran]{../main.f90}
-\lstinputlisting[caption=Main subroutines for solver (initialization/solution/output), language=Fortran]{../subroutines.f90}
 \clearpage
-\lstinputlisting[caption=Modules used by solver, language=Fortran]{../modules.f90}
-\lstinputlisting[caption=PLOT3D file output module (compatible with ParaView), language=Fortran]{../plot3D_module.f90}
+
+\section*{Appendix B: Multi-Block Plot3D Writer}
+\lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files, language=Fortran]{../plot3D_module.f90}
+
+\section*{Appendix C: Sample Domain Connectivity File}
+\lstinputlisting[caption=Sample file containing information pertaining to connectivity of grid sub-domains and boundary conditions, language={}]{../blockconfig.dat}
+
+\clearpage
+\section*{Appendix D: Other Relevant Codes}
+\lstinputlisting[caption=Wrapper program, language=Fortran]{../main.f90}
+\lstinputlisting[caption=Main subroutines for solver (initialization/solution/output), language=Fortran]{../subroutines.f90}
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

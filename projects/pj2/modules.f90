@@ -228,19 +228,6 @@ CONTAINS
                 b(I)%FaceS%BC, b(I)%FaceS%NB, &
                 b(I)%FaceW%BC, b(I)%FaceW%NB, &
                 b(I)%orientation
-
-!             ! WRITE BLOCK NUMBER
-!             WRITE(BLKFILE, *), b(I)%ID
-!             ! WRITE NORTH, SOUTH, EAST, WEST NEIGHBOR INFO
-!                 ! (positive number is block number, negative number is BC)
-!             WRITE(BLKFILE, *), b(I)%FaceN%BND
-!             WRITE(BLKFILE, *), b(I)%FaceS%BND
-!             WRITE(BLKFILE, *), b(I)%FaceE%BND
-!             WRITE(BLKFILE, *), b(I)%FaceW%BND
-!             ! WRITE BLOCK ORIENTATION
-!             WRITE(BLKFILE, *), b(I)%orientation
-!             ! NEW LINE BEFORE NEXT BLOCK
-!             WRITE(BLKFILE, *)
         END DO
         CLOSE(BLKFILE)
     END SUBROUTINE write_blocks

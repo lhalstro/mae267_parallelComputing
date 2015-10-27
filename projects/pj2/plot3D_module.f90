@@ -28,10 +28,6 @@ MODULE plot3D_module
         20     FORMAT(10I10)
         30     FORMAT(10E20.8)
 
-!         ! OPEN FILES (FORMATTED)
-!         OPEN(UNIT=gridUnit,FILE='grid.xyz',FORM='formatted')
-!         OPEN(UNIT=tempUnit,FILE='temperature.dat',FORM='formatted')
-
         !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
@@ -41,8 +37,8 @@ MODULE plot3D_module
         ! WRITE TO GRID FILE (UNFORMATTED)
             ! (Paraview likes unformatted better)
         WRITE(gridUnit, 10) NBLK
-!         WRITE(gridUnit, 20) ( IMAXBLK, JMAXBLK, IBLK=1, NBLK)
-        WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
+        WRITE(gridUnit, 20) ( IMAXBLK, JMAXBLK, IBLK=1, NBLK)
+!         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
         DO IBLK = 1, NBLK
             WRITE(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
                                 ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
@@ -75,11 +71,11 @@ MODULE plot3D_module
         ! WRITE TO GRID FILE (UNFORMATTED)
             ! (Paraview likes unformatted better)
         WRITE(gridUnit) NBLK
-!         WRITE(gridUnit) ( IMAXBLK, JMAXBLK, IBLK=1, NBLK)
-        WRITE(gridUnit) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
+        WRITE(gridUnit) ( IMAXBLK, JMAXBLK, IBLK=1, NBLK)
+!         WRITE(gridUnit) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
         DO IBLK = 1, NBLK
             WRITE(gridUnit) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+                            ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
         END DO
 
 
