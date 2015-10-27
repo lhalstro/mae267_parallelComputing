@@ -7,7 +7,7 @@
 
 MODULE plot3D_module
     USE CONSTANTS
-    USE MESHMOD
+    USE BLOCKMOD
     IMPLICIT NONE
 
     ! VARIABLES
