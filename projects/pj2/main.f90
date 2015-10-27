@@ -27,7 +27,6 @@ PROGRAM heatTrans
 !     TYPE(MESHTYPE), TARGET, ALLOCATABLE :: mesh(:,:)
 !     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
     TYPE(MESHTYPE) :: mesh
-    TYPE(CELLTYPE) :: cell
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -71,14 +70,14 @@ PROGRAM heatTrans
     ! INIITIALIZE SOLUTION
 
     WRITE(*,*) 'Making mesh...'
-    CALL init(mesh, cell)
+    CALL init(mesh)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     WRITE(*,*) 'Solving heat conduction...'
-    CALL solve(mesh, cell, min_res, max_iter, iter)
+    CALL solve(mesh, min_res, max_iter, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -104,18 +103,17 @@ PROGRAM heatTrans
     DEALLOCATE( mesh%T    )
     DEALLOCATE( mesh%Ttmp )
     DEALLOCATE( mesh%dt   )
+    DEALLOCATE( mesh%V  )
     DEALLOCATE( mesh%V2nd )
     DEALLOCATE( mesh%term )
-
-    DEALLOCATE( cell%V  )
-    DEALLOCATE( cell%yPP)
-    DEALLOCATE( cell%yNP)
-    DEALLOCATE( cell%yNN)
-    DEALLOCATE( cell%yPN)
-    DEALLOCATE( cell%xNN)
-    DEALLOCATE( cell%xPN)
-    DEALLOCATE( cell%xPP)
-    DEALLOCATE( cell%xNP)
+    DEALLOCATE( mesh%yPP)
+    DEALLOCATE( mesh%yNP)
+    DEALLOCATE( mesh%yNN)
+    DEALLOCATE( mesh%yPN)
+    DEALLOCATE( mesh%xNN)
+    DEALLOCATE( mesh%xPN)
+    DEALLOCATE( mesh%xPP)
+    DEALLOCATE( mesh%xNP)
 
     WRITE(*,*) 'Done!'
 

@@ -57,11 +57,14 @@ MODULE MESHMOD
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xp, yp, x, y
         ! Temperature at each point, temporary variable to hold temperature sum
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: T, Ttmp
-        ! Iteration Parameters: timestep, secondary cell volume,
+        ! Iteration Parameters: timestep, cell volume, secondary cell volume,
                                     ! equation constant term
-        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: dt, V2nd, term
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: dt, V, V2nd, term
         ! Areas used in alternative scheme to get fluxes for second-derivative
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: Ayi, Axi, Ayj, Axj
+        ! Second-derivative weighting factors for alternative distribution scheme
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: yPP, yNP, yNN, yPN
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
     END TYPE MESHTYPE
 
 CONTAINS
@@ -129,33 +132,32 @@ MODULE CELLMOD
     IMPLICIT NONE
     PUBLIC
 
-    TYPE CELLTYPE
-        ! Cell volumes
-        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: V
-        ! Second-derivative weighting factors for alternative distribution scheme
-        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: yPP, yNP, yNN, yPN
-        REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
-    END TYPE CELLTYPE
+!     TYPE CELLTYPE
+!         ! Cell volumes
+!         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: V
+!         ! Second-derivative weighting factors for alternative distribution scheme
+!         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: yPP, yNP, yNN, yPN
+!         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
+!     END TYPE CELLTYPE
 
 CONTAINS
-    SUBROUTINE init_cells(mesh, cell)
+    SUBROUTINE init_cells(mesh)
         ! cell --> derived data type containing cell info
         ! mesh --> derived data type containing mesh point info
         TYPE(MESHTYPE) :: mesh
-        TYPE(CELLTYPE) :: cell
         REAL(KIND=8) :: p, q
         INTEGER :: i, j
 
         ! ALLOCATE CELL INFORMATION
-        ALLOCATE( cell%V(  1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%yPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%yNP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%yNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%yPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%xNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%xPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%xPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( cell%xNP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%V(  1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yNP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xNP(1:IMAX-1, 1:JMAX-1) )
 
         DO j = 1, JMAX-1
             DO i = 1, IMAX-1
@@ -165,25 +167,19 @@ CONTAINS
                     ! Thus, p cross q = px*qy - qx*py
                     ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
                     ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                cell%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
+                mesh%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
                             * ( mesh%y(i,  j+1) - mesh%y(i+1,j) ) &
                             - ( mesh%x(i,  j+1) - mesh%x(i+1,j) ) &
                             * ( mesh%y(i+1,j+1) - mesh%y(i,  j) )
-
-                ! CALC CELL VOLUMES
-                    ! (length in x-dir times length in y-dir)
-!                 cell%V(i,j) = ( (mesh%xp(i+1,j) - mesh%xp(i,j)) ) &
-!                                     * ( mesh%yp(i,j+1) - mesh%yp(i,j) )
             END DO
         END DO
     END SUBROUTINE init_cells
 
-    SUBROUTINE calc_2nd_areas(m, c)
+    SUBROUTINE calc_2nd_areas(m)
         ! calculate areas for secondary fluxes.
         ! c --> derived data type with cell data, target for c
         ! m --> mesh points
         TYPE(MESHTYPE) :: m
-        TYPE(CELLTYPE) :: c
         INTEGER :: i, j
         ! Areas used in counter-clockwise trapezoidal integration to get
         ! x and y first-derivatives for center of each cell (Green's thm)
@@ -215,37 +211,36 @@ CONTAINS
 
                 ! (NN = 'negative-negative', PN = 'positive-negative',
                     ! see how fluxes are summed)
-                c%xNN(i, j) = ( -Axi_half - Axj_half )
-                c%xPN(i, j) = (  Axi_half - Axj_half )
-                c%xPP(i, j) = (  Axi_half + Axj_half )
-                c%xNP(i, j) = ( -Axi_half + Axj_half )
+                m%xNN(i, j) = ( -Axi_half - Axj_half )
+                m%xPN(i, j) = (  Axi_half - Axj_half )
+                m%xPP(i, j) = (  Axi_half + Axj_half )
+                m%xNP(i, j) = ( -Axi_half + Axj_half )
 
-                c%yPP(i, j) = (  Ayi_half + Ayj_half )
-                c%yNP(i, j) = ( -Ayi_half + Ayj_half )
-                c%yNN(i, j) = ( -Ayi_half - Ayj_half )
-                c%yPN(i, j) = (  Ayi_half - Ayj_half )
+                m%yPP(i, j) = (  Ayi_half + Ayj_half )
+                m%yNP(i, j) = ( -Ayi_half + Ayj_half )
+                m%yNN(i, j) = ( -Ayi_half - Ayj_half )
+                m%yPN(i, j) = (  Ayi_half - Ayj_half )
             END DO
         END DO
     END SUBROUTINE calc_2nd_areas
 
-    SUBROUTINE calc_constants(mesh, cell)
+    SUBROUTINE calc_constants(mesh)
         ! Calculate constants for a given iteration loop.  This way,
         ! they don't need to be calculated within the loop at each iteration
         TYPE(MESHTYPE), TARGET :: mesh
-        TYPE(CELLTYPE), TARGET :: cell
         INTEGER :: i, j
         DO j = 2, JMAX - 1
             DO i = 2, IMAX - 1
                 ! CALC TIMESTEP FROM CFL
-                mesh%dt(i,j) = ((CFL * 0.5D0) / alpha) * cell%V(i,j) ** 2 &
+                mesh%dt(i,j) = ((CFL * 0.5D0) / alpha) * mesh%V(i,j) ** 2 &
                                 / ( (mesh%xp(i+1,j) - mesh%xp(i,j))**2 &
                                     + (mesh%yp(i,j+1) - mesh%yp(i,j))**2 )
                 ! CALC SECONDARY VOLUMES
                 ! (for rectangular mesh, just average volumes of the 4 cells
                 !  surrounding the point)
-                mesh%V2nd(i,j) = ( cell%V(i,j) &
-                                    + cell%V(i-1,j) + cell%V(i,j-1) &
-                                    + cell%V(i-1,j-1) ) * 0.25D0
+                mesh%V2nd(i,j) = ( mesh%V(i,j) &
+                                    + mesh%V(i-1,j) + mesh%V(i,j-1) &
+                                    + mesh%V(i-1,j-1) ) * 0.25D0
                 ! CALC CONSTANT TERM
                 ! (this term remains constant in the equation regardless of
                 !  iteration number, so only calculate once here,
@@ -269,10 +264,9 @@ MODULE TEMPERATURE
     PUBLIC
 
 CONTAINS
-    SUBROUTINE derivatives(m, c)
+    SUBROUTINE derivatives(m)
         ! Calculate first and second derivatives for finite-volume scheme
         TYPE(MESHTYPE), INTENT(INOUT) :: m
-        TYPE(CELLTYPE), INTENT(INOUT) :: c
         ! First partial derivatives of temperature in x and y directions
         REAL(KIND=8) :: dTdx, dTdy
         INTEGER :: i, j
@@ -288,19 +282,19 @@ CONTAINS
                             -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Ayi(i,  j) &
                             -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Ayj(i,j+1) &
                             +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Ayj(i,  j) &
-                                ) / c%V(i,j)
+                                ) / m%V(i,j)
                 dTdy = - 0.5d0 &
                             * (( m%T(i+1,j) + m%T(i+1,j+1) ) * m%Axi(i+1,j) &
                             -  ( m%T(i,  j) + m%T(i,  j+1) ) * m%Axi(i,  j) &
                             -  ( m%T(i,j+1) + m%T(i+1,j+1) ) * m%Axj(i,j+1) &
                             +  ( m%T(i,  j) + m%T(i+1,  j) ) * m%Axj(i,  j) &
-                                ) / c%V(i,j)
+                                ) / m%V(i,j)
 
                 ! Alternate distributive scheme second-derivative operator.
-                m%Ttmp(i+1,  j) = m%Ttmp(i+1,  j) + m%term(i+1,  j) * ( c%yNN(i,j) * dTdx + c%xPP(i,j) * dTdy )
-                m%Ttmp(i,    j) = m%Ttmp(i,    j) + m%term(i,    j) * ( c%yPN(i,j) * dTdx + c%xNP(i,j) * dTdy )
-                m%Ttmp(i,  j+1) = m%Ttmp(i,  j+1) + m%term(i,  j+1) * ( c%yPP(i,j) * dTdx + c%xNN(i,j) * dTdy )
-                m%Ttmp(i+1,j+1) = m%Ttmp(i+1,j+1) + m%term(i+1,j+1) * ( c%yNP(i,j) * dTdx + c%xPN(i,j) * dTdy )
+                m%Ttmp(i+1,  j) = m%Ttmp(i+1,  j) + m%term(i+1,  j) * ( m%yNN(i,j) * dTdx + m%xPP(i,j) * dTdy )
+                m%Ttmp(i,    j) = m%Ttmp(i,    j) + m%term(i,    j) * ( m%yPN(i,j) * dTdx + m%xNP(i,j) * dTdy )
+                m%Ttmp(i,  j+1) = m%Ttmp(i,  j+1) + m%term(i,  j+1) * ( m%yPP(i,j) * dTdx + m%xNN(i,j) * dTdy )
+                m%Ttmp(i+1,j+1) = m%Ttmp(i+1,j+1) + m%term(i+1,j+1) * ( m%yNP(i,j) * dTdx + m%xPN(i,j) * dTdy )
             END DO
         END DO
     END SUBROUTINE derivatives

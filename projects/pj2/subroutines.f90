@@ -20,27 +20,25 @@ MODULE subroutines
     IMPLICIT NONE
 
 CONTAINS
-    SUBROUTINE init(mesh, cell)
+    SUBROUTINE init(mesh)
         ! Initialize the solution with dirichlet B.C.s
         TYPE(MESHTYPE), TARGET :: mesh
-        TYPE(CELLTYPE), TARGET :: cell
 
         ! INITIALIZE MESH
         CALL init_mesh(mesh)
         ! INITIALIZE CELLS
-        CALL init_cells(mesh, cell)
+        CALL init_cells(mesh)
         ! CALC SECONDARY AREAS OF INTEGRATION
-        CALL calc_2nd_areas(mesh, cell)
+        CALL calc_2nd_areas(mesh)
         ! CALC CONSTANTS OF INTEGRATION
-        CALL calc_constants(mesh, cell)
+        CALL calc_constants(mesh)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         CALL init_temp(mesh)
     END SUBROUTINE init
 
-    SUBROUTINE solve(mesh, cell, min_res, max_iter, iter)
+    SUBROUTINE solve(mesh, min_res, max_iter, iter)
         ! Solve heat conduction equation with finite volume scheme
         TYPE(MESHTYPE) :: mesh
-        TYPE(CELLTYPE) :: cell
         ! Minimum residual criteria for iteration, actual residual
         REAL(KIND=8) :: min_res, res = 1000.D0
         ! iteration number, maximum number of iterations
@@ -60,7 +58,7 @@ CONTAINS
             ! INCREMENT ITERATION COUNT
             iter = iter + 1
             ! CALC NEW TEMPERATURE AT ALL POINTS
-            CALL derivatives(mesh, cell)
+            CALL derivatives(mesh)
             ! SAVE NEW TEMPERATURE DISTRIBUTION
             DO j = 2, JMAX - 1
                 DO i = 2, IMAX - 1
