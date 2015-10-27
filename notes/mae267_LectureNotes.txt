@@ -115,5 +115,6 @@ calcpip bug --> status variable for sends and recieves needs to be an array, not
 staggar sends and recievies
 256 intervals, use 1, 2, 4, and 8 processors (divisible)
 
-10/22
+10/27
+
 
