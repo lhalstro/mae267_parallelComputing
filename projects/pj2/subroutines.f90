@@ -23,8 +23,6 @@ CONTAINS
 
         ! INITIALIZE MESH
         CALL init_mesh(mesh)
-        ! INITIALIZE CELLS
-        CALL init_cells(mesh)
         ! CALC SECONDARY AREAS OF INTEGRATION
         CALL calc_2nd_areas(mesh)
         ! CALC CONSTANTS OF INTEGRATION

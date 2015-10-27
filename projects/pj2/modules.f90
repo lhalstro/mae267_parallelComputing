@@ -45,6 +45,7 @@ CONTAINS
         INTEGER :: I
 
         ! READ INPUTS FROM FILE
+            !(So I don't have to recompile each time I change an input setting)
         WRITE(*,*) 'Reading input...'
         OPEN (UNIT = 1, FILE = 'config.in')
         DO I = 1, 3
@@ -74,10 +75,7 @@ CONTAINS
         WRITE(*,*) 'With MxN blocks:', M, 'x', N
         WRITE(*,*) 'Number of blocks:', NBLK
         WRITE(*,*) ''
-
     END SUBROUTINE read_input
-
-
 END MODULE CONSTANTS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -92,8 +90,9 @@ MODULE BLOCKMOD
     IMPLICIT NONE
     PUBLIC
 
+    ! DERIVED DATA TYPE FOR GRID INFORMATION
+
     TYPE MESHTYPE
-        ! DERIVED DATA TYPE
         ! Grid points, see cooridinate rotaion equations in problem statement
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xp, yp, x, y
         ! Temperature at each point, temporary variable to hold temperature sum
@@ -108,9 +107,15 @@ MODULE BLOCKMOD
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:, :) :: xNN, xPN, xPP, xNP
     END TYPE MESHTYPE
 
-    TYPE BLCKTYPE
-        ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
+    ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
 
+    TYPE BLCKTYPE
+        ! DER. DATA TYPE STORES LOCAL MESH INFO
+        TYPE(MESHTYPE) :: mesh
+        ! BLOCK NUMBER
+        INTEGER :: BLKNUM
+        ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM OF LOCAL INDICIES FOR BLOCK
+        INTEGER :: IMINBLK, IMAXBLK, JMINBLK, JMAXBLK
     END TYPE BLCKTYPE
 
 CONTAINS
@@ -135,6 +140,17 @@ CONTAINS
         ALLOCATE( mesh%Ayj(1:IMAX, 1:JMAX) )
         ALLOCATE( mesh%Axj(1:IMAX, 1:JMAX) )
 
+        ! ALLOCATE CELL INFORMATION
+        ALLOCATE( mesh%V(  1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yNP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%yPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xNN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xPN(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xPP(1:IMAX-1, 1:JMAX-1) )
+        ALLOCATE( mesh%xNP(1:IMAX-1, 1:JMAX-1) )
+
         DO j = 1, JMAX
             DO i = 1, IMAX
                 ! MAKE SQUARE GRID
@@ -143,6 +159,20 @@ CONTAINS
                 ! ROTATE GRID
                 mesh%x(i, j) = mesh%xp(i, j) * COS(rot) + (1.D0 - mesh%yp(i, j) ) * SIN(rot)
                 mesh%y(i, j) = mesh%yp(i, j) * COS(rot) + (mesh%xp(i, j)) * SIN(rot)
+            END DO
+        END DO
+        DO j = 1, JMAX-1
+            DO i = 1, IMAX-1
+                ! CALC CELL VOLUME
+                    ! cross product of cell diagonals p, q
+                    ! where p has x,y components px, py and q likewise.
+                    ! Thus, p cross q = px*qy - qx*py
+                    ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
+                    ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
+                mesh%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
+                            * ( mesh%y(i,  j+1) - mesh%y(i+1,j) ) &
+                            - ( mesh%x(i,  j+1) - mesh%x(i+1,j) ) &
+                            * ( mesh%y(i+1,j+1) - mesh%y(i,  j) )
             END DO
         END DO
     END SUBROUTINE init_mesh
@@ -165,42 +195,6 @@ CONTAINS
             mesh%T(i,JMAX) = 5.D0 * (SIN(pi * mesh%xp(i,JMAX)) + 1.D0)
         END DO
     END SUBROUTINE init_temp
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!! CELLS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    SUBROUTINE init_cells(mesh)
-        ! mesh --> derived data type containing mesh point info
-        TYPE(MESHTYPE) :: mesh
-        INTEGER :: i, j
-
-        ! ALLOCATE CELL INFORMATION
-        ALLOCATE( mesh%V(  1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yNP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%yPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xNN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xPN(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xPP(1:IMAX-1, 1:JMAX-1) )
-        ALLOCATE( mesh%xNP(1:IMAX-1, 1:JMAX-1) )
-
-        DO j = 1, JMAX-1
-            DO i = 1, IMAX-1
-                ! CALC CELL VOLUME
-                    ! cross product of cell diagonals p, q
-                    ! where p has x,y components px, py and q likewise.
-                    ! Thus, p cross q = px*qy - qx*py
-                    ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
-                    ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                mesh%V(i,j) = ( mesh%x(i+1,j+1) - mesh%x(i,  j) ) &
-                            * ( mesh%y(i,  j+1) - mesh%y(i+1,j) ) &
-                            - ( mesh%x(i,  j+1) - mesh%x(i+1,j) ) &
-                            * ( mesh%y(i+1,j+1) - mesh%y(i,  j) )
-            END DO
-        END DO
-    END SUBROUTINE init_cells
 
     SUBROUTINE calc_2nd_areas(m)
         ! calculate areas for secondary fluxes.
