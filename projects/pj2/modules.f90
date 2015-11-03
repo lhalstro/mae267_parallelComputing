@@ -1,5 +1,5 @@
 ! MAE 267
-! PROJECT 1
+! PROJECT 2
 ! LOGAN HALSTROM
 ! 12 OCTOBER 2015
 
@@ -78,6 +78,7 @@ CONTAINS
         WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
         WRITE(*,*) 'With MxN blocks:', M, 'x', N
         WRITE(*,*) 'Number of blocks:', NBLK
+        WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
         WRITE(*,*) ''
     END SUBROUTINE read_input
 END MODULE CONSTANTS
@@ -219,10 +220,12 @@ CONTAINS
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
         WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
         DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, AND STARTING GLOBAL INDICES.
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
             ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
             ! NORTH EAST SOUTH WEST
-            WRITE(BLKFILE, 22) b(I)%ID, b(I)%IMIN, b(I)%JMIN, &
+            WRITE(BLKFILE, 22) b(I)%ID, &
+                b(I)%IMIN, b(I)%JMIN, &
+                b(I)%IMAX, b(I)%JMAX, &
                 b(I)%FaceN%BC, b(I)%FaceN%NB, &
                 b(I)%FaceE%BC, b(I)%FaceE%NB, &
                 b(I)%FaceS%BC, b(I)%FaceS%NB, &

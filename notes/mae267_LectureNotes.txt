@@ -116,5 +116,15 @@ staggar sends and recievies
 256 intervals, use 1, 2, 4, and 8 processors (divisible)
 
 10/27
+residuals in project 3 should be exactly the same as 1 for the first 10 or so iterations
 
+11/3
+fast codes:
+    data locality -
+
+linked list of boundaries --> allows for different boundaries,
+    avoids using logic.
+    i.e. linked list of BC1 regardless of location
+            (instead of storing bc with the data for each point)
+            so lists of northfaces, south faces, bc faces, etc
 
