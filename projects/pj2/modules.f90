@@ -167,7 +167,7 @@ CONTAINS
         !               |                |
         !               |     North      |
         !             NW|  (IBLK + N)    |NE
-        ! (IBLK + N + 1)|                |(IBLK + N + 1)
+        ! (IBLK + N - 1)|                |(IBLK + N + 1)
         ! ----------------------------------------------
         !               |                |
         !     West      |   Current      |    East
@@ -201,35 +201,45 @@ CONTAINS
 
                 ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
-                NB%N = IBLK + N
-                NB%S = IBLK - N
-                NB%E = IBLK + 1
-                NB%W = IBLK - 1
+                NB%N  = IBLK + N
+                NB%S  = IBLK - N
+                NB%E  = IBLK + 1
+                NB%W  = IBLK - 1
+                NB%NE = IBLK + N + 1
+                NB%NW = IBLK + N - 1
+                NB%SW = IBLK - N - 1
+                NB%SE = IBLK - N + 1
 
-!                 ! ASSIGN FACE BOUNDARY CONDITIONS
-!                     ! initialize as all internal
-!                 b(IBLK)%N%BC = -1
-!                 b(IBLK)%S%BC = -1
-!                 b(IBLK)%E%BC = -1
-!                 b(IBLK)%W%BC = -1
-
-                ! Assign faces on boundary of the actual computational grid
-                ! with number corresponding to which boundary they are on
+                ! Assign faces and corners on boundary of the actual
+                ! computational grid with number corresponding to which
+                ! boundary they are on.
+                    ! Corners on actual corners of the computational grid are
+                    ! ambiguously assigned.
                 IF ( b(IBLK)%JMAX == JMAX ) THEN
-                    ! NORTH BLOCK FACE IS ON MESH NORTH BOUNDARY
-                    NB%N = NBND
+                    ! NORTH BLOCK FACE AND CORNERS ARE ON MESH NORTH BOUNDARY
+                        ! AT ACTUAL CORNERS OF MESH, CORNERS ARE AMBIGUOUS
+                    NB%N  = NBND
+                    NB%NE = NBND
+                    NB%NW = NBND
                 END IF
                 IF ( b(IBLK)%IMAX == IMAX ) THEN
                     ! EAST BLOCK FACE IS ON MESH EAST BOUNDARY
-                    NB%E = EBND
+                    NB%E  = EBND
+                    NB%NE = EBND
+                    NB%SE = EBND
+
                 END IF
                 IF ( b(IBLK)%JMIN == 1 ) THEN
                     ! SOUTH BLOCK FACE IS ON MESH SOUTH BOUNDARY
-                    NB%S = SBND
+                    NB%S  = SBND
+                    NB%SE = SBND
+                    NB%SW = SBND
                 END IF
                 IF ( b(IBLK)%IMIN == 1 ) THEN
                     ! WEST BLOCK FACE IS ON MESH WEST BOUNDARY
-                    NB%W = WBND
+                    NB%W  = WBND
+                    NB%SW = WBND
+                    NB%NW = WBND
                 END IF
 
                 ! BLOCK ORIENTATION
@@ -260,9 +270,13 @@ CONTAINS
             WRITE(BLKFILE, 22) b(I)%ID, &
                 b(I)%IMIN, b(I)%JMIN, &
                 b(I)%NB%N, &
+                b(I)%NB%NE, &
                 b(I)%NB%E, &
+                b(I)%NB%SE, &
                 b(I)%NB%S, &
+                b(I)%NB%SW, &
                 b(I)%NB%W, &
+                b(I)%NB%NW, &
                 b(I)%ORIENT
         END DO
         CLOSE(BLKFILE)
