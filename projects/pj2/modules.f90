@@ -41,9 +41,9 @@ MODULE CONSTANTS
     INTEGER :: M, N, NBLK
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
-    INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
-    ! Output directories
-!     CHARACTER(LEN=7) :: outdir = "Results", casedir
+!     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
+    INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4
+    ! Output directory
     CHARACTER(LEN=16) :: casedir
 
 CONTAINS
@@ -52,11 +52,11 @@ CONTAINS
         INTEGER :: I
         CHARACTER(LEN=3) :: strNX
         CHARACTER(LEN=1) :: strN, strM
-        LOGICAL :: exists
 
         ! READ INPUTS FROM FILE
             !(So I don't have to recompile each time I change an input setting)
-        WRITE(*,*) 'Reading input...'
+!         WRITE(*,*) ''
+!         WRITE(*,*) 'Reading input...'
         OPEN (UNIT = 1, FILE = 'config.in')
         DO I = 1, 3
             ! Skip header lines
@@ -84,10 +84,9 @@ CONTAINS
         WRITE(strNX, '(I3)') nx
         WRITE(strN,  '(I1)') N
         WRITE(strM,  '(I1)') M
-        !case output directory: nx_NxM (i.e. 'Results/101_5x4')
+        ! case output directory: nx_NxM (i.e. 'Results/101_5x4')
         casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
         ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
-!         CALL EXECUTE_COMMAND_LINE ("mkdir -p " // outdir // '/' // casedir)
         CALL EXECUTE_COMMAND_LINE ("mkdir -p " // casedir)
 
         ! OUTPUT TO SCREEN
@@ -101,7 +100,7 @@ CONTAINS
 END MODULE CONSTANTS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! INITIALIZE GRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! BLOCK GRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE BLOCKMOD
@@ -132,8 +131,9 @@ MODULE BLOCKMOD
     ! DATA TYPE FOR INFORMATION ABOUT NEIGHBORS
 
     TYPE NBRTYPE
-        ! STORE NUMBER OF NEIGHBOR BLOCK, OR NUMBER OF BOUNDARY CONDITION
-        INTEGER :: BC, NB
+        ! Information about face neighbors (north, east, south, west)
+            ! And corner neighbors (Northeast, southeast, southwest, northwest)
+        INTEGER :: N, E, S, W, NE, SE, SW, NW
     END TYPE NBRTYPE
 
     ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
@@ -141,27 +141,44 @@ MODULE BLOCKMOD
     TYPE BLKTYPE
         ! DER. DATA TYPE STORES LOCAL MESH INFO
         TYPE(MESHTYPE) :: mesh
-        ! Information about face neighbors (north, east, south, west)
-        TYPE(NBRTYPE) :: FaceN, FaceE, FaceS, FaceW
+        ! IDENTIFY FACE AND CORNER NEIGHBOR BLOCKS AND PROCESSORS
+        TYPE(NBRTYPE) :: NB
         ! BLOCK NUMBER
         INTEGER :: ID
-        ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM OF LOCAL INDICIES FOR BLOCK
+        ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
         INTEGER :: IMIN, IMAX, JMIN, JMAX
         ! BLOCK ORIENTATION
-        INTEGER :: orientation
+        INTEGER :: ORIENT
     END TYPE BLKTYPE
 
 CONTAINS
     SUBROUTINE init_blocks(b)
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
+        TYPE(BLKTYPE), TARGET :: b(:)
+        ! Neighbor information pointer
+        TYPE(NBRTYPE), POINTER :: NB
         ! COUNTER VARIABLES
             ! IM, IN COUNT BLOCK INDICIES
             ! (IBLK COUNTS BLOCK NUMBERS, INBR IS BLOCK NEIGHBOR INDEX)
         INTEGER :: I, J, IBLK, INBR
 
         ! STEP THROUGH BLOCKS, ASSIGN IDENTIFYING INFO
-
+        !
+        !               |                |
+        !               |     North      |
+        !             NW|  (IBLK + N)    |NE
+        ! (IBLK + N + 1)|                |(IBLK + N + 1)
+        ! ----------------------------------------------
+        !               |                |
+        !     West      |   Current      |    East
+        !   (IBLK - 1)  |     (IBLK)     |  (IBLK + 1)
+        !               |                |
+        ! ----------------------------------------------
+        !             SW|                |SE
+        ! (IBLK - N - 1)|     South      |(IBLK - N + 1)
+        !               |  (IBLK - N)    |
+        !               |                |
+        !
 
         ! START AT BLOCK 1 (INCREMENT IN LOOP)
         IBLK = 0
@@ -170,54 +187,54 @@ CONTAINS
             DO I = 1, N
                 ! INCREMENT BLOCK NUMBER
                 IBLK = IBLK + 1
+
+                ! Neighbor information pointer
+                NB => b(IBLK)%NB
+
                 ! ASSIGN BLOCK NUMBER
                 b(IBLK)%ID = IBLK
                 ! ASSIGN GLOBAL MIN/MAX INDICIES OF LOCAL GRID
                 b(IBLK)%IMIN = 1 + (IMAXBLK - 1) * (I - 1)
                 b(IBLK)%JMIN = 1 + (JMAXBLK - 1) * (J - 1)
-                b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
-                b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
+!                 b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
+!                 b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
 
                 ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
-                b(IBLK)%FaceN%NB = IBLK + N
-                b(IBLK)%FaceS%NB = IBLK - N
-                b(IBLK)%FaceE%NB = IBLK + 1
-                b(IBLK)%FaceW%NB = IBLK - 1
+                NB%N = IBLK + N
+                NB%S = IBLK - N
+                NB%E = IBLK + 1
+                NB%W = IBLK - 1
 
-                ! ASSIGN FACE BOUNDARY CONDITIONS
-                    ! initialize as all internal
-                b(IBLK)%FaceN%BC = -1
-                b(IBLK)%FaceS%BC = -1
-                b(IBLK)%FaceE%BC = -1
-                b(IBLK)%FaceW%BC = -1
+!                 ! ASSIGN FACE BOUNDARY CONDITIONS
+!                     ! initialize as all internal
+!                 b(IBLK)%N%BC = -1
+!                 b(IBLK)%S%BC = -1
+!                 b(IBLK)%E%BC = -1
+!                 b(IBLK)%W%BC = -1
+
                 ! Assign faces on boundary of the actual computational grid
                 ! with number corresponding to which boundary they are on
                 IF ( b(IBLK)%JMAX == JMAX ) THEN
                     ! NORTH BLOCK FACE IS ON MESH NORTH BOUNDARY
-                    b(IBLK)%FaceN%BC = NBND
-                    ! un-assign neighbor that wasnt real
-                    b(IBLK)%FaceN%NB = -1
+                    NB%N = NBND
                 END IF
                 IF ( b(IBLK)%IMAX == IMAX ) THEN
                     ! EAST BLOCK FACE IS ON MESH EAST BOUNDARY
-                    b(IBLK)%FaceE%BC = EBND
-                    b(IBLK)%FaceE%NB = -1
+                    NB%E = EBND
                 END IF
                 IF ( b(IBLK)%JMIN == 1 ) THEN
                     ! SOUTH BLOCK FACE IS ON MESH SOUTH BOUNDARY
-                    b(IBLK)%FaceS%BC = SBND
-                    b(IBLK)%FaceS%NB = -1
+                    NB%S = SBND
                 END IF
                 IF ( b(IBLK)%IMIN == 1 ) THEN
                     ! WEST BLOCK FACE IS ON MESH WEST BOUNDARY
-                    b(IBLK)%FaceW%BC = WBND
-                    b(IBLK)%FaceW%NB = -1
+                    NB%W = WBND
                 END IF
 
                 ! BLOCK ORIENTATION
                     ! same for all in this project
-                b(IBLK)%orientation = 1
+                b(IBLK)%ORIENT = 1
 
             END DO
         END DO
@@ -242,12 +259,11 @@ CONTAINS
             ! NORTH EAST SOUTH WEST
             WRITE(BLKFILE, 22) b(I)%ID, &
                 b(I)%IMIN, b(I)%JMIN, &
-                b(I)%IMAX, b(I)%JMAX, &
-                b(I)%FaceN%BC, b(I)%FaceN%NB, &
-                b(I)%FaceE%BC, b(I)%FaceE%NB, &
-                b(I)%FaceS%BC, b(I)%FaceS%NB, &
-                b(I)%FaceW%BC, b(I)%FaceW%NB, &
-                b(I)%orientation
+                b(I)%NB%N, &
+                b(I)%NB%E, &
+                b(I)%NB%S, &
+                b(I)%NB%W, &
+                b(I)%ORIENT
         END DO
         CLOSE(BLKFILE)
     END SUBROUTINE write_blocks
@@ -321,6 +337,7 @@ CONTAINS
         TYPE(BLKTYPE), TARGET  :: blocks(:)
         TYPE(BLKTYPE), POINTER :: b
         TYPE(MESHTYPE), POINTER :: m
+        TYPE(NBRTYPE), POINTER :: NB
         INTEGER :: IBLK, I, J
 
 
@@ -329,26 +346,27 @@ CONTAINS
         DO IBLK = 1, NBLK
             b => blocks(IBLK)
             m => blocks(IBLK)%mesh
+            NB => blocks(IBLK)%NB
             ! FIRST, INITIALIZE ALL POINT TO INITIAL TEMPERATURE (T0)
             m%T(1:IMAXBLK, 1:JMAXBLK) = T0
             ! THEN, INITIALIZE BOUNDARIES DIRICHLET B.C.
             ! face on north boundary
-            IF (b%FaceN%BC == NBND) THEN
+            IF (NB%N == NBND) THEN
                 DO I = 1, IMAXBLK
                     m%T(I,JMAX) = 5.D0 * (SIN(pi * m%xp(I,JMAX)) + 1.D0)
                 END DO
             END IF
-            IF (b%FaceS%BC == SBND) THEN
+            IF (NB%S == SBND) THEN
                 DO I = 1, IMAXBLK
                     m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
                 END DO
             END IF
-            IF (b%FaceE%BC == EBND) THEN
+            IF (NB%E == EBND) THEN
                 DO J = 1, JMAXBLK
                     m%T(IMAX,J) = 3.D0 * m%yp(IMAX,J) + 2.D0
                 END DO
             END IF
-            IF (b%FaceW%BC == WBND) THEN
+            IF (NB%W == WBND) THEN
                 DO J = 1, JMAXBLK
                     m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
                 END DO
