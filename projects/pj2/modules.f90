@@ -156,10 +156,10 @@ CONTAINS
                 ! ASSIGN BLOCK NUMBER
                 b(IBLK)%ID = IBLK
                 ! ASSIGN GLOBAL MIN/MAX INDICIES OF LOCAL GRID
-                b(IBLK)%IMAX = 1 + I        * (IMAXBLK - 1)
-                b(IBLK)%JMAX = 1 + J        * (JMAXBLK - 1)
-                b(IBLK)%IMIN = b(IBLK)%IMAX - (IMAXBLK - 1)
-                b(IBLK)%JMIN = b(IBLK)%JMAX - (JMAXBLK - 1)
+                b(IBLK)%IMIN = 1 + (IMAXBLK - 1) * (I - 1)
+                b(IBLK)%JMIN = 1 + (JMAXBLK - 1) * (J - 1)
+                b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
+                b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
 
                 ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
@@ -257,24 +257,27 @@ CONTAINS
             ALLOCATE( b(IBLK)%mesh%Axi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
             ALLOCATE( b(IBLK)%mesh%Ayj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
             ALLOCATE( b(IBLK)%mesh%Axj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%V(   0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%yPP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%yNP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%yNN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%yPN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%xNN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%xPN( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%xPP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
-            ALLOCATE( b(IBLK)%mesh%xNP( 0:IMAXBLK+1-1, 0:JMAXBLK+1-1) )
+            ALLOCATE( b(IBLK)%mesh%V(   0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%yPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%yNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%yNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%yPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%xNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%xPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%xPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( b(IBLK)%mesh%xNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
 
+            ! STEP THROUGH LOCAL INDICIES OF EACH BLOCK
             DO J = 0, JMAXBLK+1
                 DO I = 0, IMAXBLK+1
                     ! MAKE SQUARE GRID
-                    b(IBLK)%mesh%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - (I + b(IBLK)%IMIN - 1) ) / DFLOAT(IMAX - 1) )
-                    b(IBLK)%mesh%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - (J + b(IBLK)%JMIN - 1) ) / DFLOAT(JMAX - 1) )
+                        ! CONVERT FROM LOCAL TO GLOBAL INDEX:
+                            ! Iglobal = Block%IMIN + (Ilocal - 1)
+                    b(IBLK)%mesh%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
+                    b(IBLK)%mesh%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
                     ! ROTATE GRID
                     b(IBLK)%mesh%x(I, J) = b(IBLK)%mesh%xp(I, J) * COS(rot) + (1.D0 - b(IBLK)%mesh%yp(I, J) ) * SIN(rot)
-                    b(IBLK)%mesh%y(I, J) = b(IBLK)%mesh%yp(I, J) * COS(rot) + (b(IBLK)%mesh%xp(I, J)) * SIN(rot)
+                    b(IBLK)%mesh%y(I, J) = b(IBLK)%mesh%yp(I, J) * COS(rot) + (       b(IBLK)%mesh%xp(I, J) ) * SIN(rot)
                 END DO
             END DO
             DO J = 0, JMAXBLK+1-1

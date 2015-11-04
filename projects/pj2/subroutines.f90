@@ -30,10 +30,10 @@ CONTAINS
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         CALL init_temp(blocks)
-        ! CALC SECONDARY AREAS OF INTEGRATION
-        CALL calc_2nd_areas(blocks)
-        ! CALC CONSTANTS OF INTEGRATION
-        CALL calc_constants(blocks)
+!         ! CALC SECONDARY AREAS OF INTEGRATION
+!         CALL calc_2nd_areas(blocks)
+!         ! CALC CONSTANTS OF INTEGRATION
+!         CALL calc_constants(blocks)
     END SUBROUTINE init
 
 !     SUBROUTINE solve(blocks, min_res, max_iter, iter)

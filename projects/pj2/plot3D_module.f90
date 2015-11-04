@@ -4,6 +4,9 @@
 
 ! DESCRIPTION:  This module creates a grid and temperature file in
 !               the plot3D format for steady state solution
+! NOTE: How to Visualize Blocks in Paraview:
+    ! open unformatted PLOT3D file.
+    ! Change 'Coloring' from 'Solid' to 'vtkCompositeIndex'
 
 MODULE plot3D_module
     USE CONSTANTS
@@ -24,6 +27,12 @@ MODULE plot3D_module
         INTEGER :: IBLK, I, J
 
         ! FORMAT STATEMENTS
+            ! I --> Integer, number following is number of sig figs
+            ! E --> scientific notation,
+                        ! before decimal is sig figs of exponent?
+                        ! after decimal is sig figs of value
+            ! number before letter is how many entries on single line
+                ! before newline (number of columns)
         10     FORMAT(I10)
         20     FORMAT(10I10)
         30     FORMAT(10E20.8)
@@ -34,8 +43,7 @@ MODULE plot3D_module
         OPEN(UNIT=gridUnit,FILE='grid_form.xyz',FORM='formatted')
         OPEN(UNIT=tempUnit,FILE='T_form.dat',FORM='formatted')
 
-        ! WRITE TO GRID FILE (UNFORMATTED)
-            ! (Paraview likes unformatted better)
+        ! WRITE TO GRID FILE
         WRITE(gridUnit, 10) NBLK
         WRITE(gridUnit, 20) ( IMAXBLK, JMAXBLK, IBLK=1, NBLK)
 !         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
