@@ -147,6 +147,8 @@ MODULE BLOCKMOD
         INTEGER :: ID
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
         INTEGER :: IMIN, IMAX, JMIN, JMAX
+        ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
+        INTEGER :: IMINLOC, JMINLOC
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
@@ -167,6 +169,11 @@ MODULE BLOCKMOD
     END TYPE NBRLIST
 
 CONTAINS
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! SETUP TO WRITE TO RESTART FILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     SUBROUTINE init_blocks(b)
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: b(:)
@@ -391,8 +398,78 @@ CONTAINS
         END DO
     END SUBROUTINE init_temp
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! AFTER RESTART FILE READ IN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    SUBROUTINE calc_block_params(b)
+        ! Calculate iteration bounds for each block to avoid updating BCs.
+        ! call after reading in mesh data from restart file
+        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(NBRTYPE), POINTER :: NB
+        INTEGER :: IBLK, I, J
+
+        DO IBLK = 1, NBLK
+            NB => blocks(IBLK)%NB
+
+            ! Set iteration bounds of each block to preserve BCs
+                ! south and west boundaries:
+                    ! interior: iminloc, jminloc = 0 (use ghost)
+                    ! boundary: iminloc, jminloc = 2 (1st index is BC)
+                ! north and east boundaries:
+                    ! interior: imaxloc, jmaxloc = maxblk (use ghost)
+                    ! boundary: imaxloc, jmaxloc = maxblk-1 (max index is BC)
+
+            ! NORTH
+            IF (NB%N > 0) THEN
+                ! Interior faces have positive ID neighbors
+                    ! MAYBE THIS NEEDS TO BE PLUS ONE FOR GHOST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                b%JMAXLOC = JMAXBLK
+            ELSE
+                ! At North Boundary
+                b%JMAXLOC = JMAXBLK - 1
+            END IF
+
+            ! EAST
+            IF (NB%E > 0) THEN
+                ! Interior
+                b%IMAXLOC = IMAXBLK
+            ELSE
+                ! At North Boundary
+                b%IMAXLOC = IMAXBLK - 1
+            END IF
+
+            ! SOUTH
+            IF (NB%S > 0) THEN
+                ! Interior
+                ! OR MAYBE THIS NEEDS TO BE PLUS ONE FOR GHOST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                b%JMINLOC = 0
+            ELSE
+                ! At North Boundary
+                b%JMINLOC = 1
+            END IF
+
+            ! WEST
+            IF (NB%W > 0) THEN
+                ! Interior
+                b%IMINLOC = 0
+            ELSE
+                ! At North Boundary
+                b%IMINLOC = 1
+            END IF
+
+
+            DO J = 0, JMAXBLK+1-1
+                DO I = 0, IMAXBLK+1-1
+
+                END DO
+            END DO
+
+        END DO
+
     SUBROUTINE calc_cell_params(blocks)
-        ! calculate areas for secondary fluxes.
+        ! calculate areas for secondary fluxes. ! Call after reading mesh data
+        ! from restart file
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(MESHTYPE), POINTER :: m
@@ -493,23 +570,24 @@ CONTAINS
     !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    SUBROUTINE calc_temp(blocks)
+    SUBROUTINE calc_temp(b)
         ! Calculate first and second derivatives for finite-volume scheme
-        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), TARGET :: b(:)
         TYPE(MESHTYPE), POINTER :: m
         ! First partial derivatives of temperature in x and y directions
         REAL(KIND=8) :: dTdx, dTdy
         INTEGER :: IBLK, I, J
 
         DO IBLK = 1, NBLK
-            m => blocks(IBLK)%mesh
+            m => b(IBLK)%mesh
 
             ! RESET SUMMATION
             m%Ttmp = 0.D0
 
-            ! set these to avoid bcs !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            DO J = 1, JMAXBLK - 1
-                DO I = 1, IMAXBLK - 1
+            ! PREVIOUSLY SET ITERATION LIMITS TO UTILIZE GHOST NODES ONLY
+                !ON INTERIOR FACES
+            DO J = b(IBLK)%JMINLOC, b(IBLK)%JMAXLOC
+                DO I = b(IBLK)%IMINLOC, b(IBLK)%IMAXLOC
                     ! CALC FIRST DERIVATIVES
                     dTdx = + 0.5d0 &
                                 * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Ayi(I+1,J) &
@@ -534,9 +612,10 @@ CONTAINS
             ! SAVE NEW TEMPERATURE DISTRIBUTION
                 ! (preserve Ttmp for residual calculation in solver loop)
 
-            ! make these variables to avoid bcs !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            DO J = 2, JMAX - 1
-                DO I = 2, IMAX - 1
+            ! Previously set bounds, add one to lower limit so as not to
+            ! update BC. (dont need to for upper limit because explicit scheme)
+            DO J = b(IBLK)%JMINLOC + 1, b(IBLK)%JMAXLOC
+                DO I = b(IBLK)%IMINLOC + 1, b(IBLK)%IMAXLOC
                     m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)
                 END DO
             END DO
