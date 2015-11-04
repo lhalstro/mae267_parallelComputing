@@ -17,10 +17,9 @@ MODULE subroutines
     IMPLICIT NONE
 
 CONTAINS
-    SUBROUTINE init(blocks, mesh)
-        ! Initialize the solution with dirichlet B.C.s
+    SUBROUTINE init_gridsystem(blocks)
+        ! Initialize the solution with dirichlet B.C.s.  Save to restart files.
         TYPE(BLKTYPE)  :: blocks(:)
-        TYPE(MESHTYPE) :: mesh
 
         ! INITIALIZE BLOCKS
         CALL init_blocks(blocks)
@@ -30,11 +29,27 @@ CONTAINS
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         CALL init_temp(blocks)
-!         ! CALC SECONDARY AREAS OF INTEGRATION
+
+    END SUBROUTINE init_gridsystem
+
+    SUBROUTINE init_solution(blocks)
+        ! Read initial conditions from restart files.  Then calculate parameters
+        ! used in solution
+        TYPE(BLKTYPE)  :: blocks(:)
+
+        ! READ GRID
+
+
+        ! READ INITIAL TEMPERATURE
+
+
+        ! CALC SECONDARY AREAS OF INTEGRATION
 !         CALL calc_2nd_areas(blocks)
-!         ! CALC CONSTANTS OF INTEGRATION
+        ! CALC CONSTANTS OF INTEGRATION
 !         CALL calc_constants(blocks)
-    END SUBROUTINE init
+
+    END SUBROUTINE init_solution
+
 
 !     SUBROUTINE solve(blocks, min_res, max_iter, iter)
 !         ! Solve heat conduction equation with finite volume scheme

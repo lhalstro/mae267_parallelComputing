@@ -151,6 +151,15 @@ MODULE BLOCKMOD
         INTEGER :: ORIENT
     END TYPE BLKTYPE
 
+    ! LINKED LIST: RECURSIVE POINTER THAT POINTS THE NEXT ELEMENT IN THE LIST
+
+    TYPE LINKLIST
+        ! Next element in linked list
+        TYPE(LINKLIST), POINTER :: next
+        ! Identify what linked list belongs to
+        INTEGER :: ID
+    END TYPE LINKLIST
+
 CONTAINS
     SUBROUTINE init_blocks(b)
         ! BLOCK DATA TYPE
@@ -402,15 +411,15 @@ CONTAINS
 
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
-            DO J = 1, JMAX
-                DO I = 1, IMAX-1
+            DO J = 1, JMAXBLK
+                DO I = 1, IMAXBLK-1
                     ! CALC CELL AREAS
                     m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
                     m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
                 END DO
             END DO
-            DO J = 1, JMAX-1
-                DO I = 1, IMAX
+            DO J = 1, JMAXBLK-1
+                DO I = 1, IMAXBLK
                     ! CALC CELL AREAS
                     m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
                     m%Ayi(I,J) = m%y(I,J+1) - m%y(I,J)
@@ -418,8 +427,8 @@ CONTAINS
             END DO
 
             ! Actual finite-volume scheme equation parameters
-            DO J = 1, JMAX-1
-                DO I = 1, IMAX-1
+            DO J = 1, JMAXBLK-1
+                DO I = 1, IMAXBLK-1
 
                     Axi_half = ( m%Axi(I+1,J) + m%Axi(I,J) ) * 0.25D0
                     Axj_half = ( m%Axj(I,J+1) + m%Axj(I,J) ) * 0.25D0
@@ -449,8 +458,8 @@ CONTAINS
         INTEGER :: IBLK, I, J
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
-            DO J = 2, JMAX - 1
-                DO I = 2, IMAX - 1
+            DO J = 2, JMAXBLK - 1
+                DO I = 2, IMAXBLK - 1
                     ! CALC TIMESTEP FROM CFL
                     m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
                                     / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
@@ -489,8 +498,8 @@ CONTAINS
             ! RESET SUMMATION
             m%Ttmp = 0.D0
 
-            DO J = 1, JMAX - 1
-                DO I = 1, IMAX - 1
+            DO J = 1, JMAXBLK - 1
+                DO I = 1, IMAXBLK - 1
                     ! CALC FIRST DERIVATIVES
                     dTdx = + 0.5d0 &
                                 * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Ayi(I+1,J) &

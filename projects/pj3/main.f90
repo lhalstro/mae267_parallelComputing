@@ -25,8 +25,6 @@ PROGRAM heatTrans
 
     ! BLOCKS
     TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
-    ! GRID
-    TYPE(MESHTYPE) :: mesh
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -48,7 +46,7 @@ PROGRAM heatTrans
     ALLOCATE( blocks(NBLK) )
     ! INIITIALIZE SOLUTION
     WRITE(*,*) 'Making mesh...'
-    CALL init(blocks, mesh)
+    CALL init_gridsystem(blocks)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
