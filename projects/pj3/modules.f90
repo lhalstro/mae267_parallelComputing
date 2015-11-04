@@ -153,12 +153,18 @@ MODULE BLOCKMOD
 
     ! LINKED LIST: RECURSIVE POINTER THAT POINTS THE NEXT ELEMENT IN THE LIST
 
-    TYPE LINKLIST
+    TYPE LNKLIST
         ! Next element in linked list
-        TYPE(LINKLIST), POINTER :: next
+        TYPE(LNKLIST), POINTER :: next
         ! Identify what linked list belongs to
         INTEGER :: ID
-    END TYPE LINKLIST
+    END TYPE LNKLIST
+
+    ! Collection of linked lists for faces and corners
+
+    TYPE NBRLIST
+        TYPE(LNKLIST) :: N, E, S, W, NE, SE, SW, NW
+    END TYPE NBRLIST
 
 CONTAINS
     SUBROUTINE init_blocks(b)
@@ -339,20 +345,6 @@ CONTAINS
                     m%y(I, J) = m%yp(I, J) * COS(rot) + (       m%xp(I, J) ) * SIN(rot)
                 END DO
             END DO
-            DO J = 0, JMAXBLK+1-1
-                DO I = 0, IMAXBLK+1-1
-                    ! CALC CELL VOLUME
-                        ! cross product of cell diagonals p, q
-                        ! where p has x,y components px, py and q likewise.
-                        ! Thus, p cross q = px*qy - qx*py
-                        ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
-                        ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
-                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
-                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
-                             * ( m%y(I+1,J+1) - m%y(I,  J) )
-                END DO
-            END DO
         END DO
     END SUBROUTINE init_mesh
 
@@ -399,7 +391,7 @@ CONTAINS
         END DO
     END SUBROUTINE init_temp
 
-    SUBROUTINE calc_2nd_areas(blocks)
+    SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes.
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
@@ -411,16 +403,33 @@ CONTAINS
 
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
-            DO J = 1, JMAXBLK
-                DO I = 1, IMAXBLK-1
-                    ! CALC CELL AREAS
+
+            DO J = 0, JMAXBLK+1-1
+                DO I = 0, IMAXBLK+1-1
+                    ! CALC CELL VOLUME
+                        ! cross product of cell diagonals p, q
+                        ! where p has x,y components px, py and q likewise.
+                        ! Thus, p cross q = px*qy - qx*py
+                        ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
+                        ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
+                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
+                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
+                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
+                             * ( m%y(I+1,J+1) - m%y(I,  J) )
+                END DO
+            END DO
+
+            ! CALC CELL AREAS (FLUXES) IN J-DIRECTION
+            DO J = 0, JMAXBLK+1
+                DO I = 0, IMAXBLK+1-1
                     m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
                     m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
                 END DO
             END DO
-            DO J = 1, JMAXBLK-1
-                DO I = 1, IMAXBLK
-                    ! CALC CELL AREAS
+            ! CALC CELL AREAS (FLUXES) IN I-DIRECTION
+            DO J = 0, JMAXBLK-1+1
+                DO I = 0, IMAXBLK+1
+                    ! CALC CELL AREAS (FLUXES)
                     m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
                     m%Ayi(I,J) = m%y(I,J+1) - m%y(I,J)
                 END DO
@@ -448,7 +457,7 @@ CONTAINS
                 END DO
             END DO
         END DO
-    END SUBROUTINE calc_2nd_areas
+    END SUBROUTINE calc_cell_params
 
     SUBROUTINE calc_constants(blocks)
         ! Calculate constants for a given iteration loop.  This way,
@@ -458,8 +467,8 @@ CONTAINS
         INTEGER :: IBLK, I, J
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
-            DO J = 2, JMAXBLK - 1
-                DO I = 2, IMAXBLK - 1
+            DO J = 2-1, JMAXBLK - 1+1
+                DO I = 2-1, IMAXBLK - 1+1
                     ! CALC TIMESTEP FROM CFL
                     m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
                                     / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
@@ -498,6 +507,7 @@ CONTAINS
             ! RESET SUMMATION
             m%Ttmp = 0.D0
 
+            ! set these to avoid bcs !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             DO J = 1, JMAXBLK - 1
                 DO I = 1, IMAXBLK - 1
                     ! CALC FIRST DERIVATIVES
@@ -521,8 +531,32 @@ CONTAINS
                     m%Ttmp(I+1,J+1) = m%Ttmp(I+1,J+1) + m%term(I+1,J+1) * ( m%yNP(I,J) * dTdx + m%xPN(I,J) * dTdy )
                 END DO
             END DO
+            ! SAVE NEW TEMPERATURE DISTRIBUTION
+                ! (preserve Ttmp for residual calculation in solver loop)
+
+            ! make these variables to avoid bcs !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            DO J = 2, JMAX - 1
+                DO I = 2, IMAX - 1
+                    m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)
+                END DO
+            END DO
         END DO
     END SUBROUTINE calc_temp
+
+    SUBROUTINE init_linklists(blocks, nbrlists)
+        ! Create linked lists governing block boundary communication
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        ! Neighbor information pointer
+        TYPE(NBRTYPE), POINTER :: NB
+        ! Linked lists of neighbor communication instructions
+        TYPE(LNKLIST), POINTER :: nbrlists
+        TYPE(LNKLIST), POINTER :: lnbr
+
+
+
+    END SUBROUTINE init_linklists
+
 END MODULE BLOCKMOD
 
 

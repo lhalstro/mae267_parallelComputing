@@ -4,6 +4,8 @@
 ! 03 NOVEMBER 2015
 
 ! DESCRIPTION:  Subroutines used for solving heat conduction of steel plate.
+! Subroutines utilizing linked lists are here so that linked lists do not need
+! to be function inputs.
 ! Utilizes modules from 'modules.f90'
 ! CONTENTS:
 ! init --> Initialize the solution with dirichlet B.C.s
@@ -44,7 +46,7 @@ CONTAINS
 
 
         ! CALC SECONDARY AREAS OF INTEGRATION
-!         CALL calc_2nd_areas(blocks)
+!         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
 !         CALL calc_constants(blocks)
 
@@ -74,12 +76,6 @@ CONTAINS
 !             iter = iter + 1
 !             ! CALC NEW TEMPERATURE AT ALL POINTS
 !             CALL calc_temp(blocks)
-!             ! SAVE NEW TEMPERATURE DISTRIBUTION
-!             DO j = 2, JMAX - 1
-!                 DO i = 2, IMAX - 1
-!                     mesh%T(i,j) = mesh%T(i,j) + mesh%Ttmp(i,j)
-!                 END DO
-!             END DO
 
 !             ! CALC RESIDUAL
 !             res = MAXVAL( ABS( mesh%Ttmp(2:IMAX-1, 2:JMAX-1) ) )
@@ -132,6 +128,9 @@ CONTAINS
         WRITE (2,*), "At ij of ", MAXLOC(tempTemperature)
         CLOSE (2)
     END SUBROUTINE output
+
+
+
 END MODULE subroutines
 
 
