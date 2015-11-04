@@ -38,7 +38,7 @@ MODULE CONSTANTS
     ! read square grid size, Total grid size, size of grid on each block (local)
     INTEGER :: nx, IMAX, JMAX, IMAXBLK, JMAXBLK
     ! Dimensions of block layout, Number of Blocks,
-    INTEGER :: MM, NN, NBLK
+    INTEGER :: M, N, NBLK
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
 !     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
@@ -66,24 +66,24 @@ CONTAINS
         READ(1,*) nx
         ! READ BLOCKS (6th and 8th line)
         READ(1,*)
-        READ(1,*) MM
+        READ(1,*) M
         READ(1,*)
-        READ(1,*) NN
+        READ(1,*) N
 
         ! SET GRID SIZE
         IMAX = nx
         JMAX = nx
         ! CALC NUMBER OF BLOCKS
-        NBLK = MM * NN
+        NBLK = M * N
         ! SET SIZE OF EACH BLOCK (LOCAL MAXIMUM I, J)
-        IMAXBLK = 1 + (IMAX - 1) / NN
-        JMAXBLK = 1 + (JMAX - 1) / MM
+        IMAXBLK = 1 + (IMAX - 1) / N
+        JMAXBLK = 1 + (JMAX - 1) / M
 
         ! OUTPUT DIRECTORIES
         ! write integers to strings
         WRITE(strNX, '(I3)') nx
-        WRITE(strN,  '(I1)') NN
-        WRITE(strM,  '(I1)') MM
+        WRITE(strN,  '(I1)') N
+        WRITE(strM,  '(I1)') M
         ! case output directory: nx_NxM (i.e. 'Results/101_5x4')
         casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
         ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
@@ -92,7 +92,7 @@ CONTAINS
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
         WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
-        WRITE(*,*) 'With MxN blocks:', MM, 'x', NN
+        WRITE(*,*) 'With MxN blocks:', M, 'x', N
         WRITE(*,*) 'Number of blocks:', NBLK
         WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
         WRITE(*,*) ''
@@ -192,8 +192,8 @@ CONTAINS
         ! START AT BLOCK 1 (INCREMENT IN LOOP)
         IBLK = 0
 
-        DO J = 1, MM
-            DO I = 1, NN
+        DO J = 1, M
+            DO I = 1, N
                 ! INCREMENT BLOCK NUMBER
                 IBLK = IBLK + 1
 
@@ -210,14 +210,14 @@ CONTAINS
 
                 ! ASSIGN NUMBERS OF FACE AND CORNER NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
-                NB%N  = IBLK + NN
-                NB%S  = IBLK - NN
+                NB%N  = IBLK + N
+                NB%S  = IBLK - N
                 NB%E  = IBLK + 1
                 NB%W  = IBLK - 1
-                NB%NE = IBLK + NN + 1
-                NB%NW = IBLK + NN - 1
-                NB%SW = IBLK - NN - 1
-                NB%SE = IBLK - NN + 1
+                NB%NE = IBLK + N + 1
+                NB%NW = IBLK + N - 1
+                NB%SW = IBLK - N - 1
+                NB%SE = IBLK - N + 1
 
                 ! Assign faces and corners on boundary of the actual
                 ! computational grid with number corresponding to which
