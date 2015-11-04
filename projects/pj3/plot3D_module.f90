@@ -1,6 +1,7 @@
 ! MAE 267
+! PROJECT 3
 ! LOGAN HALSTROM
-! 12 OCTOBER 2015
+! 03 NOVEMBER 2015
 
 ! DESCRIPTION:  This module creates a grid and temperature file in
 !               the plot3D format for steady state solution

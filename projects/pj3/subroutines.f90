@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 2
+! PROJECT 3
 ! LOGAN HALSTROM
-! 12 OCTOBER 2015
+! 03 NOVEMBER 2015
 
 ! DESCRIPTION:  Subroutines used for solving heat conduction of steel plate.
 ! Utilizes modules from 'modules.f90'

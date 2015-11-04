@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 2
+! PROJECT 3
 ! LOGAN HALSTROM
-! 12 OCTOBER 2015
+! 03 NOVEMBER 2015
 
 ! DESCRIPTION:  Modules used for solving heat conduction of steel plate.
 ! Initialize and store constants used in all subroutines.
@@ -38,7 +38,7 @@ MODULE CONSTANTS
     ! read square grid size, Total grid size, size of grid on each block (local)
     INTEGER :: nx, IMAX, JMAX, IMAXBLK, JMAXBLK
     ! Dimensions of block layout, Number of Blocks,
-    INTEGER :: M, N, NBLK
+    INTEGER :: MM, NN, NBLK
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
 !     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
@@ -66,24 +66,24 @@ CONTAINS
         READ(1,*) nx
         ! READ BLOCKS (6th and 8th line)
         READ(1,*)
-        READ(1,*) M
+        READ(1,*) MM
         READ(1,*)
-        READ(1,*) N
+        READ(1,*) NN
 
         ! SET GRID SIZE
         IMAX = nx
         JMAX = nx
         ! CALC NUMBER OF BLOCKS
-        NBLK = M * N
+        NBLK = MM * NN
         ! SET SIZE OF EACH BLOCK (LOCAL MAXIMUM I, J)
-        IMAXBLK = 1 + (IMAX - 1) / N
-        JMAXBLK = 1 + (JMAX - 1) / M
+        IMAXBLK = 1 + (IMAX - 1) / NN
+        JMAXBLK = 1 + (JMAX - 1) / MM
 
         ! OUTPUT DIRECTORIES
         ! write integers to strings
         WRITE(strNX, '(I3)') nx
-        WRITE(strN,  '(I1)') N
-        WRITE(strM,  '(I1)') M
+        WRITE(strN,  '(I1)') NN
+        WRITE(strM,  '(I1)') MM
         ! case output directory: nx_NxM (i.e. 'Results/101_5x4')
         casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
         ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
@@ -92,7 +92,7 @@ CONTAINS
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
         WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
-        WRITE(*,*) 'With MxN blocks:', M, 'x', N
+        WRITE(*,*) 'With MxN blocks:', MM, 'x', NN
         WRITE(*,*) 'Number of blocks:', NBLK
         WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
         WRITE(*,*) ''
@@ -142,7 +142,7 @@ MODULE BLOCKMOD
         ! DER. DATA TYPE STORES LOCAL MESH INFO
         TYPE(MESHTYPE) :: mesh
         ! IDENTIFY FACE AND CORNER NEIGHBOR BLOCKS AND PROCESSORS
-        TYPE(NBRTYPE) :: NB
+        TYPE(NBRTYPE) :: NB, NP
         ! BLOCK NUMBER
         INTEGER :: ID
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
@@ -183,8 +183,8 @@ CONTAINS
         ! START AT BLOCK 1 (INCREMENT IN LOOP)
         IBLK = 0
 
-        DO J = 1, M
-            DO I = 1, N
+        DO J = 1, MM
+            DO I = 1, NN
                 ! INCREMENT BLOCK NUMBER
                 IBLK = IBLK + 1
 
@@ -199,16 +199,16 @@ CONTAINS
 !                 b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
 !                 b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
 
-                ! ASSIGN NUMBERS OF FACE NEIGHBOR BLOCKS
+                ! ASSIGN NUMBERS OF FACE AND CORNER NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
-                NB%N  = IBLK + N
-                NB%S  = IBLK - N
+                NB%N  = IBLK + NN
+                NB%S  = IBLK - NN
                 NB%E  = IBLK + 1
                 NB%W  = IBLK - 1
-                NB%NE = IBLK + N + 1
-                NB%NW = IBLK + N - 1
-                NB%SW = IBLK - N - 1
-                NB%SE = IBLK - N + 1
+                NB%NE = IBLK + NN + 1
+                NB%NW = IBLK + NN - 1
+                NB%SW = IBLK - NN - 1
+                NB%SE = IBLK - NN + 1
 
                 ! Assign faces and corners on boundary of the actual
                 ! computational grid with number corresponding to which
@@ -284,35 +284,38 @@ CONTAINS
 
     SUBROUTINE init_mesh(b)
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
+        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(MESHTYPE), POINTER :: m
         INTEGER :: IBLK, I, J
 
         DO IBLK = 1, NBLK
 
+            m = b(IBLK)%mesh
+
             ! ALLOCATE MESH INFORMATION
                 ! ADD EXTRA INDEX AT BEGINNING AND END FOR GHOST NODES
-            ALLOCATE( b(IBLK)%mesh%xp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%yp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%x(   0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%y(   0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%T(   0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%Ttmp(0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%dt(  0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%V2nd(0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%term(0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%Ayi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%Axi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%Ayj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%Axj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
-            ALLOCATE( b(IBLK)%mesh%V(   0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%yPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%yNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%yNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%yPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%xNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%xPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%xPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
-            ALLOCATE( b(IBLK)%mesh%xNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%xp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%yp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%x(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%y(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%T(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ttmp(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%dt(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%V2nd(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%term(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ayi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Axi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ayj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Axj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%V(   0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%yPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%yNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%yNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%yPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%xNN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%xPN( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%xPP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
+            ALLOCATE( m%xNP( 0:IMAXBLK-1+1, 0:JMAXBLK-1+1) )
 
             ! STEP THROUGH LOCAL INDICIES OF EACH BLOCK
             DO J = 0, JMAXBLK+1
@@ -320,11 +323,11 @@ CONTAINS
                     ! MAKE SQUARE GRID
                         ! CONVERT FROM LOCAL TO GLOBAL INDEX:
                             ! Iglobal = Block%IMIN + (Ilocal - 1)
-                    b(IBLK)%mesh%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
-                    b(IBLK)%mesh%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
+                    m%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
+                    m%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
                     ! ROTATE GRID
-                    b(IBLK)%mesh%x(I, J) = b(IBLK)%mesh%xp(I, J) * COS(rot) + (1.D0 - b(IBLK)%mesh%yp(I, J) ) * SIN(rot)
-                    b(IBLK)%mesh%y(I, J) = b(IBLK)%mesh%yp(I, J) * COS(rot) + (       b(IBLK)%mesh%xp(I, J) ) * SIN(rot)
+                    m%x(I, J) = m%xp(I, J) * COS(rot) + (1.D0 - m%yp(I, J) ) * SIN(rot)
+                    m%y(I, J) = m%yp(I, J) * COS(rot) + (       m%xp(I, J) ) * SIN(rot)
                 END DO
             END DO
             DO J = 0, JMAXBLK+1-1
@@ -335,11 +338,10 @@ CONTAINS
                         ! Thus, p cross q = px*qy - qx*py
                         ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
                         ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                    b(IBLK)%mesh%V(I,J) = ( b(IBLK)%mesh%x(I+1,J+1) &
-                                          - b(IBLK)%mesh%x(I,  J) ) &
-                            * ( b(IBLK)%mesh%y(I,  J+1) - b(IBLK)%mesh%y(I+1,J) ) &
-                            - ( b(IBLK)%mesh%x(I,  J+1) - b(IBLK)%mesh%x(I+1,J) ) &
-                            * ( b(IBLK)%mesh%y(I+1,J+1) - b(IBLK)%mesh%y(I,  J) )
+                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
+                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
+                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
+                             * ( m%y(I+1,J+1) - m%y(I,  J) )
                 END DO
             END DO
         END DO

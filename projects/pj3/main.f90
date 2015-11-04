@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 2
+! PROJECT 3
 ! LOGAN HALSTROM
-! 23 OCTOBER 2015
+! 03 NOVEMBER 2015
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
@@ -95,10 +95,10 @@ PROGRAM heatTrans
         DEALLOCATE( blocks(IBLK)%mesh%xNP)
     END DO
 
+    WRITE(*,*) 'Done!'
+
     ! MOVE OUTPUT FILE TO OUTPUT DIRECTORY
     CALL EXECUTE_COMMAND_LINE ("mv a.out " // casedir // '.')
-
-    WRITE(*,*) 'Done!'
 
 
 END PROGRAM heatTrans
