@@ -423,7 +423,6 @@ CONTAINS
             ! NORTH
             IF (NB%N > 0) THEN
                 ! Interior faces have positive ID neighbors
-                    ! MAYBE THIS NEEDS TO BE PLUS ONE FOR GHOST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 b%JMAXLOC = JMAXBLK
             ELSE
                 ! At North Boundary
@@ -442,7 +441,6 @@ CONTAINS
             ! SOUTH
             IF (NB%S > 0) THEN
                 ! Interior
-                ! OR MAYBE THIS NEEDS TO BE PLUS ONE FOR GHOST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 b%JMINLOC = 0
             ELSE
                 ! At North Boundary
@@ -629,11 +627,128 @@ CONTAINS
         ! Neighbor information pointer
         TYPE(NBRTYPE), POINTER :: NB
         ! Linked lists of neighbor communication instructions
-        TYPE(LNKLIST), POINTER :: nbrlists
-        TYPE(LNKLIST), POINTER :: lnbr
+        TYPE(NBRLIST), POINTER :: nbrlists
+        TYPE(NBRLIST), POINTER :: nbrl
 
+        DO IBLK = 1, NBLK
+            NB => blocks(IBLK)%NB
 
+            ! NORTH
+            ! If block north face is internal, add it to appropriate linked list
+            ! for north internal faces.
+            IF (NB%N > 0) THEN
 
+                IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
+                    ! Allocate linked list if it hasnt been accessed yet
+                    ALLOCATE(nbrlists%N)
+                    ! Pointer linked list that will help iterate through the
+                    ! primary list in this loop
+                    nbrl%N => nbrlists%N
+                ELSE
+                    ! linked list already allocated (started).  Allocate next
+                    ! link as assign current block to it
+                    ALLOCATE(nbrl%N%next)
+                    nbrl%N => nbrl%N%next
+                END IF
+
+                ! associate this linked list entry with the current block
+                nbrl%N%ID = IBLK
+                ! break link to pre-existing pointer target.  We will
+                ! allocated this target later as the next item in the linked list
+                NULLIFY(nbrl%N%next)
+            END IF
+
+            ! SOUTH
+            IF (NB%S > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%S) ) THEN
+                    ALLOCATE(nbrlists%S)
+                    nbrl%S => nbrlists%S
+                ELSE
+                    ALLOCATE(nbrl%S%next)
+                    nbrl%S => nbrl%S%next
+                END IF
+                nbrl%S%ID = IBLK
+                NULLIFY(nbrl%S%next)
+            END IF
+
+            ! EAST
+            IF (NB%E > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%E) ) THEN
+                    ALLOCATE(nbrlists%E)
+                    nbrl%E => nbrlists%E
+                ELSE
+                    ALLOCATE(nbrl%E%next)
+                    nbrl%E => nbrl%E%next
+                END IF
+                nbrl%E%ID = IBLK
+                NULLIFY(nbrl%E%next)
+            END IF
+
+            ! WEST
+            IF (NB%W > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%W) ) THEN
+                    ALLOCATE(nbrlists%W)
+                    nbrl%W => nbrlists%W
+                ELSE
+                    ALLOCATE(nbrl%W%next)
+                    nbrl%W => nbrl%W%next
+                END IF
+                nbrl%W%ID = IBLK
+                NULLIFY(nbrl%W%next)
+            END IF
+
+            ! NORTH EAST
+            IF (NB%NE > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%NE) ) THEN
+                    ALLOCATE(nbrlists%NE)
+                    nbrl%NE => nbrlists%NE
+                ELSE
+                    ALLOCATE(nbrl%NE%next)
+                    nbrl%NE => nbrl%NE%next
+                END IF
+                nbrl%NE%ID = IBLK
+                NULLIFY(nbrl%NE%next)
+            END IF
+
+            ! SOUTH EAST
+            IF (NB%SE > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%SE) ) THEN
+                    ALLOCATE(nbrlists%SE)
+                    nbrl%SE => nbrlists%SE
+                ELSE
+                    ALLOCATE(nbrl%SE%next)
+                    nbrl%SE => nbrl%SE%next
+                END IF
+                nbrl%SE%ID = IBLK
+                NULLIFY(nbrl%SE%next)
+            END IF
+
+            ! SOUTH WEST
+            IF (NB%SW > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%SW) ) THEN
+                    ALLOCATE(nbrlists%SW)
+                    nbrl%SW => nbrlists%SW
+                ELSE
+                    ALLOCATE(nbrl%SW%next)
+                    nbrl%SW => nbrl%SW%next
+                END IF
+                nbrl%SW%ID = IBLK
+                NULLIFY(nbrl%SW%next)
+            END IF
+
+            ! NORTH WEST
+            IF (NB%NW > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%NW) ) THEN
+                    ALLOCATE(nbrlists%NW)
+                    nbrl%NW => nbrlists%NW
+                ELSE
+                    ALLOCATE(nbrl%NW%next)
+                    nbrl%NW => nbrl%NW%next
+                END IF
+                nbrl%NW%ID = IBLK
+                NULLIFY(nbrl%NW%next)
+            END IF
+        END DO
     END SUBROUTINE init_linklists
 
 END MODULE BLOCKMOD
