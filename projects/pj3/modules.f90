@@ -299,7 +299,7 @@ CONTAINS
 
         DO IBLK = 1, NBLK
 
-            m = b(IBLK)%mesh
+            m => b(IBLK)%mesh
 
             ! ALLOCATE MESH INFORMATION
                 ! ADD EXTRA INDEX AT BEGINNING AND END FOR GHOST NODES
