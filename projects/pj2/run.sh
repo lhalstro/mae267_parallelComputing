@@ -5,7 +5,12 @@
 NPROCS=1
 #SBATCH -n $NPROCS
 
-echo "starting at `date` on `hostname`"
+#Text with start time and location
+START="starting at `date` on `hostname`"
+#Print to screen
+echo $START
+#Print to output file
+echo $START >> "a.out"
 
 #'&' will run process in background until it is complete
-./main > "a.out"
+./main >> "a.out"

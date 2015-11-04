@@ -42,11 +42,17 @@ MODULE CONSTANTS
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
+    ! Output directories
+!     CHARACTER(LEN=7) :: outdir = "Results", casedir
+    CHARACTER(LEN=16) :: casedir
 
 CONTAINS
 
     SUBROUTINE read_input()
         INTEGER :: I
+        CHARACTER(LEN=3) :: strNX
+        CHARACTER(LEN=1) :: strN, strM
+        LOGICAL :: exists
 
         ! READ INPUTS FROM FILE
             !(So I don't have to recompile each time I change an input setting)
@@ -72,6 +78,17 @@ CONTAINS
         ! SET SIZE OF EACH BLOCK (LOCAL MAXIMUM I, J)
         IMAXBLK = 1 + (IMAX - 1) / N
         JMAXBLK = 1 + (JMAX - 1) / M
+
+        ! OUTPUT DIRECTORIES
+        ! write integers to strings
+        WRITE(strNX, '(I3)') nx
+        WRITE(strN,  '(I1)') N
+        WRITE(strM,  '(I1)') M
+        !case output directory: nx_NxM (i.e. 'Results/101_5x4')
+        casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
+        ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
+!         CALL EXECUTE_COMMAND_LINE ("mkdir -p " // outdir // '/' // casedir)
+        CALL EXECUTE_COMMAND_LINE ("mkdir -p " // casedir)
 
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
@@ -216,7 +233,7 @@ CONTAINS
         11 format(3I5)
         22 format(33I5)
 
-        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
+        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
         WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
         DO I = 1, NBLK

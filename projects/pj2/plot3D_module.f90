@@ -40,8 +40,8 @@ MODULE plot3D_module
         !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
-        OPEN(UNIT=gridUnit,FILE='grid_form.xyz',FORM='formatted')
-        OPEN(UNIT=tempUnit,FILE='T_form.dat',FORM='formatted')
+        OPEN(UNIT=gridUnit,FILE=casedir // 'grid_form.xyz',FORM='formatted')
+        OPEN(UNIT=tempUnit,FILE=casedir // 'T_form.dat',FORM='formatted')
 
         ! WRITE TO GRID FILE
         WRITE(gridUnit, 10) NBLK
@@ -73,8 +73,8 @@ MODULE plot3D_module
         !!! UNFORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
-        OPEN(UNIT=gridUnit,FILE='grid.xyz',FORM='unformatted')
-        OPEN(UNIT=tempUnit,FILE='T.dat',FORM='unformatted')
+        OPEN(UNIT=gridUnit,FILE=casedir // 'grid.xyz',FORM='unformatted')
+        OPEN(UNIT=tempUnit,FILE=casedir // 'T.dat',FORM='unformatted')
 
         ! WRITE TO GRID FILE (UNFORMATTED)
             ! (Paraview likes unformatted better)

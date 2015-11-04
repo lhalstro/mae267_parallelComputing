@@ -95,6 +95,9 @@ PROGRAM heatTrans
         DEALLOCATE( blocks(IBLK)%mesh%xNP)
     END DO
 
+    ! MOVE OUTPUT FILE TO OUTPUT DIRECTORY
+    CALL EXECUTE_COMMAND_LINE ("mv a.out " // casedir // '.')
+
     WRITE(*,*) 'Done!'
 
 

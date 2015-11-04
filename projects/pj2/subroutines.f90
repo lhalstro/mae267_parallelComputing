@@ -91,7 +91,7 @@ CONTAINS
         Temperature => mesh%T(2:IMAX-1, 2:JMAX-1)
         tempTemperature => mesh%Ttmp(2:IMAX-1, 2:JMAX-1)
         ! Write final maximum residual and location of max residual
-        OPEN(UNIT = 1, FILE = "SteadySoln.dat")
+        OPEN(UNIT = 1, FILE = casedir // "SteadySoln.dat")
         DO i = 1, IMAX
             DO j = 1, JMAX
                 WRITE(1,'(F10.7, 5X, F10.7, 5X, F10.7, I5, F10.7)'), mesh%x(i,j), mesh%y(i,j), mesh%T(i,j)
