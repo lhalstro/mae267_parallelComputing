@@ -385,15 +385,6 @@ CONTAINS
                     m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
                 END DO
             END IF
-
-!             DO J = 1, JMAXBLK
-!                 b(IBLK)%mesh%T(1,J) = 3.D0 * b(IBLK)%mesh%yp(1,J) + 2.D0
-!                 b(IBLK)%mesh%T(IMAX,J) = 3.D0 * b(IBLK)%mesh%yp(IMAX,J) + 2.D0
-!             END DO
-!             DO I = 1, IMAXBLK
-!                 b(IBLK)%mesh%T(I,1) = ABS(COS(pi * b(IBLK)%mesh%xp(I,1))) + 1.D0
-!                 b(IBLK)%mesh%T(I,JMAX) = 5.D0 * (SIN(pi * b(IBLK)%mesh%xp(I,JMAX)) + 1.D0)
-!             END DO
         END DO
     END SUBROUTINE init_temp
 
