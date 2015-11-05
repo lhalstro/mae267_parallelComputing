@@ -9,7 +9,7 @@
     ! open unformatted PLOT3D file.
     ! Change 'Coloring' from 'Solid' to 'vtkCompositeIndex'
 
-MODULE plot3D_module
+MODULE IO
     USE CONSTANTS
     USE BLOCKMOD
     IMPLICIT NONE
@@ -107,4 +107,4 @@ MODULE plot3D_module
 
 
     END SUBROUTINE plot3D
-END MODULE plot3D_module
+END MODULE IO

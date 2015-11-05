@@ -15,7 +15,7 @@ PROGRAM heatTrans
 !     USE CLOCK
     USE CONSTANTS
     USE subroutines
-    USE plot3D_module
+    USE IO
 
     IMPLICIT NONE
 

@@ -404,12 +404,15 @@ CONTAINS
 
     SUBROUTINE calc_block_params(b)
         ! Calculate iteration bounds for each block to avoid updating BCs.
+        ! Populate block ghost nodes from initial temperature distribution
         ! call after reading in mesh data from restart file
         TYPE(BLKTYPE), TARGET :: b(:)
         TYPE(NBRTYPE), POINTER :: NB
         INTEGER :: IBLK, I, J
 
         DO IBLK = 1, NBLK
+
+            !!! SET ITER BOUNDS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             NB => b(IBLK)%NB
 
             ! Set iteration bounds of each block to preserve BCs
@@ -455,6 +458,9 @@ CONTAINS
                 ! At North Boundary
                 b%IMINLOC = 1
             END IF
+
+            !!! POPULATE GHOST NODES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         END DO
     END SUBROUTINE calc_block_params
 

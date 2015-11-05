@@ -55,13 +55,12 @@ CONTAINS
 
 !     SUBROUTINE solve(blocks, min_res, max_iter, iter)
 !         ! Solve heat conduction equation with finite volume scheme
-!         TYPE(BLKTYPE) :: blocks
+!         TYPE(BLKTYPE) :: blocks(:)
 !         ! Minimum residual criteria for iteration, actual residual
 !         REAL(KIND=8) :: min_res, res = 1000.D0
 !         ! iteration number, maximum number of iterations
 !         ! iter in function inputs so it can be returned to main
 !         INTEGER :: iter, max_iter
-!         INTEGER :: i, j
 
 !         INCLUDE "mpif.h"
 !         REAL(KIND=8) :: start_solve, end_solve
