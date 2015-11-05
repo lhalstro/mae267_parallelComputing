@@ -531,11 +531,6 @@ CONTAINS
                 b%IMINUPD = 2
             END IF
         END DO
-!         DO IBLK = 1, NBLK
-!             WRITE(*,*) 'BLOCK', IBLK
-!             WRITE(*,*) 'ILOC:', blocks(IBLK)%IMINLOC, '-->', blocks(IBLK)%IMAXLOC
-!             WRITE(*,*) 'JLOC:', blocks(IBLK)%JMINLOC, '-->', blocks(IBLK)%JMAXLOC
-!         END DO
     END SUBROUTINE set_block_bounds
 
     SUBROUTINE init_linklists(blocks, nbrlists)

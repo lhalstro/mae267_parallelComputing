@@ -54,14 +54,14 @@ CONTAINS
 
 
 
-        ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
-        write(*,*) 'make linked lists'
-        CALL init_linklists(blocks, nbrlists)
-        ! POPULATE BLOCK GHOST NODES
-        write(*,*) 'update ghosts'
-        CALL update_ghosts(blocks, nbrlists)
+!         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
+!         write(*,*) 'make linked lists'
+!         CALL init_linklists(blocks, nbrlists)
+!         ! POPULATE BLOCK GHOST NODES
+!         write(*,*) 'update ghosts'
+!         CALL update_ghosts(blocks, nbrlists)
 
-!         CALL update_ghosts_debug(blocks)
+        CALL update_ghosts_debug(blocks)
 
         ! CALC AREAS FOR SECONDARY FLUXES
         write(*,*) 'calc solution stuff'
@@ -103,8 +103,8 @@ CONTAINS
             CALL calc_temp(blocks)
 
             ! UPDATE GHOST NODES WITH NEW TEMPERATURE SOLUTION
-            CALL update_ghosts(blocks, nbrlists)
-!             CALL update_ghosts_debug(blocks)
+!             CALL update_ghosts(blocks, nbrlists)
+            CALL update_ghosts_debug(blocks)
 
             ! CALC RESIDUAL
             resmax = 0.D0
