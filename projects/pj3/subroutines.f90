@@ -81,7 +81,7 @@ CONTAINS
         REAL(KIND=8) :: min_res, res = 1000.D0, resloc, resmax
         ! iteration number, maximum number of iterations
         ! iter in function inputs so it can be returned to main
-        INTEGER :: iter, max_iter, IBLK
+        INTEGER :: iter, max_iter, IBLK, IBLKRES
 
         INCLUDE "mpif.h"
         REAL(KIND=8) :: start_solve, end_solve
@@ -92,8 +92,6 @@ CONTAINS
             ! Iterate FV solver until residual becomes less than cutoff or
             ! iteration count reaches given maximum
 
-            ! INCREMENT ITERATION COUNT
-            iter = iter + 1
             ! CALC NEW TEMPERATURE AT ALL POINTS
             CALL calc_temp(blocks)
 
@@ -114,13 +112,21 @@ CONTAINS
             ! FINAL RESIDUAL
             res = resmax
 
+            ! INCREMENT ITERATION COUNT
+            iter = iter + 1
+
         END DO iter_loop
+
+        ! there was an extra increment after final iteration we need to subtract
+        iter = iter - 1
 
         ! CACL SOLVER WALL CLOCK TIME
         end_solve = MPI_Wtime()
         wall_time_solve = end_solve - start_solve
 
         ! SUMMARIZE OUTPUT
+        CALL output(blocks, iter)
+
         IF (iter > max_iter) THEN
           WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
         ELSE
@@ -129,39 +135,59 @@ CONTAINS
         END IF
     END SUBROUTINE solve
 
-    SUBROUTINE output(mesh, iter)
+    SUBROUTINE output(blocks, iter)
         ! Save solution parameters to file
-        TYPE(MESHTYPE), TARGET :: mesh
-        REAL(KIND=8), POINTER :: Temperature(:,:), tempTemperature(:,:)
-        INTEGER :: iter, i, j
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        REAL(KIND=8), POINTER :: tmpT(:,:), tempTemperature(:,:)
+        REAL(KIND=8) :: resloc, resmax
+        INTEGER :: iter, I, J, IBLK, IRES
 
-        Temperature => mesh%T(2:IMAX-1, 2:JMAX-1)
-        tempTemperature => mesh%Ttmp(2:IMAX-1, 2:JMAX-1)
-        ! Write final maximum residual and location of max residual
-        OPEN(UNIT = 1, FILE = casedir // "SteadySoln.dat")
-        DO i = 1, IMAX
-            DO j = 1, JMAX
-                WRITE(1,'(F10.7, 5X, F10.7, 5X, F10.7, I5, F10.7)'), mesh%x(i,j), mesh%y(i,j), mesh%T(i,j)
-            END DO
+!         Temperature => mesh%T(2:IMAX-1, 2:JMAX-1)
+!         tempTemperature => mesh%Ttmp(2:IMAX-1, 2:JMAX-1)
+
+        ! CALC RESIDUAL
+        resmax = 0.D0
+        DO IBLK = 1, NBLK
+            ! Find max of each block
+            resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
+            ! keep biggest residual
+            IF (resmax < resloc) THEN
+                resmax = resloc
+                IRES = IBLK
+            END IF
         END DO
-        CLOSE (1)
+
+
+        ! Write final maximum residual and location of max residual
+!         OPEN(UNIT = 1, FILE = casedir // "SteadySoln.dat")
+!         DO i = 1, IMAX
+!             DO j = 1, JMAX
+!                 WRITE(1,'(F10.7, 5X, F10.7, 5X, F10.7, I5, F10.7)'), mesh%x(i,j), mesh%y(i,j), mesh%T(i,j)
+!             END DO
+!         END DO
+!         CLOSE (1)
 
         ! Screen output
+        tmpT => blocks(IRES)%mesh%Ttmp
         WRITE (*,*), "IMAX/JMAX", IMAX, JMAX
+        WRITE (*,*), "N/M", N, M
         WRITE (*,*), "iters", iter
-        WRITE (*,*), "residual", MAXVAL(tempTemperature)
-        WRITE (*,*), "ij", MAXLOC(tempTemperature)
+        WRITE (*,*), "max residual", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+        WRITE (*,*), "on block id", IRES
+        WRITE (*,*), "residual ij", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
 
         ! Write to file
-        OPEN (UNIT = 2, FILE = "SolnInfo.dat")
-        WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid took:"
+        OPEN (UNIT = 2, FILE = casedir // "SolnInfo.dat")
+        WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
+        WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
         WRITE (2,*), iter, "iterations"
         WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
         WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
 !         WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
         WRITE (2,*)
-        WRITE (2,*), "Found max residual of ", MAXVAL(tempTemperature)
-        WRITE (2,*), "At ij of ", MAXLOC(tempTemperature)
+        WRITE (2,*), "Found max residual of ", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+        WRITE (2,*), "on block id", IRES
+        WRITE (2,*), "At ij of ", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
         CLOSE (2)
     END SUBROUTINE output
 

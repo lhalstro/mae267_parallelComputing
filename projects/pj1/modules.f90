@@ -27,7 +27,7 @@ MODULE CONSTANTS
     ! Material constants (steel): thermal conductivity [W/(m*K)],
                                 ! density [kg/m^3],
                                 ! specific heat ratio [J/(kg*K)]
-    REAL(KIND=8), PARAMETER :: k = 18.8D0, rho = 8000.D0, cp = 500.D0
+    REAL(KIND=8), PARAMETER :: k = 18.8D0, rho = 8000.D0, cp = 500.D0, T0 = 3.5D0
     ! Thermal diffusivity [m^2/s]
     REAL(KIND=8), PARAMETER :: alpha = k / (cp * rho)
     ! Pi, grid rotation angle (30 deg)
@@ -105,6 +105,7 @@ CONTAINS
         INTEGER :: i, j
 
         !PUT DEBUG BC HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        mesh%T(1:IMAX, 1:JMAX) = T0
 
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         DO j = 1, JMAX

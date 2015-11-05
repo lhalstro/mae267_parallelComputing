@@ -455,18 +455,18 @@ CONTAINS
 
 
 
-    SUBROUTINE set_block_bounds(b)
+    SUBROUTINE set_block_bounds(blocks)
         ! Calculate iteration bounds for each block to avoid updating BCs.
         ! Populate block ghost nodes from initial temperature distribution
         ! call after reading in mesh data from restart file
-        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: b
         TYPE(NBRTYPE), POINTER :: NB
         INTEGER :: IBLK, I, J
 
         DO IBLK = 1, NBLK
-
-            !!! SET ITER BOUNDS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            NB => b(IBLK)%NB
+            b => blocks(IBLK)
+            NB => b%NB
 
             ! Set iteration bounds of each block to preserve BCs
                 ! south and west boundaries:
@@ -514,9 +514,11 @@ CONTAINS
                 b%IMINLOC = 1
                 b%IMINUPD = 2
             END IF
-
-            !!! POPULATE GHOST NODES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        END DO
+        DO IBLK = 1, NBLK
+            WRITE(*,*) 'BLOCK', IBLK
+            WRITE(*,*) 'ILOC:', blocks(IBLK)%IMINLOC, '-->', blocks(IBLK)%IMAXLOC
+            WRITE(*,*) 'JLOC:', blocks(IBLK)%JMINLOC, '-->', blocks(IBLK)%JMAXLOC
         END DO
     END SUBROUTINE set_block_bounds
 
@@ -934,6 +936,7 @@ CONTAINS
                 INBR = NB%N
                 ! TEMPERATURE OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
                 Tnb => b( INBR )%mesh%T
+
                 DO I = 1, IMAXBLK
 !                     Tgh(I, JMAXBLK+1) = Tnb(I, 2)
                     b(iblk)%mesh%T(I, JMAXBLK+1) = b(NB%N)%mesh%T(I, 2)
@@ -957,7 +960,6 @@ CONTAINS
                 Tgh => b( IBLK )%mesh%T
                 INBR = NB%E
                 Tnb => b( INBR )%mesh%T
-
                 DO J = 1, JMAXBLK
                     ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
                     Tgh(IMAXBLK+1, J) = Tnb(2, J)
@@ -969,7 +971,6 @@ CONTAINS
                 Tgh => b( IBLK )%mesh%T
                 INBR = b( IBLK )%NB%W
                 Tnb => b( INBR )%mesh%T
-
                 DO J = 1, JMAXBLK
                     ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
                     Tgh(0, J) = Tnb(IMAXBLK-1, J)
@@ -1162,6 +1163,8 @@ CONTAINS
 
             ! Previously set bounds, add one to lower limit so as not to
             ! update BC. (dont need to for upper limit because explicit scheme)
+            write(*,*) 'block ', IBLK
+            write(*,*) 'ij update start', b(IBLK)%IMINLOC + 1, b(IBLK)%JMINLOC + 1
             DO J = b(IBLK)%JMINLOC + 1, b(IBLK)%JMAXLOC
                 DO I = b(IBLK)%IMINLOC + 1, b(IBLK)%IMAXLOC
                     m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)
