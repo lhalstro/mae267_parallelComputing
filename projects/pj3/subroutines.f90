@@ -15,6 +15,7 @@
 MODULE subroutines
     USE CONSTANTS
     USE BLOCKMOD
+    USE IO
 
     IMPLICIT NONE
 
@@ -34,10 +35,12 @@ CONTAINS
 
     END SUBROUTINE init_gridsystem
 
-    SUBROUTINE init_solution(blocks)
+    SUBROUTINE init_solution(blocks, nbrlists)
         ! Read initial conditions from restart files.  Then calculate parameters
         ! used in solution
         TYPE(BLKTYPE)  :: blocks(:)
+        ! LINKED LISTS STORING NEIGHBOR INFO
+        TYPE(NBRLIST) :: nbrlists
 
         ! READ GRID
 
@@ -45,10 +48,20 @@ CONTAINS
         ! READ INITIAL TEMPERATURE
 
 
-        ! CALC SECONDARY AREAS OF INTEGRATION
-!         CALL calc_cell_params(blocks)
+        ! CALC LOCAL BOUNDARIES OF CELLS
+        write(*,*) 'set local bounds'
+        CALL set_block_bounds(blocks)
+        ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
+        write(*,*) 'make linked lists'
+        CALL init_linklists(blocks, nbrlists)
+        ! POPULATE BLOCK GHOST NODES
+        write(*,*) 'update ghosts'
+        CALL update_ghosts(blocks, nbrlists)
+        ! CALC AREAS FOR SECONDARY FLUXES
+        write(*,*) 'calc solution stuff'
+        CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
-!         CALL calc_constants(blocks)
+        CALL calc_constants(blocks)
 
     END SUBROUTINE init_solution
 

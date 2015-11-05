@@ -3,8 +3,10 @@
 ! LOGAN HALSTROM
 ! 03 NOVEMBER 2015
 
-! DESCRIPTION:  This module creates a grid and temperature file in
-!               the plot3D format for steady state solution
+! DESCRIPTION:  This module contains functions for information input and output.
+! Write grid and temperature files in PLOT3D format.
+! Write and read block grid configuration file
+
 ! NOTE: How to Visualize Blocks in Paraview:
     ! open unformatted PLOT3D file.
     ! Change 'Coloring' from 'Solid' to 'vtkCompositeIndex'
@@ -104,7 +106,38 @@ MODULE IO
         ! CLOSE FILES
         CLOSE(gridUnit)
         CLOSE(tempUnit)
-
-
     END SUBROUTINE plot3D
+
+    SUBROUTINE write_blocks(b)
+        ! WRITE BLOCK CONNECTIVITY FILE
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE) :: b(:)
+        INTEGER :: I, BLKFILE = 99
+
+        11 format(3I5)
+        22 format(33I5)
+
+        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
+        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        DO I = 1, NBLK
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+            ! NORTH EAST SOUTH WEST
+            WRITE(BLKFILE, 22) b(I)%ID, &
+                b(I)%IMIN, b(I)%JMIN, &
+                b(I)%NB%N, &
+                b(I)%NB%NE, &
+                b(I)%NB%E, &
+                b(I)%NB%SE, &
+                b(I)%NB%S, &
+                b(I)%NB%SW, &
+                b(I)%NB%W, &
+                b(I)%NB%NW, &
+                b(I)%ORIENT
+        END DO
+        CLOSE(BLKFILE)
+    END SUBROUTINE write_blocks
+
 END MODULE IO

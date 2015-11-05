@@ -12,5 +12,6 @@ echo $START
 #Print to output file
 echo $START >> "a.out"
 
-#'&' will run process in background until it is complete
-./main >> "a.out"
+# '&' will run process in background until it is complete
+#./main >> "a.out"
+./main

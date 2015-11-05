@@ -25,6 +25,8 @@ PROGRAM heatTrans
 
     ! BLOCKS
     TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
+    ! LINKED LISTS STORING NEIGHBOR INFO
+    TYPE(NBRLIST) :: nbrlists
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -44,7 +46,7 @@ PROGRAM heatTrans
     ! READ INPUTS FROM FILE
     CALL read_input()
     ALLOCATE( blocks(NBLK) )
-    ! INIITIALIZE SOLUTION
+    ! INIITIALIZE GRID SYSTEM
     WRITE(*,*) 'Making mesh...'
     CALL init_gridsystem(blocks)
 
@@ -52,6 +54,9 @@ PROGRAM heatTrans
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    ! INITIALIZE SOLUTION
+    CALL init_solution(blocks, nbrlists)
+    ! SOLVE
     WRITE(*,*) 'Solving heat conduction...'
 !     CALL solve(mesh, min_res, max_iter, iter)
 

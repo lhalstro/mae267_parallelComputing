@@ -218,8 +218,8 @@ CONTAINS
                 ! ASSIGN GLOBAL MIN/MAX INDICIES OF LOCAL GRID
                 b(IBLK)%IMIN = 1 + (IMAXBLK - 1) * (I - 1)
                 b(IBLK)%JMIN = 1 + (JMAXBLK - 1) * (J - 1)
-!                 b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
-!                 b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
+                b(IBLK)%IMAX = b(IBLK)%IMIN + (IMAXBLK - 1)
+                b(IBLK)%JMAX = b(IBLK)%JMIN + (JMAXBLK - 1)
 
                 ! ASSIGN NUMBERS OF FACE AND CORNER NEIGHBOR BLOCKS
                     !if boundary face, assign bc later
@@ -271,38 +271,6 @@ CONTAINS
             END DO
         END DO
     END SUBROUTINE init_blocks
-
-    SUBROUTINE write_blocks(b)
-        ! WRITE BLOCK CONNECTIVITY FILE
-
-        ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
-        INTEGER :: I, BLKFILE = 99
-
-        11 format(3I5)
-        22 format(33I5)
-
-        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
-        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
-        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
-        DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
-            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
-            ! NORTH EAST SOUTH WEST
-            WRITE(BLKFILE, 22) b(I)%ID, &
-                b(I)%IMIN, b(I)%JMIN, &
-                b(I)%NB%N, &
-                b(I)%NB%NE, &
-                b(I)%NB%E, &
-                b(I)%NB%SE, &
-                b(I)%NB%S, &
-                b(I)%NB%SW, &
-                b(I)%NB%W, &
-                b(I)%NB%NW, &
-                b(I)%ORIENT
-        END DO
-        CLOSE(BLKFILE)
-    END SUBROUTINE write_blocks
 
     SUBROUTINE init_mesh(b)
         ! BLOCK DATA TYPE
@@ -402,7 +370,7 @@ CONTAINS
     !!! AFTER RESTART FILE READ IN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    SUBROUTINE calc_block_params(b)
+    SUBROUTINE set_block_bounds(b)
         ! Calculate iteration bounds for each block to avoid updating BCs.
         ! Populate block ghost nodes from initial temperature distribution
         ! call after reading in mesh data from restart file
@@ -462,7 +430,7 @@ CONTAINS
             !!! POPULATE GHOST NODES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         END DO
-    END SUBROUTINE calc_block_params
+    END SUBROUTINE set_block_bounds
 
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes. ! Call after reading mesh data
@@ -627,8 +595,8 @@ CONTAINS
         ! temperature information pointers for ghost and neighbor nodes
         REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
         ! Linked lists of neighbor communication instructions
-        TYPE(NBRLIST), POINTER :: nbrlists
-        TYPE(NBRLIST), POINTER :: nbrl
+        TYPE(NBRLIST) :: nbrlists
+        TYPE(NBRLIST) :: nbrl
         ! iteration parameters, index of neighbor
         INTEGER :: I, J, INBR
 
@@ -659,7 +627,7 @@ CONTAINS
                 Tgh(I, JMAXBLK+1) = Tnb(I, 2)
             END DO
             ! switch pointer to next link in list
-            nbrl%N => nbrlists%N%next
+            nbrl%N => nbrl%N%next
         END DO
 
         ! SOUTH FACE GHOST NODES
@@ -674,7 +642,7 @@ CONTAINS
                 ! ADD NORTH FACE OF SOUTH NEIGHBOR TO CURRENT SOUTH FACE GHOSTS
                 Tgh(I, 0) = Tnb(I, JMAXBLK-1)
             END DO
-            nbrl%S => nbrlists%S%next
+            nbrl%S => nbrl%S%next
         END DO
 
         ! EAST FACE GHOST NODES
@@ -689,7 +657,7 @@ CONTAINS
                 ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
                 Tgh(IMAXBLK+1, J) = Tnb(2, J)
             END DO
-            nbrl%E => nbrlists%E%next
+            nbrl%E => nbrl%E%next
         END DO
 
         ! WEST FACE GHOST NODES
@@ -704,7 +672,7 @@ CONTAINS
                 ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
                 Tgh(0, J) = Tnb(IMAXBLK-1, J)
             END DO
-            nbrl%W => nbrlists%W%next
+            nbrl%W => nbrl%W%next
         END DO
 
         !!! CORNERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -718,7 +686,7 @@ CONTAINS
             Tnb => b( INBR )%mesh%T
             ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
             Tgh(IMAXBLK+1, JMAXBLK+1) = Tnb(2, 2)
-            nbrl%NE => nbrlists%NE%next
+            nbrl%NE => nbrl%NE%next
         END DO
 
         ! SOUTH EAST CORNER GHOST NODES
@@ -730,7 +698,7 @@ CONTAINS
             Tnb => b( INBR )%mesh%T
             ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
             Tgh(IMAXBLK+1, 0) = Tnb(2, JMAXBLK-1)
-            nbrl%SE => nbrlists%SE%next
+            nbrl%SE => nbrl%SE%next
         END DO
 
         ! SOUTH WEST CORNER GHOST NODES
@@ -742,7 +710,7 @@ CONTAINS
             Tnb => b( INBR )%mesh%T
             ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
             Tgh(0, 0) = Tnb(IMAXBLK-1, JMAXBLK-1)
-            nbrl%SW => nbrlists%SW%next
+            nbrl%SW => nbrl%SW%next
         END DO
 
         ! NORTH WEST CORNER GHOST NODES
@@ -754,7 +722,7 @@ CONTAINS
             Tnb => b( INBR )%mesh%T
             ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
             Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
-            nbrl%NW => nbrlists%NW%next
+            nbrl%NW => nbrl%NW%next
         END DO
     END SUBROUTINE update_ghosts
 
@@ -765,8 +733,8 @@ CONTAINS
         ! Neighbor information pointer
         TYPE(NBRTYPE), POINTER :: NB
         ! Linked lists of neighbor communication instructions
-        TYPE(NBRLIST), POINTER :: nbrlists
-        TYPE(NBRLIST), POINTER :: nbrl
+        TYPE(NBRLIST) :: nbrlists
+        TYPE(NBRLIST) :: nbrl
         INTEGER :: IBLK
 
         DO IBLK = 1, NBLK
