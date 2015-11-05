@@ -28,10 +28,10 @@ PROGRAM heatTrans
     ! LINKED LISTS STORING NEIGHBOR INFO
     TYPE(NBRLIST) :: nbrlists
     ! ITERATION PARAMETERS
-    ! Minimum Residual
-    REAL(KIND=8) :: min_res = 0.00001D0
+    ! Residual history linked list
+    TYPE(RESLIST), POINTER :: res_hist
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000, iter = 1, IBLK
+    INTEGER :: iter = 1, IBLK
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
@@ -58,7 +58,7 @@ PROGRAM heatTrans
     CALL init_solution(blocks, nbrlists)
     ! SOLVE
     WRITE(*,*) 'Solving heat conduction...'
-    CALL solve(blocks, nbrlists, min_res, max_iter, iter)
+    CALL solve(blocks, nbrlists, iter, res_hist)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -70,8 +70,11 @@ PROGRAM heatTrans
     ! CALC TOTAL WALL TIME
     end_total = MPI_Wtime()
     wall_time_total = end_total - start_total
+
+    ! SAVE RESIDUAL HISTORY
+    CALL write_res(res_hist)
     ! SAVE SOLVER PERFORMANCE PARAMETERS
-!     CALL output(mesh, iter)
+    CALL output(blocks, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

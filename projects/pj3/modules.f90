@@ -33,6 +33,11 @@ MODULE CONSTANTS
     REAL(KIND=8), PARAMETER :: alpha = k / (cp * rho)
     ! Pi, grid rotation angle (30 deg)
     REAL(KIND=8), PARAMETER :: pi = 3.141592654D0, rot = 30.D0*pi/180.D0
+    ! ITERATION PARAMETERS
+    ! Minimum Residual
+    REAL(KIND=8) :: min_res = 0.00001D0
+    ! Maximum number of iterations
+    INTEGER :: max_iter = 1000000
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)

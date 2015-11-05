@@ -19,8 +19,19 @@ MODULE IO
     ! VARIABLES
     INTEGER :: gridUnit  = 30   ! Unit for grid file
     INTEGER :: tempUnit = 21    ! Unit for temp file
+    INTEGER :: resUnit = 23
     REAL(KIND=8) :: tRef = 1.D0          ! tRef number
     REAL(KIND=8) :: dum = 0.D0          ! dummy values
+
+    ! LINKED LIST OF RESIDUAL HISTORY
+
+    TYPE RESLIST
+        ! Next element in linked list
+        TYPE(RESLIST), POINTER :: next
+        ! items in link:
+        REAL(KIND=8) :: res
+        INTEGER :: iter
+    END TYPE RESLIST
 
     CONTAINS
     SUBROUTINE plot3D(blocks)
@@ -107,5 +118,31 @@ MODULE IO
         CLOSE(gridUnit)
         CLOSE(tempUnit)
     END SUBROUTINE plot3D
+
+    SUBROUTINE write_res(res_hist)
+        TYPE(RESLIST), POINTER :: res_hist
+        ! pointer to iterate linked list
+        TYPE(RESLIST), POINTER :: hist
+
+        ! open residual file
+        OPEN(UNIT=resUnit,FILE=casedir // 'res_hist.dat')
+        ! column headers
+        WRITE(resUnit,*) 'ITER', 'RESID'
+
+        ! point to residual linked list
+        hist => res_hist
+        ! skip first link, empty from iteration loop design
+        hist => hist%next
+        ! write residual history to file until list ends
+        DO
+            IF ( .NOT. ASSOCIATED(hist) ) EXIT
+            ! write iteration and residual in two columns
+            WRITE(resUnit,*) hist%iter, hist%res
+            hist => hist%next
+        END DO
+
+        CLOSE(resUnit)
+    END SUBROUTINE write_res
+
 
 END MODULE IO

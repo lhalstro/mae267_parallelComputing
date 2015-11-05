@@ -72,21 +72,28 @@ CONTAINS
     END SUBROUTINE init_solution
 
 
-    SUBROUTINE solve(blocks, nbrlists, min_res, max_iter, iter)
+    SUBROUTINE solve(blocks, nbrlists, iter, res_hist)
         ! Solve heat conduction equation with finite volume scheme
         TYPE(BLKTYPE) :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists
+        ! Residual history linked list
+        TYPE(RESLIST), POINTER :: res_hist
+        ! pointer to iterate linked list
+        TYPE(RESLIST), POINTER :: hist
         ! Minimum residual criteria for iteration, actual residual
-        REAL(KIND=8) :: min_res, res = 1000.D0, resloc, resmax
-        ! iteration number, maximum number of iterations
+        REAL(KIND=8) :: res = 1000.D0, resloc, resmax
         ! iter in function inputs so it can be returned to main
-        INTEGER :: iter, max_iter, IBLK, IBLKRES
+        INTEGER :: iter, IBLK, IBLKRES
 
         INCLUDE "mpif.h"
         REAL(KIND=8) :: start_solve, end_solve
         WRITE(*,*) 'Starting clock for solver...'
         start_solve = MPI_Wtime()
+
+        ! residual history
+        ALLOCATE(res_hist)
+        hist => res_hist
 
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
@@ -112,6 +119,16 @@ CONTAINS
             ! FINAL RESIDUAL
             res = resmax
 
+            ! SWITCH TO NEXT LINK
+                ! (skip first entry)
+            ALLOCATE(hist%next)
+            hist => hist%next
+            NULLIFY(hist%next)
+            ! STORE RESIDUAL HISTORY
+            hist%iter = iter
+            hist%res = res
+
+
             ! INCREMENT ITERATION COUNT
             iter = iter + 1
 
@@ -123,9 +140,6 @@ CONTAINS
         ! CACL SOLVER WALL CLOCK TIME
         end_solve = MPI_Wtime()
         wall_time_solve = end_solve - start_solve
-
-        ! SUMMARIZE OUTPUT
-        CALL output(blocks, iter)
 
         IF (iter > max_iter) THEN
           WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
