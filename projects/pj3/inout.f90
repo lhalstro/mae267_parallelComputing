@@ -127,7 +127,7 @@ MODULE IO
         ! open residual file
         OPEN(UNIT=resUnit,FILE=casedir // 'res_hist.dat')
         ! column headers
-        WRITE(resUnit,*) 'ITER', 'RESID'
+        WRITE(resUnit,*) 'ITER      RESID'
 
         ! point to residual linked list
         hist => res_hist

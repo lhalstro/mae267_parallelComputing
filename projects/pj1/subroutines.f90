@@ -15,6 +15,7 @@ MODULE subroutines
     USE MESHMOD
     USE CELLMOD
     USE TEMPERATURE
+    USE plot3D_module
 !     USE CLOCK
 
     IMPLICIT NONE
@@ -37,10 +38,14 @@ CONTAINS
         CALL init_temp(mesh)
     END SUBROUTINE init
 
-    SUBROUTINE solve(mesh, cell, min_res, max_iter, iter)
+    SUBROUTINE solve(mesh, cell, min_res, max_iter, iter, res_hist)
         ! Solve heat conduction equation with finite volume scheme
         TYPE(MESHTYPE) :: mesh
         TYPE(CELLTYPE) :: cell
+        ! Residual history linked list
+        TYPE(RESLIST), POINTER :: res_hist
+        ! pointer to iterate linked list
+        TYPE(RESLIST), POINTER :: hist
         ! Minimum residual criteria for iteration, actual residual
         REAL(KIND=8) :: min_res, res = 1000.D0
         ! iteration number, maximum number of iterations
@@ -52,6 +57,10 @@ CONTAINS
         REAL(KIND=8) :: start_solve, end_solve
         WRITE(*,*) 'Starting clock for solver...'
         start_solve = MPI_Wtime()
+
+        ! residual history
+        ALLOCATE(res_hist)
+        hist => res_hist
 
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
@@ -70,6 +79,17 @@ CONTAINS
 
             ! CALC RESIDUAL
             res = MAXVAL( ABS( mesh%Ttmp(2:IMAX-1, 2:JMAX-1) ) )
+
+            ! SWITCH TO NEXT LINK
+                ! (skip first entry)
+            ALLOCATE(hist%next)
+            hist => hist%next
+            NULLIFY(hist%next)
+            ! STORE RESIDUAL HISTORY
+            hist%iter = iter
+            hist%res = res
+
+
         END DO iter_loop
 
         ! CACL SOLVER WALL CLOCK TIME

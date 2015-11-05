@@ -28,6 +28,8 @@ PROGRAM heatTrans
 !     TYPE(CELLTYPE), TARGET, ALLOCATABLE :: cell(:,:)
     TYPE(MESHTYPE) :: mesh
     TYPE(CELLTYPE) :: cell
+    ! Residual history linked list
+    TYPE(RESLIST), POINTER :: res_hist
     ! ITERATION PARAMETERS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
@@ -72,7 +74,7 @@ PROGRAM heatTrans
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     WRITE(*,*) 'Solving heat conduction...'
-    CALL solve(mesh, cell, min_res, max_iter, iter)
+    CALL solve(mesh, cell, min_res, max_iter, iter, res_hist)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -84,6 +86,8 @@ PROGRAM heatTrans
     ! CALC TOTAL WALL TIME
     end_total = MPI_Wtime()
     wall_time_total = end_total - start_total
+    ! SAVE RESIDUAL HISTORY
+    CALL write_res(res_hist)
     ! SAVE SOLVER PERFORMANCE PARAMETERS
     CALL output(mesh, iter)
 
