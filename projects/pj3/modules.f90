@@ -620,6 +620,145 @@ CONTAINS
         END DO
     END SUBROUTINE calc_temp
 
+    SUBROUTINE update_ghosts(b, nbrlists)
+        ! Update ghost nodes of each block based on neightbor linked lists
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: b(:)
+        ! temperature information pointers for ghost and neighbor nodes
+        REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
+        ! Linked lists of neighbor communication instructions
+        TYPE(NBRLIST), POINTER :: nbrlists
+        TYPE(NBRLIST), POINTER :: nbrl
+        ! iteration parameters, index of neighbor
+        INTEGER :: I, J, INBR
+
+        !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! NORTH FACE GHOST NODES
+        nbrl%N => nbrlists%N
+        ! Step through linked list of north faces with ghosts until end of list
+        DO
+            ! If next link in list doesnt exist (end of list), stop loop
+            IF ( .NOT. ASSOCIATED(nbrl%N) ) EXIT
+
+            ! Otherwise, assign neighbor values to all ghost nodes:
+
+            ! TEMPERATURE OF CURRENT BLOCK (CONTAINS GHOST NODES)
+                ! (identified by linked list id)
+            Tgh => b( nbrl%N%ID )%mesh%T
+
+            ! index of north neighbor
+            INBR = b( nbrl%N%ID )%NB%N
+            ! TEMPERATURE OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
+            Tnb => b( INBR )%mesh%T
+
+            DO I = 1, IMAXBLK
+                ! NORTH FACE GHOST NODE TEMPERATURE IS EQUAL TO TEMPERATURE OF
+                ! SECOND-FROM-SOUTH FACE OF NORTH NEIGHBOR
+                ! (Remember face nodes are shared between blocks)
+                Tgh(I, JMAXBLK+1) = Tnb(I, 2)
+            END DO
+            ! switch pointer to next link in list
+            nbrl%N => nbrlists%N%next
+        END DO
+
+        ! SOUTH FACE GHOST NODES
+        nbrl%S => nbrlists%S
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%S) ) EXIT
+            Tgh => b( nbrl%S%ID )%mesh%T
+            INBR = b( nbrl%S%ID )%NB%S
+            Tnb => b( INBR )%mesh%T
+
+            DO I = 1, IMAXBLK
+                ! ADD NORTH FACE OF SOUTH NEIGHBOR TO CURRENT SOUTH FACE GHOSTS
+                Tgh(I, 0) = Tnb(I, JMAXBLK-1)
+            END DO
+            nbrl%S => nbrlists%S%next
+        END DO
+
+        ! EAST FACE GHOST NODES
+        nbrl%E => nbrlists%E
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%E) ) EXIT
+            Tgh => b( nbrl%E%ID )%mesh%T
+            INBR = b( nbrl%E%ID )%NB%E
+            Tnb => b( INBR )%mesh%T
+
+            DO J = 1, JMAXBLK
+                ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
+                Tgh(IMAXBLK+1, J) = Tnb(2, J)
+            END DO
+            nbrl%E => nbrlists%E%next
+        END DO
+
+        ! WEST FACE GHOST NODES
+        nbrl%W => nbrlists%W
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%W) ) EXIT
+            Tgh => b( nbrl%W%ID )%mesh%T
+            INBR = b( nbrl%W%ID )%NB%W
+            Tnb => b( INBR )%mesh%T
+
+            DO J = 1, JMAXBLK
+                ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
+                Tgh(0, J) = Tnb(IMAXBLK-1, J)
+            END DO
+            nbrl%W => nbrlists%W%next
+        END DO
+
+        !!! CORNERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! NORTH EAST CORNER GHOST NODES
+        nbrl%NE => nbrlists%NE
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%NE) ) EXIT
+            Tgh => b( nbrl%NE%ID )%mesh%T
+            INBR = b( nbrl%NE%ID )%NB%NE
+            Tnb => b( INBR )%mesh%T
+            ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
+            Tgh(IMAXBLK+1, JMAXBLK+1) = Tnb(2, 2)
+            nbrl%NE => nbrlists%NE%next
+        END DO
+
+        ! SOUTH EAST CORNER GHOST NODES
+        nbrl%SE => nbrlists%SE
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%SE) ) EXIT
+            Tgh => b( nbrl%SE%ID )%mesh%T
+            INBR = b( nbrl%SE%ID )%NB%SE
+            Tnb => b( INBR )%mesh%T
+            ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
+            Tgh(IMAXBLK+1, 0) = Tnb(2, JMAXBLK-1)
+            nbrl%SE => nbrlists%SE%next
+        END DO
+
+        ! SOUTH WEST CORNER GHOST NODES
+        nbrl%SW => nbrlists%SW
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%SW) ) EXIT
+            Tgh => b( nbrl%SW%ID )%mesh%T
+            INBR = b( nbrl%SW%ID )%NB%SW
+            Tnb => b( INBR )%mesh%T
+            ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
+            Tgh(0, 0) = Tnb(IMAXBLK-1, JMAXBLK-1)
+            nbrl%SW => nbrlists%SW%next
+        END DO
+
+        ! NORTH WEST CORNER GHOST NODES
+        nbrl%NW => nbrlists%NW
+        DO
+            IF ( .NOT. ASSOCIATED(nbrl%NW) ) EXIT
+            Tgh => b( nbrl%NW%ID )%mesh%T
+            INBR = b( nbrl%NW%ID )%NB%NW
+            Tnb => b( INBR )%mesh%T
+            ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
+            Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
+            nbrl%NW => nbrlists%NW%next
+        END DO
+    END SUBROUTINE update_ghosts
+
     SUBROUTINE init_linklists(blocks, nbrlists)
         ! Create linked lists governing block boundary communication
         ! BLOCK DATA TYPE
@@ -629,6 +768,7 @@ CONTAINS
         ! Linked lists of neighbor communication instructions
         TYPE(NBRLIST), POINTER :: nbrlists
         TYPE(NBRLIST), POINTER :: nbrl
+        INTEGER :: IBLK
 
         DO IBLK = 1, NBLK
             NB => blocks(IBLK)%NB
