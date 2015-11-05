@@ -104,7 +104,7 @@ PROGRAM heatTrans
     WRITE(*,*) 'Done!'
 
     ! MOVE OUTPUT FILE TO OUTPUT DIRECTORY
-    CALL EXECUTE_COMMAND_LINE ("mv a.out " // casedir // '.')
+!     CALL EXECUTE_COMMAND_LINE ("mv a.out " // casedir // '.')
 
 
 END PROGRAM heatTrans

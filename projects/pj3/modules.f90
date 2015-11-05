@@ -49,7 +49,7 @@ MODULE CONSTANTS
 !     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
     INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4
     ! Output directory
-    CHARACTER(LEN=16) :: casedir
+    CHARACTER(LEN=18) :: casedir
     ! Debug mode = 1
     INTEGER :: DEBUG
     ! Value for constant temperature BCs for debugging
@@ -91,15 +91,25 @@ CONTAINS
         IMAXBLK = 1 + (IMAX - 1) / N
         JMAXBLK = 1 + (JMAX - 1) / M
 
-        ! OUTPUT DIRECTORIES
-        ! write integers to strings
-        WRITE(strNX, '(I3)') nx
-        WRITE(strN,  '(I1)') N
-        WRITE(strM,  '(I1)') M
-        ! case output directory: nx_NxM (i.e. 'Results/101_5x4')
-        casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
-        ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
-        CALL EXECUTE_COMMAND_LINE ("mkdir -p " // casedir)
+!         ! OUTPUT DIRECTORIES
+!         ! write integers to strings
+!         WRITE( strNX, '(I3)') nx
+!         IF ( N - 10 < 0 ) THEN
+!             ! N is a single digit (I1)
+!             WRITE( strN,  '(I1)') N
+!         ELSE
+!             ! N is a tens digit
+!             WRITE( strN,  '(I2)') N
+!         END IF
+!         IF ( M - 10 < 0 ) THEN
+!             WRITE( strM,  '(I1)') M
+!         ELSE
+!             WRITE( strM,  '(I2)') M
+!         END IF
+!         ! case output directory: nx_NxM (i.e. 'Results/101_5x4')
+!         casedir = 'Results/' // strNX // '_' // strN // 'x' // strM // '/'
+!         ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
+!         CALL EXECUTE_COMMAND_LINE ("mkdir -p " // TRIM(casedir) )
 
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
@@ -301,7 +311,8 @@ CONTAINS
         11 format(3I5)
         22 format(33I5)
 
-        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
+!         OPEN (UNIT = BLKFILE , FILE = TRIM(casedir) // "blockconfig.dat", form='formatted')
+        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
         WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
         DO I = 1, NBLK

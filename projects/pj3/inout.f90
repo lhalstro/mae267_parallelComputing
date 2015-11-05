@@ -54,8 +54,10 @@ MODULE IO
         !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
-        OPEN(UNIT=gridUnit,FILE=casedir // 'grid_form.xyz',FORM='formatted')
-        OPEN(UNIT=tempUnit,FILE=casedir // 'T_form.dat',FORM='formatted')
+!         OPEN(UNIT=gridUnit,FILE= TRIM(casedir) // 'grid_form.xyz',FORM='formatted')
+!         OPEN(UNIT=tempUnit,FILE= TRIM(casedir) // 'T_form.dat',FORM='formatted')
+        OPEN(UNIT=gridUnit,FILE= 'grid_form.xyz',FORM='formatted')
+        OPEN(UNIT=tempUnit,FILE= 'T_form.dat',FORM='formatted')
 
         ! WRITE TO GRID FILE
         WRITE(gridUnit, 10) NBLK
@@ -87,8 +89,10 @@ MODULE IO
         !!! UNFORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
-        OPEN(UNIT=gridUnit,FILE=casedir // 'grid.xyz',FORM='unformatted')
-        OPEN(UNIT=tempUnit,FILE=casedir // 'T.dat',FORM='unformatted')
+!         OPEN(UNIT=gridUnit,FILE= TRIM(casedir) // 'grid.xyz',FORM='unformatted')
+!         OPEN(UNIT=tempUnit,FILE= TRIM(casedir) // 'T.dat',FORM='unformatted')
+        OPEN(UNIT=gridUnit,FILE = 'grid.xyz',FORM='unformatted')
+        OPEN(UNIT=tempUnit,FILE = 'T.dat',FORM='unformatted')
 
         ! WRITE TO GRID FILE (UNFORMATTED)
             ! (Paraview likes unformatted better)
@@ -125,7 +129,8 @@ MODULE IO
         TYPE(RESLIST), POINTER :: hist
 
         ! open residual file
-        OPEN(UNIT=resUnit,FILE=casedir // 'res_hist.dat')
+!         OPEN(UNIT=resUnit,FILE= TRIM(casedir) // 'res_hist.dat')
+        OPEN(UNIT=resUnit,FILE = 'res_hist.dat')
         ! column headers
         WRITE(resUnit,*) 'ITER      RESID'
 

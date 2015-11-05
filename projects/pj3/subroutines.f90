@@ -191,7 +191,8 @@ CONTAINS
         WRITE (*,*), "residual ij", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
 
         ! Write to file
-        OPEN (UNIT = 2, FILE = casedir // "SolnInfo.dat")
+!         OPEN (UNIT = 2, FILE = TRIM(casedir) // "SolnInfo.dat")
+        OPEN (UNIT = 2, FILE = "SolnInfo.dat")
         WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
         WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
         WRITE (2,*), iter, "iterations"
