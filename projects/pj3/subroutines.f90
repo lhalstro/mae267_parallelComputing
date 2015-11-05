@@ -66,44 +66,60 @@ CONTAINS
     END SUBROUTINE init_solution
 
 
-!     SUBROUTINE solve(blocks, min_res, max_iter, iter)
-!         ! Solve heat conduction equation with finite volume scheme
-!         TYPE(BLKTYPE) :: blocks(:)
-!         ! Minimum residual criteria for iteration, actual residual
-!         REAL(KIND=8) :: min_res, res = 1000.D0
-!         ! iteration number, maximum number of iterations
-!         ! iter in function inputs so it can be returned to main
-!         INTEGER :: iter, max_iter
+    SUBROUTINE solve(blocks, nbrlists, min_res, max_iter, iter)
+        ! Solve heat conduction equation with finite volume scheme
+        TYPE(BLKTYPE) :: blocks(:)
+        ! LINKED LISTS STORING NEIGHBOR INFO
+        TYPE(NBRLIST) :: nbrlists
+        ! Minimum residual criteria for iteration, actual residual
+        REAL(KIND=8) :: min_res, res = 1000.D0, resloc, resmax
+        ! iteration number, maximum number of iterations
+        ! iter in function inputs so it can be returned to main
+        INTEGER :: iter, max_iter, IBLK
 
-!         INCLUDE "mpif.h"
-!         REAL(KIND=8) :: start_solve, end_solve
-!         WRITE(*,*) 'Starting clock for solver...'
-!         start_solve = MPI_Wtime()
+        INCLUDE "mpif.h"
+        REAL(KIND=8) :: start_solve, end_solve
+        WRITE(*,*) 'Starting clock for solver...'
+        start_solve = MPI_Wtime()
 
-!         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
-!             ! Iterate FV solver until residual becomes less than cutoff or
-!             ! iteration count reaches given maximum
+        iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
+            ! Iterate FV solver until residual becomes less than cutoff or
+            ! iteration count reaches given maximum
 
-!             ! INCREMENT ITERATION COUNT
-!             iter = iter + 1
-!             ! CALC NEW TEMPERATURE AT ALL POINTS
-!             CALL calc_temp(blocks)
+            ! INCREMENT ITERATION COUNT
+            iter = iter + 1
+            ! CALC NEW TEMPERATURE AT ALL POINTS
+            CALL calc_temp(blocks)
 
-!             ! CALC RESIDUAL
-!             res = MAXVAL( ABS( mesh%Ttmp(2:IMAX-1, 2:JMAX-1) ) )
-!         END DO iter_loop
+            ! UPDATE GHOST NODES WITH NEW TEMPERATURE SOLUTION
+            CALL update_ghosts(blocks, nbrlists)
 
-!         ! CACL SOLVER WALL CLOCK TIME
-!         end_solve = MPI_Wtime()
-!         wall_time_solve = end_solve - start_solve
+            ! CALC RESIDUAL
+            resmax = 0.D0
+            DO IBLK = 1, NBLK
+                ! Find max of each block
+                resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
+                ! keep biggest residual
+                IF (resmax < resloc) THEN
+                    resmax = resloc
+                END IF
+            END DO
+            ! FINAL RESIDUAL
+            res = resmax
 
-!         ! SUMMARIZE OUTPUT
-!         IF (iter > max_iter) THEN
-!           WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
-!         ELSE
-!           WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
-!         END IF
-!     END SUBROUTINE solve
+        END DO iter_loop
+
+        ! CACL SOLVER WALL CLOCK TIME
+        end_solve = MPI_Wtime()
+        wall_time_solve = end_solve - start_solve
+
+        ! SUMMARIZE OUTPUT
+        IF (iter > max_iter) THEN
+          WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
+        ELSE
+          WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
+        END IF
+    END SUBROUTINE solve
 
     SUBROUTINE output(mesh, iter)
         ! Save solution parameters to file

@@ -58,7 +58,7 @@ PROGRAM heatTrans
     CALL init_solution(blocks, nbrlists)
     ! SOLVE
     WRITE(*,*) 'Solving heat conduction...'
-!     CALL solve(mesh, min_res, max_iter, iter)
+    CALL solve(blocks, nbrlists, min_res, max_iter, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

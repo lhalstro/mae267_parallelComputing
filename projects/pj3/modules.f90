@@ -45,6 +45,10 @@ MODULE CONSTANTS
     INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4
     ! Output directory
     CHARACTER(LEN=16) :: casedir
+    ! Debug mode = 1
+    INTEGER :: DEBUG = 1
+    ! Value for constant temperature BCs for debugging
+    REAL(KIND=8), PARAMETER :: TDEBUG = T0 - T0 * 0.5
 
 CONTAINS
 
@@ -332,9 +336,6 @@ CONTAINS
         TYPE(NBRTYPE), POINTER :: NB
         INTEGER :: IBLK, I, J
 
-
-        !PUT DEBUG BC HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         DO IBLK = 1, NBLK
             b => blocks(IBLK)
             m => blocks(IBLK)%mesh
@@ -342,26 +343,54 @@ CONTAINS
             ! FIRST, INITIALIZE ALL POINT TO INITIAL TEMPERATURE (T0)
             m%T(1:IMAXBLK, 1:JMAXBLK) = T0
             ! THEN, INITIALIZE BOUNDARIES DIRICHLET B.C.
-            ! face on north boundary
-            IF (NB%N == NBND) THEN
-                DO I = 1, IMAXBLK
-                    m%T(I,JMAX) = 5.D0 * (SIN(pi * m%xp(I,JMAX)) + 1.D0)
-                END DO
-            END IF
-            IF (NB%S == SBND) THEN
-                DO I = 1, IMAXBLK
-                    m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
-                END DO
-            END IF
-            IF (NB%E == EBND) THEN
-                DO J = 1, JMAXBLK
-                    m%T(IMAX,J) = 3.D0 * m%yp(IMAX,J) + 2.D0
-                END DO
-            END IF
-            IF (NB%W == WBND) THEN
-                DO J = 1, JMAXBLK
-                    m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
-                END DO
+            IF (DEBUG /= 1) THEN
+
+                ! DIRICHLET B.C.
+                ! face on north boundary
+                IF (NB%N == NBND) THEN
+                    DO I = 1, IMAXBLK
+                        m%T(I,JMAX) = 5.D0 * (SIN(pi * m%xp(I,JMAX)) + 1.D0)
+                    END DO
+                END IF
+                IF (NB%S == SBND) THEN
+                    DO I = 1, IMAXBLK
+                        m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                    END DO
+                END IF
+                IF (NB%E == EBND) THEN
+                    DO J = 1, JMAXBLK
+                        m%T(IMAX,J) = 3.D0 * m%yp(IMAX,J) + 2.D0
+                    END DO
+                END IF
+                IF (NB%W == WBND) THEN
+                    DO J = 1, JMAXBLK
+                        m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                    END DO
+                END IF
+
+            ELSE
+
+                ! DEBUG BCS
+                IF (NB%N == NBND) THEN
+                    DO I = 1, IMAXBLK
+                        m%T(I,JMAX) = TDEBUG
+                    END DO
+                END IF
+                IF (NB%S == SBND) THEN
+                    DO I = 1, IMAXBLK
+                        m%T(I,1) = TDEBUG
+                    END DO
+                END IF
+                IF (NB%E == EBND) THEN
+                    DO J = 1, JMAXBLK
+                        m%T(IMAX,J) = TDEBUG
+                    END DO
+                END IF
+                IF (NB%W == WBND) THEN
+                    DO J = 1, JMAXBLK
+                        m%T(I,1) = TDEBUG
+                    END DO
+                END IF
             END IF
         END DO
     END SUBROUTINE init_temp
@@ -405,7 +434,7 @@ CONTAINS
                 ! Interior
                 b%IMAXLOC = IMAXBLK
             ELSE
-                ! At North Boundary
+                ! At east Boundary
                 b%IMAXLOC = IMAXBLK - 1
             END IF
 
@@ -414,7 +443,7 @@ CONTAINS
                 ! Interior
                 b%JMINLOC = 0
             ELSE
-                ! At North Boundary
+                ! At south Boundary
                 b%JMINLOC = 1
             END IF
 
@@ -423,7 +452,7 @@ CONTAINS
                 ! Interior
                 b%IMINLOC = 0
             ELSE
-                ! At North Boundary
+                ! At west Boundary
                 b%IMINLOC = 1
             END IF
 
