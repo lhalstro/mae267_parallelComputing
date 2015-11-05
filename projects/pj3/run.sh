@@ -10,7 +10,7 @@ START="starting at `date` on `hostname`"
 #Print to screen
 echo $START
 #Print to output file
-echo $START >> "a.out"
+echo $START > "a.out"
 
 # '&' will run process in background until it is complete
 ./main >> "a.out"
