@@ -13,5 +13,5 @@ echo $START
 echo $START > "a.out"
 
 # '&' will run process in background until it is complete
-#./main >> "a.out"
-./main
+./main >> "a.out"
+#./main
