@@ -46,7 +46,7 @@ MODULE CONSTANTS
     ! Output directory
     CHARACTER(LEN=16) :: casedir
     ! Debug mode = 1
-    INTEGER :: DEBUG = 1
+    INTEGER :: DEBUG
     ! Value for constant temperature BCs for debugging
     REAL(KIND=8), PARAMETER :: TDEBUG = T0 - T0 * 0.5
 
@@ -73,6 +73,9 @@ CONTAINS
         READ(1,*) M
         READ(1,*)
         READ(1,*) N
+        ! DEBUG MODE (10th line)
+        READ(1,*)
+        READ(1,*) DEBUG
 
         ! SET GRID SIZE
         IMAX = nx
@@ -99,6 +102,9 @@ CONTAINS
         WRITE(*,*) 'With MxN blocks:', M, 'x', N
         WRITE(*,*) 'Number of blocks:', NBLK
         WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
+        IF (DEBUG == 1) THEN
+            WRITE(*,*) 'RUNNING IN DEBUG MODE'
+        END IF
         WRITE(*,*) ''
     END SUBROUTINE read_input
 END MODULE CONSTANTS
@@ -156,7 +162,7 @@ MODULE BLOCKMOD
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
         INTEGER :: IMIN, IMAX, JMIN, JMAX
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
-        INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC
+        INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC, IMINUPD, JMINUPD
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
@@ -353,8 +359,8 @@ CONTAINS
                     ! MAKE SQUARE GRID
                         ! CONVERT FROM LOCAL TO GLOBAL INDEX:
                             ! Iglobal = Block%IMIN + (Ilocal - 1)
-                    m%xp(I, J) = COS( 0.5D0 * pi * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
-                    m%yp(I, J) = COS( 0.5D0 * pi * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
+                    m%xp(I, J) = COS( 0.5D0 * PI * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
+                    m%yp(I, J) = COS( 0.5D0 * PI * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
                     ! ROTATE GRID
                     m%x(I, J) = m%xp(I, J) * COS(rot) + (1.D0 - m%yp(I, J) ) * SIN(rot)
                     m%y(I, J) = m%yp(I, J) * COS(rot) + (       m%xp(I, J) ) * SIN(rot)
@@ -377,7 +383,7 @@ CONTAINS
             m => blocks(IBLK)%mesh
             NB => blocks(IBLK)%NB
             ! FIRST, INITIALIZE ALL POINT TO INITIAL TEMPERATURE (T0)
-            m%T(1:IMAXBLK, 1:JMAXBLK) = T0
+            m%T(1-1:IMAXBLK+1, 1-1:JMAXBLK+1) = T0
             ! THEN, INITIALIZE BOUNDARIES DIRICHLET B.C.
             IF (DEBUG /= 1) THEN
 
@@ -385,46 +391,46 @@ CONTAINS
                 ! face on north boundary
                 IF (NB%N == NBND) THEN
                     DO I = 1, IMAXBLK
-                        m%T(I,JMAX) = 5.D0 * (SIN(pi * m%xp(I,JMAX)) + 1.D0)
+                        m%T(I, JMAXBLK) = 5.D0 * (SIN(PI * m%xp(I, JMAXBLK)) + 1.D0)
                     END DO
                 END IF
                 IF (NB%S == SBND) THEN
                     DO I = 1, IMAXBLK
-                        m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                        m%T(I, 1) = ABS(COS(PI * m%xp(I, 1))) + 1.D0
                     END DO
                 END IF
                 IF (NB%E == EBND) THEN
                     DO J = 1, JMAXBLK
-                        m%T(IMAX,J) = 3.D0 * m%yp(IMAX,J) + 2.D0
+                        m%T(IMAXBLK, J) = 3.D0 * m%yp(IMAXBLK, J) + 2.D0
                     END DO
                 END IF
                 IF (NB%W == WBND) THEN
                     DO J = 1, JMAXBLK
-                        m%T(I,1) = ABS(COS(pi * m%xp(I,1))) + 1.D0
+                        m%T(1, J) = 3.D0 * m%yp(1, J) + 2.D0
                     END DO
                 END IF
 
             ELSE
 
                 ! DEBUG BCS
-                IF (NB%N == NBND) THEN
+                IF (NB%N < 0) THEN
                     DO I = 1, IMAXBLK
-                        m%T(I,JMAX) = TDEBUG
+                        m%T(I, JMAXBLK) = TDEBUG
                     END DO
                 END IF
-                IF (NB%S == SBND) THEN
+                IF (NB%S < 0) THEN
                     DO I = 1, IMAXBLK
-                        m%T(I,1) = TDEBUG
+                        m%T(I, 1) = TDEBUG
                     END DO
                 END IF
-                IF (NB%E == EBND) THEN
+                IF (NB%E < 0) THEN
                     DO J = 1, JMAXBLK
-                        m%T(IMAX,J) = TDEBUG
+                        m%T(IMAXBLK, J) = TDEBUG
                     END DO
                 END IF
-                IF (NB%W == WBND) THEN
+                IF (NB%W < 0) THEN
                     DO J = 1, JMAXBLK
-                        m%T(I,1) = TDEBUG
+                        m%T(1, J) = TDEBUG
                     END DO
                 END IF
             END IF
@@ -495,6 +501,8 @@ CONTAINS
             ELSE
                 ! At south Boundary
                 b%JMINLOC = 1
+                ! boundary for updating temperature (dont update BC)
+                b%JMINUPD = 2
             END IF
 
             ! WEST
@@ -504,12 +512,130 @@ CONTAINS
             ELSE
                 ! At west Boundary
                 b%IMINLOC = 1
+                b%IMINUPD = 2
             END IF
 
             !!! POPULATE GHOST NODES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         END DO
     END SUBROUTINE set_block_bounds
+
+    SUBROUTINE init_ghosts(b)
+        ! Update ghost nodes of each block using logical statements.
+        ! used to debug linked lists
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(NBRTYPE), POINTER :: NB
+        ! mesh information pointers for ghost and neighbor nodes
+        TYPE(MESHTYPE), POINTER :: mgh, mnb
+        ! temperature information pointers for ghost and neighbor nodes
+        REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
+        ! iteration parameters, index of neighbor
+        INTEGER :: I, J, INBR, IBLK
+
+
+        DO IBLK = 1, NBLK
+            NB => b(iblk)%NB
+
+
+            !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            IF ( NB%N > 0 ) THEN
+                ! MESH OF CURRENT BLOCK (CONTAINS GHOST NODES)
+                mgh => b( IBLK )%mesh
+                ! MESH OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
+                mnb => b( NB%N )%mesh
+                DO I = 1, IMAXBLK
+                    ! POPULATE GHOST NODES WITH NEIGHBOR NODES AND TEMPERATURE
+                    mgh%x(I, JMAXBLK+1) = mnb%x(I, 2)
+                    mgh%y(I, JMAXBLK+1) = mnb%y(I, 2)
+                    mgh%T(I, JMAXBLK+1) = mnb%T(I, 2)
+                END DO
+            END IF
+
+            !south
+            IF ( NB%S > 0 ) THEN
+                mgh => b( IBLK )%mesh
+                mnb => b( NB%S )%mesh
+
+                DO I = 1, IMAXBLK
+                    ! ADD NORTH FACE OF SOUTH NEIGHBOR TO CURRENT SOUTH FACE GHOSTS
+                    mgh%x(I, 0) = mnb%x(I, JMAXBLK-1)
+                    mgh%y(I, 0) = mnb%y(I, JMAXBLK-1)
+                    mgh%T(I, 0) = mnb%T(I, JMAXBLK-1)
+                END DO
+            END IF
+
+            !EAST
+            IF ( NB%E > 0 ) THEN
+                mgh => b( IBLK )%mesh
+                mnb => b( NB%E )%mesh
+
+                DO J = 1, JMAXBLK
+                    ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
+                    mgh%x(IMAXBLK+1, J) = mnb%x(2, J)
+                    mgh%y(IMAXBLK+1, J) = mnb%y(2, J)
+                    mgh%T(IMAXBLK+1, J) = mnb%T(2, J)
+                END DO
+            END IF
+
+            ! WEST FACE GHOST NODES
+            IF ( NB%W > 0 ) THEN
+                mgh => b( IBLK )%mesh
+                mnb => b( NB%W )%mesh
+
+                DO J = 1, JMAXBLK
+                    ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
+                    mgh%x(0, J) = mnb%x(IMAXBLK-1, J)
+                    mgh%y(0, J) = mnb%y(IMAXBLK-1, J)
+                    mgh%T(0, J) = mnb%T(IMAXBLK-1, J)
+                END DO
+            END IF
+
+            !!! CORNERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            ! NORTH EAST CORNER GHOST NODES
+            IF ( NB%NE > 0 ) THEN
+                mgh => b( IBLK  )%mesh
+                mnb => b( NB%NE )%mesh
+                ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
+                mgh%x(IMAXBLK+1, JMAXBLK+1) = mnb%x(2, 2)
+                mgh%y(IMAXBLK+1, JMAXBLK+1) = mnb%y(2, 2)
+                mgh%T(IMAXBLK+1, JMAXBLK+1) = mnb%T(2, 2)
+            END IF
+
+            ! SOUTH EAST CORNER GHOST NODE
+            IF ( NB%SE > 0 ) THEN
+                mgh => b( IBLK  )%mesh
+                mnb => b( NB%SE )%mesh
+                ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
+                mgh%x(IMAXBLK+1, 0) = mnb%x(2, JMAXBLK-1)
+                mgh%y(IMAXBLK+1, 0) = mnb%y(2, JMAXBLK-1)
+                mgh%T(IMAXBLK+1, 0) = mnb%T(2, JMAXBLK-1)
+            END IF
+
+            ! SOUTH WEST CORNER GHOST NODES
+            IF ( NB%SW > 0 ) THEN
+                mgh => b( IBLK  )%mesh
+                mnb => b( NB%SW )%mesh
+                ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
+                mgh%x(0, 0) = mnb%x(IMAXBLK-1, JMAXBLK-1)
+                mgh%y(0, 0) = mnb%y(IMAXBLK-1, JMAXBLK-1)
+                mgh%T(0, 0) = mnb%T(IMAXBLK-1, JMAXBLK-1)
+            END IF
+
+            ! NORTH WEST CORNER GHOST NODES
+            IF ( NB%NW > 0 ) THEN
+                mgh => b( IBLK  )%mesh
+                mnb => b( NB%NW )%mesh
+                ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
+                mgh%x(0, JMAXBLK+1) = mnb%x(IMAXBLK-1, 2)
+                mgh%y(0, JMAXBLK+1) = mnb%y(IMAXBLK-1, 2)
+                mgh%T(0, JMAXBLK+1) = mnb%T(IMAXBLK-1, 2)
+            END IF
+        END DO
+    END SUBROUTINE init_ghosts
 
     SUBROUTINE init_linklists(blocks, nbrlists)
         ! Create linked lists governing block boundary communication
@@ -782,6 +908,114 @@ CONTAINS
         END DO
     END SUBROUTINE update_ghosts
 
+    SUBROUTINE update_ghosts_debug(b)
+        ! Update ghost nodes of each block using logical statements.
+        ! used to debug linked lists
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(NBRTYPE), POINTER :: NB
+        ! temperature information pointers for ghost and neighbor nodes
+        REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
+        ! iteration parameters, index of neighbor
+        INTEGER :: I, J, INBR, IBLK
+
+
+        DO IBLK = 1, NBLK
+            NB => b(iblk)%NB
+
+
+            !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            IF ( NB%N > 0 ) THEN
+                ! TEMPERATURE OF CURRENT BLOCK (CONTAINS GHOST NODES)
+                Tgh => b( IBLK )%mesh%T
+                ! index of north neighbor
+                INBR = NB%N
+                ! TEMPERATURE OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
+                Tnb => b( INBR )%mesh%T
+                DO I = 1, IMAXBLK
+!                     Tgh(I, JMAXBLK+1) = Tnb(I, 2)
+                    b(iblk)%mesh%T(I, JMAXBLK+1) = b(NB%N)%mesh%T(I, 2)
+                END DO
+            END IF
+
+            !south
+            IF ( NB%S > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = NB%S
+                Tnb => b( INBR )%mesh%T
+
+                DO I = 1, IMAXBLK
+                    ! ADD NORTH FACE OF SOUTH NEIGHBOR TO CURRENT SOUTH FACE GHOSTS
+                    Tgh(I, 0) = Tnb(I, JMAXBLK-1)
+                END DO
+            END IF
+
+            !EAST
+            IF ( NB%E > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = NB%E
+                Tnb => b( INBR )%mesh%T
+
+                DO J = 1, JMAXBLK
+                    ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
+                    Tgh(IMAXBLK+1, J) = Tnb(2, J)
+                END DO
+            END IF
+
+            ! WEST FACE GHOST NODES
+            IF ( NB%W > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = b( IBLK )%NB%W
+                Tnb => b( INBR )%mesh%T
+
+                DO J = 1, JMAXBLK
+                    ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
+                    Tgh(0, J) = Tnb(IMAXBLK-1, J)
+                END DO
+            END IF
+
+            !!! CORNERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            ! NORTH EAST CORNER GHOST NODES
+            IF ( NB%NE > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = b( IBLK )%NB%NE
+                Tnb => b( INBR )%mesh%T
+                ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
+                Tgh(IMAXBLK+1, JMAXBLK+1) = Tnb(2, 2)
+            END IF
+
+            ! SOUTH EAST CORNER GHOST NODE
+            IF ( NB%SE > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = b( IBLK )%NB%SE
+                Tnb => b( INBR )%mesh%T
+                ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
+                Tgh(IMAXBLK+1, 0) = Tnb(2, JMAXBLK-1)
+            END IF
+
+            ! SOUTH WEST CORNER GHOST NODES
+            IF ( NB%SW > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = b( IBLK )%NB%SW
+                Tnb => b( INBR )%mesh%T
+                ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
+                Tgh(0, 0) = Tnb(IMAXBLK-1, JMAXBLK-1)
+            END IF
+
+            ! NORTH WEST CORNER GHOST NODES
+            IF ( NB%NW > 0 ) THEN
+                Tgh => b( IBLK )%mesh%T
+                INBR = b( IBLK )%NB%NW
+                Tnb => b( INBR )%mesh%T
+                ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
+                Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
+            END IF
+        END DO
+    END SUBROUTINE update_ghosts_debug
+
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes. ! Call after reading mesh data
         ! from restart file
@@ -864,13 +1098,12 @@ CONTAINS
                     ! CALC TIMESTEP FROM CFL
                     m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
                                     / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
-                                        + (m%yp(I,J+1) - m%yp(I,J))**2 )
+                                      + (m%yp(I,J+1) - m%yp(I,J))**2 )
                     ! CALC SECONDARY VOLUMES
                     ! (for rectangular mesh, just average volumes of the 4 cells
                     !  surrounding the point)
-                    m%V2nd(I,J) = ( m%V(I,J) &
-                                        + m%V(I-1,J) + m%V(I,J-1) &
-                                        + m%V(I-1,J-1) ) * 0.25D0
+                    m%V2nd(I,J) = ( m%V(I,  J) + m%V(I-1,  J) &
+                                  + m%V(I,J-1) + m%V(I-1,J-1) ) * 0.25D0
                     ! CALC CONSTANT TERM
                     ! (this term remains constant in the equation regardless of
                     !  iteration number, so only calculate once here,

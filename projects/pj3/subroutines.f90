@@ -51,12 +51,18 @@ CONTAINS
         ! CALC LOCAL BOUNDARIES OF CELLS
         write(*,*) 'set local bounds'
         CALL set_block_bounds(blocks)
-        ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
-        write(*,*) 'make linked lists'
-        CALL init_linklists(blocks, nbrlists)
-        ! POPULATE BLOCK GHOST NODES
-        write(*,*) 'update ghosts'
-        CALL update_ghosts(blocks, nbrlists)
+
+
+
+!         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
+!         write(*,*) 'make linked lists'
+!         CALL init_linklists(blocks, nbrlists)
+!         ! POPULATE BLOCK GHOST NODES
+!         write(*,*) 'update ghosts'
+!         CALL update_ghosts(blocks, nbrlists)
+
+        CALL init_ghosts(blocks)
+
         ! CALC AREAS FOR SECONDARY FLUXES
         write(*,*) 'calc solution stuff'
         CALL calc_cell_params(blocks)
@@ -92,7 +98,8 @@ CONTAINS
             CALL calc_temp(blocks)
 
             ! UPDATE GHOST NODES WITH NEW TEMPERATURE SOLUTION
-            CALL update_ghosts(blocks, nbrlists)
+!             CALL update_ghosts(blocks, nbrlists)
+            CALL update_ghosts_debug(blocks)
 
             ! CALC RESIDUAL
             resmax = 0.D0
@@ -118,6 +125,7 @@ CONTAINS
           WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
         ELSE
           WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
+          WRITE(*,*) '          (MAXIMUM RESIDUAL    :', res,  ')'
         END IF
     END SUBROUTINE solve
 
