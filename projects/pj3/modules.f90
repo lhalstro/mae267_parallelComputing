@@ -15,9 +15,9 @@
 ! TEMPERATURE --> Calculate and store new temperature distribution
 !                     for given iteration
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! CONSTANTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! CONSTANTS MODULE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE CONSTANTS
     ! Initialize constants for simulation.  Set grid size.
@@ -103,9 +103,9 @@ CONTAINS
     END SUBROUTINE read_input
 END MODULE CONSTANTS
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! BLOCK GRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! BLOCK GRID MODULE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE BLOCKMOD
     ! Initialize grid with correct number of points and rotation,
@@ -114,6 +114,10 @@ MODULE BLOCKMOD
 
     IMPLICIT NONE
     PUBLIC
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! DERIVED DATA TYPES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! DERIVED DATA TYPE FOR GRID INFORMATION
 
@@ -174,9 +178,9 @@ MODULE BLOCKMOD
 
 CONTAINS
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! SETUP TO WRITE TO RESTART FILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! INITIALIZE GRID AND WRITE TO FILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE init_blocks(b)
         ! BLOCK DATA TYPE
@@ -275,6 +279,38 @@ CONTAINS
             END DO
         END DO
     END SUBROUTINE init_blocks
+
+    SUBROUTINE write_blocks(b)
+        ! WRITE BLOCK CONNECTIVITY FILE
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE) :: b(:)
+        INTEGER :: I, BLKFILE = 99
+
+        11 format(3I5)
+        22 format(33I5)
+
+        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
+        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        DO I = 1, NBLK
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+            ! NORTH EAST SOUTH WEST
+            WRITE(BLKFILE, 22) b(I)%ID, &
+                b(I)%IMIN, b(I)%JMIN, &
+                b(I)%NB%N, &
+                b(I)%NB%NE, &
+                b(I)%NB%E, &
+                b(I)%NB%SE, &
+                b(I)%NB%S, &
+                b(I)%NB%SW, &
+                b(I)%NB%W, &
+                b(I)%NB%NW, &
+                b(I)%ORIENT
+        END DO
+        CLOSE(BLKFILE)
+    END SUBROUTINE write_blocks
 
     SUBROUTINE init_mesh(b)
         ! BLOCK DATA TYPE
@@ -395,9 +431,23 @@ CONTAINS
         END DO
     END SUBROUTINE init_temp
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! AFTER RESTART FILE READ IN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+    ! WRITE GRID HERE!!!!!!!!!!!!!!!!!!!!!!
+
+    ! WRITE TEMPERATURE HERE!!!!!!!!!!!!!!!!!!!!!!
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! INITIALIZE SOLUTION AFTER RESTART FILE READ IN !!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+    ! READ BLOCKS HERE!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
 
     SUBROUTINE set_block_bounds(b)
         ! Calculate iteration bounds for each block to avoid updating BCs.
@@ -461,160 +511,137 @@ CONTAINS
         END DO
     END SUBROUTINE set_block_bounds
 
-    SUBROUTINE calc_cell_params(blocks)
-        ! calculate areas for secondary fluxes. ! Call after reading mesh data
-        ! from restart file
+    SUBROUTINE init_linklists(blocks, nbrlists)
+        ! Create linked lists governing block boundary communication
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
-        TYPE(MESHTYPE), POINTER :: m
-        INTEGER :: IBLK, I, J
-        ! Areas used in counter-clockwise trapezoidal integration to get
-        ! x and y first-derivatives for center of each cell (Green's thm)
-        REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
+        ! Neighbor information pointer
+        TYPE(NBRTYPE), POINTER :: NB
+        ! Linked lists of neighbor communication instructions
+        TYPE(NBRLIST) :: nbrlists
+        TYPE(NBRLIST) :: nbrl
+        INTEGER :: IBLK
 
         DO IBLK = 1, NBLK
-            m => blocks(IBLK)%mesh
+            NB => blocks(IBLK)%NB
 
-            DO J = 0, JMAXBLK
-                DO I = 0, IMAXBLK
-                    ! CALC CELL VOLUME
-                        ! cross product of cell diagonals p, q
-                        ! where p has x,y components px, py and q likewise.
-                        ! Thus, p cross q = px*qy - qx*py
-                        ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
-                        ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
-                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
-                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
-                             * ( m%y(I+1,J+1) - m%y(I,  J) )
-                END DO
-            END DO
+            ! NORTH
+            ! If block north face is internal, add it to appropriate linked list
+            ! for north internal faces.
+            IF (NB%N > 0) THEN
 
-            ! CALC CELL AREAS (FLUXES) IN J-DIRECTION
-            DO J = 0, JMAXBLK+1
-                DO I = 0, IMAXBLK
-                    m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
-                    m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
-                END DO
-            END DO
-            ! CALC CELL AREAS (FLUXES) IN I-DIRECTION
-            DO J = 0, JMAXBLK
-                DO I = 0, IMAXBLK+1
-                    ! CALC CELL AREAS (FLUXES)
-                    m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
-                    m%Ayi(I,J) = m%y(I,J+1) - m%y(I,J)
-                END DO
-            END DO
+                IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
+                    ! Allocate linked list if it hasnt been accessed yet
+                    ALLOCATE(nbrlists%N)
+                    ! Pointer linked list that will help iterate through the
+                    ! primary list in this loop
+                    nbrl%N => nbrlists%N
+                ELSE
+                    ! linked list already allocated (started).  Allocate next
+                    ! link as assign current block to it
+                    ALLOCATE(nbrl%N%next)
+                    nbrl%N => nbrl%N%next
+                END IF
 
-            ! Actual finite-volume scheme equation parameters
-            DO J = 1-1, JMAXBLK-1+1
-                DO I = 1-1, IMAXBLK-1+1
+                ! associate this linked list entry with the current block
+                nbrl%N%ID = IBLK
+                ! break link to pre-existing pointer target.  We will
+                ! allocated this target later as the next item in the linked list
+                NULLIFY(nbrl%N%next)
+            END IF
 
-                    Axi_half = ( m%Axi(I+1,J) + m%Axi(I,J) ) * 0.25D0
-                    Axj_half = ( m%Axj(I,J+1) + m%Axj(I,J) ) * 0.25D0
-                    Ayi_half = ( m%Ayi(I+1,J) + m%Ayi(I,J) ) * 0.25D0
-                    Ayj_half = ( m%Ayj(I,J+1) + m%Ayj(I,J) ) * 0.25D0
+            ! SOUTH
+            IF (NB%S > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%S) ) THEN
+                    ALLOCATE(nbrlists%S)
+                    nbrl%S => nbrlists%S
+                ELSE
+                    ALLOCATE(nbrl%S%next)
+                    nbrl%S => nbrl%S%next
+                END IF
+                nbrl%S%ID = IBLK
+                NULLIFY(nbrl%S%next)
+            END IF
 
-                    ! (NN = 'negative-negative', PN = 'positive-negative',
-                        ! see how fluxes are summed)
-                    m%xNN(I, J) = ( -Axi_half - Axj_half )
-                    m%xPN(I, J) = (  Axi_half - Axj_half )
-                    m%xPP(I, J) = (  Axi_half + Axj_half )
-                    m%xNP(I, J) = ( -Axi_half + Axj_half )
-                    m%yPP(I, J) = (  Ayi_half + Ayj_half )
-                    m%yNP(I, J) = ( -Ayi_half + Ayj_half )
-                    m%yNN(I, J) = ( -Ayi_half - Ayj_half )
-                    m%yPN(I, J) = (  Ayi_half - Ayj_half )
-                END DO
-            END DO
+            ! EAST
+            IF (NB%E > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%E) ) THEN
+                    ALLOCATE(nbrlists%E)
+                    nbrl%E => nbrlists%E
+                ELSE
+                    ALLOCATE(nbrl%E%next)
+                    nbrl%E => nbrl%E%next
+                END IF
+                nbrl%E%ID = IBLK
+                NULLIFY(nbrl%E%next)
+            END IF
+
+            ! WEST
+            IF (NB%W > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%W) ) THEN
+                    ALLOCATE(nbrlists%W)
+                    nbrl%W => nbrlists%W
+                ELSE
+                    ALLOCATE(nbrl%W%next)
+                    nbrl%W => nbrl%W%next
+                END IF
+                nbrl%W%ID = IBLK
+                NULLIFY(nbrl%W%next)
+            END IF
+
+            ! NORTH EAST
+            IF (NB%NE > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%NE) ) THEN
+                    ALLOCATE(nbrlists%NE)
+                    nbrl%NE => nbrlists%NE
+                ELSE
+                    ALLOCATE(nbrl%NE%next)
+                    nbrl%NE => nbrl%NE%next
+                END IF
+                nbrl%NE%ID = IBLK
+                NULLIFY(nbrl%NE%next)
+            END IF
+
+            ! SOUTH EAST
+            IF (NB%SE > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%SE) ) THEN
+                    ALLOCATE(nbrlists%SE)
+                    nbrl%SE => nbrlists%SE
+                ELSE
+                    ALLOCATE(nbrl%SE%next)
+                    nbrl%SE => nbrl%SE%next
+                END IF
+                nbrl%SE%ID = IBLK
+                NULLIFY(nbrl%SE%next)
+            END IF
+
+            ! SOUTH WEST
+            IF (NB%SW > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%SW) ) THEN
+                    ALLOCATE(nbrlists%SW)
+                    nbrl%SW => nbrlists%SW
+                ELSE
+                    ALLOCATE(nbrl%SW%next)
+                    nbrl%SW => nbrl%SW%next
+                END IF
+                nbrl%SW%ID = IBLK
+                NULLIFY(nbrl%SW%next)
+            END IF
+
+            ! NORTH WEST
+            IF (NB%NW > 0) THEN
+                IF ( .NOT. ASSOCIATED(nbrlists%NW) ) THEN
+                    ALLOCATE(nbrlists%NW)
+                    nbrl%NW => nbrlists%NW
+                ELSE
+                    ALLOCATE(nbrl%NW%next)
+                    nbrl%NW => nbrl%NW%next
+                END IF
+                nbrl%NW%ID = IBLK
+                NULLIFY(nbrl%NW%next)
+            END IF
         END DO
-    END SUBROUTINE calc_cell_params
-
-    SUBROUTINE calc_constants(blocks)
-        ! Calculate constants for a given iteration loop.  This way,
-        ! they don't need to be calculated within the loop at each iteration
-        TYPE(BLKTYPE), TARGET :: blocks(:)
-        TYPE(MESHTYPE), POINTER :: m
-        INTEGER :: IBLK, I, J
-        DO IBLK = 1, NBLK
-            m => blocks(IBLK)%mesh
-            DO J = 2-2, JMAXBLK - 1+2
-                DO I = 2-2, IMAXBLK - 1+2
-                    ! CALC TIMESTEP FROM CFL
-                    m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
-                                    / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
-                                        + (m%yp(I,J+1) - m%yp(I,J))**2 )
-                    ! CALC SECONDARY VOLUMES
-                    ! (for rectangular mesh, just average volumes of the 4 cells
-                    !  surrounding the point)
-                    m%V2nd(I,J) = ( m%V(I,J) &
-                                        + m%V(I-1,J) + m%V(I,J-1) &
-                                        + m%V(I-1,J-1) ) * 0.25D0
-                    ! CALC CONSTANT TERM
-                    ! (this term remains constant in the equation regardless of
-                    !  iteration number, so only calculate once here,
-                    !  instead of in loop)
-                    m%term(I,J) = m%dt(I,J) * alpha / m%V2nd(I,J)
-                END DO
-            END DO
-        END DO
-    END SUBROUTINE calc_constants
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!! CALCULATE TEMPERATURE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    SUBROUTINE calc_temp(b)
-        ! Calculate first and second derivatives for finite-volume scheme
-        TYPE(BLKTYPE), TARGET :: b(:)
-        TYPE(MESHTYPE), POINTER :: m
-        ! First partial derivatives of temperature in x and y directions
-        REAL(KIND=8) :: dTdx, dTdy
-        INTEGER :: IBLK, I, J
-
-        DO IBLK = 1, NBLK
-            m => b(IBLK)%mesh
-
-            ! RESET SUMMATION
-            m%Ttmp = 0.D0
-
-            ! PREVIOUSLY SET ITERATION LIMITS TO UTILIZE GHOST NODES ONLY
-                !ON INTERIOR FACES
-            DO J = b(IBLK)%JMINLOC, b(IBLK)%JMAXLOC
-                DO I = b(IBLK)%IMINLOC, b(IBLK)%IMAXLOC
-                    ! CALC FIRST DERIVATIVES
-                    dTdx = + 0.5d0 &
-                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Ayi(I+1,J) &
-                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Ayi(I,  J) &
-                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Ayj(I,J+1) &
-                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Ayj(I,  J) &
-                                    ) / m%V(I,J)
-                    dTdy = - 0.5d0 &
-                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Axi(I+1,J) &
-                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Axi(I,  J) &
-                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Axj(I,J+1) &
-                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Axj(I,  J) &
-                                    ) / m%V(I,J)
-
-                    ! Alternate distributive scheme second-derivative operator.
-                    m%Ttmp(I+1,  J) = m%Ttmp(I+1,  J) + m%term(I+1,  J) * ( m%yNN(I,J) * dTdx + m%xPP(I,J) * dTdy )
-                    m%Ttmp(I,    J) = m%Ttmp(I,    J) + m%term(I,    J) * ( m%yPN(I,J) * dTdx + m%xNP(I,J) * dTdy )
-                    m%Ttmp(I,  J+1) = m%Ttmp(I,  J+1) + m%term(I,  J+1) * ( m%yPP(I,J) * dTdx + m%xNN(I,J) * dTdy )
-                    m%Ttmp(I+1,J+1) = m%Ttmp(I+1,J+1) + m%term(I+1,J+1) * ( m%yNP(I,J) * dTdx + m%xPN(I,J) * dTdy )
-                END DO
-            END DO
-            ! SAVE NEW TEMPERATURE DISTRIBUTION
-                ! (preserve Ttmp for residual calculation in solver loop)
-
-            ! Previously set bounds, add one to lower limit so as not to
-            ! update BC. (dont need to for upper limit because explicit scheme)
-            DO J = b(IBLK)%JMINLOC + 1, b(IBLK)%JMAXLOC
-                DO I = b(IBLK)%IMINLOC + 1, b(IBLK)%IMAXLOC
-                    m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)
-                END DO
-            END DO
-        END DO
-    END SUBROUTINE calc_temp
+    END SUBROUTINE init_linklists
 
     SUBROUTINE update_ghosts(b, nbrlists)
         ! Update ghost nodes of each block based on neightbor linked lists
@@ -755,137 +782,160 @@ CONTAINS
         END DO
     END SUBROUTINE update_ghosts
 
-    SUBROUTINE init_linklists(blocks, nbrlists)
-        ! Create linked lists governing block boundary communication
+    SUBROUTINE calc_cell_params(blocks)
+        ! calculate areas for secondary fluxes. ! Call after reading mesh data
+        ! from restart file
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
-        ! Neighbor information pointer
-        TYPE(NBRTYPE), POINTER :: NB
-        ! Linked lists of neighbor communication instructions
-        TYPE(NBRLIST) :: nbrlists
-        TYPE(NBRLIST) :: nbrl
-        INTEGER :: IBLK
+        TYPE(MESHTYPE), POINTER :: m
+        INTEGER :: IBLK, I, J
+        ! Areas used in counter-clockwise trapezoidal integration to get
+        ! x and y first-derivatives for center of each cell (Green's thm)
+        REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
 
         DO IBLK = 1, NBLK
-            NB => blocks(IBLK)%NB
+            m => blocks(IBLK)%mesh
 
-            ! NORTH
-            ! If block north face is internal, add it to appropriate linked list
-            ! for north internal faces.
-            IF (NB%N > 0) THEN
+            DO J = 0, JMAXBLK
+                DO I = 0, IMAXBLK
+                    ! CALC CELL VOLUME
+                        ! cross product of cell diagonals p, q
+                        ! where p has x,y components px, py and q likewise.
+                        ! Thus, p cross q = px*qy - qx*py
+                        ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
+                        ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
+                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
+                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
+                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
+                             * ( m%y(I+1,J+1) - m%y(I,  J) )
+                END DO
+            END DO
 
-                IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
-                    ! Allocate linked list if it hasnt been accessed yet
-                    ALLOCATE(nbrlists%N)
-                    ! Pointer linked list that will help iterate through the
-                    ! primary list in this loop
-                    nbrl%N => nbrlists%N
-                ELSE
-                    ! linked list already allocated (started).  Allocate next
-                    ! link as assign current block to it
-                    ALLOCATE(nbrl%N%next)
-                    nbrl%N => nbrl%N%next
-                END IF
+            ! CALC CELL AREAS (FLUXES) IN J-DIRECTION
+            DO J = 0, JMAXBLK+1
+                DO I = 0, IMAXBLK
+                    m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
+                    m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
+                END DO
+            END DO
+            ! CALC CELL AREAS (FLUXES) IN I-DIRECTION
+            DO J = 0, JMAXBLK
+                DO I = 0, IMAXBLK+1
+                    ! CALC CELL AREAS (FLUXES)
+                    m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
+                    m%Ayi(I,J) = m%y(I,J+1) - m%y(I,J)
+                END DO
+            END DO
 
-                ! associate this linked list entry with the current block
-                nbrl%N%ID = IBLK
-                ! break link to pre-existing pointer target.  We will
-                ! allocated this target later as the next item in the linked list
-                NULLIFY(nbrl%N%next)
-            END IF
+            ! Actual finite-volume scheme equation parameters
+            DO J = 1-1, JMAXBLK-1+1
+                DO I = 1-1, IMAXBLK-1+1
 
-            ! SOUTH
-            IF (NB%S > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%S) ) THEN
-                    ALLOCATE(nbrlists%S)
-                    nbrl%S => nbrlists%S
-                ELSE
-                    ALLOCATE(nbrl%S%next)
-                    nbrl%S => nbrl%S%next
-                END IF
-                nbrl%S%ID = IBLK
-                NULLIFY(nbrl%S%next)
-            END IF
+                    Axi_half = ( m%Axi(I+1,J) + m%Axi(I,J) ) * 0.25D0
+                    Axj_half = ( m%Axj(I,J+1) + m%Axj(I,J) ) * 0.25D0
+                    Ayi_half = ( m%Ayi(I+1,J) + m%Ayi(I,J) ) * 0.25D0
+                    Ayj_half = ( m%Ayj(I,J+1) + m%Ayj(I,J) ) * 0.25D0
 
-            ! EAST
-            IF (NB%E > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%E) ) THEN
-                    ALLOCATE(nbrlists%E)
-                    nbrl%E => nbrlists%E
-                ELSE
-                    ALLOCATE(nbrl%E%next)
-                    nbrl%E => nbrl%E%next
-                END IF
-                nbrl%E%ID = IBLK
-                NULLIFY(nbrl%E%next)
-            END IF
-
-            ! WEST
-            IF (NB%W > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%W) ) THEN
-                    ALLOCATE(nbrlists%W)
-                    nbrl%W => nbrlists%W
-                ELSE
-                    ALLOCATE(nbrl%W%next)
-                    nbrl%W => nbrl%W%next
-                END IF
-                nbrl%W%ID = IBLK
-                NULLIFY(nbrl%W%next)
-            END IF
-
-            ! NORTH EAST
-            IF (NB%NE > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%NE) ) THEN
-                    ALLOCATE(nbrlists%NE)
-                    nbrl%NE => nbrlists%NE
-                ELSE
-                    ALLOCATE(nbrl%NE%next)
-                    nbrl%NE => nbrl%NE%next
-                END IF
-                nbrl%NE%ID = IBLK
-                NULLIFY(nbrl%NE%next)
-            END IF
-
-            ! SOUTH EAST
-            IF (NB%SE > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%SE) ) THEN
-                    ALLOCATE(nbrlists%SE)
-                    nbrl%SE => nbrlists%SE
-                ELSE
-                    ALLOCATE(nbrl%SE%next)
-                    nbrl%SE => nbrl%SE%next
-                END IF
-                nbrl%SE%ID = IBLK
-                NULLIFY(nbrl%SE%next)
-            END IF
-
-            ! SOUTH WEST
-            IF (NB%SW > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%SW) ) THEN
-                    ALLOCATE(nbrlists%SW)
-                    nbrl%SW => nbrlists%SW
-                ELSE
-                    ALLOCATE(nbrl%SW%next)
-                    nbrl%SW => nbrl%SW%next
-                END IF
-                nbrl%SW%ID = IBLK
-                NULLIFY(nbrl%SW%next)
-            END IF
-
-            ! NORTH WEST
-            IF (NB%NW > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%NW) ) THEN
-                    ALLOCATE(nbrlists%NW)
-                    nbrl%NW => nbrlists%NW
-                ELSE
-                    ALLOCATE(nbrl%NW%next)
-                    nbrl%NW => nbrl%NW%next
-                END IF
-                nbrl%NW%ID = IBLK
-                NULLIFY(nbrl%NW%next)
-            END IF
+                    ! (NN = 'negative-negative', PN = 'positive-negative',
+                        ! see how fluxes are summed)
+                    m%xNN(I, J) = ( -Axi_half - Axj_half )
+                    m%xPN(I, J) = (  Axi_half - Axj_half )
+                    m%xPP(I, J) = (  Axi_half + Axj_half )
+                    m%xNP(I, J) = ( -Axi_half + Axj_half )
+                    m%yPP(I, J) = (  Ayi_half + Ayj_half )
+                    m%yNP(I, J) = ( -Ayi_half + Ayj_half )
+                    m%yNN(I, J) = ( -Ayi_half - Ayj_half )
+                    m%yPN(I, J) = (  Ayi_half - Ayj_half )
+                END DO
+            END DO
         END DO
-    END SUBROUTINE init_linklists
+    END SUBROUTINE calc_cell_params
+
+    SUBROUTINE calc_constants(blocks)
+        ! Calculate constants for a given iteration loop.  This way,
+        ! they don't need to be calculated within the loop at each iteration
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(MESHTYPE), POINTER :: m
+        INTEGER :: IBLK, I, J
+        DO IBLK = 1, NBLK
+            m => blocks(IBLK)%mesh
+            DO J = 2-2, JMAXBLK - 1+2
+                DO I = 2-2, IMAXBLK - 1+2
+                    ! CALC TIMESTEP FROM CFL
+                    m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
+                                    / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
+                                        + (m%yp(I,J+1) - m%yp(I,J))**2 )
+                    ! CALC SECONDARY VOLUMES
+                    ! (for rectangular mesh, just average volumes of the 4 cells
+                    !  surrounding the point)
+                    m%V2nd(I,J) = ( m%V(I,J) &
+                                        + m%V(I-1,J) + m%V(I,J-1) &
+                                        + m%V(I-1,J-1) ) * 0.25D0
+                    ! CALC CONSTANT TERM
+                    ! (this term remains constant in the equation regardless of
+                    !  iteration number, so only calculate once here,
+                    !  instead of in loop)
+                    m%term(I,J) = m%dt(I,J) * alpha / m%V2nd(I,J)
+                END DO
+            END DO
+        END DO
+    END SUBROUTINE calc_constants
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    SUBROUTINE calc_temp(b)
+        ! Calculate first and second derivatives for finite-volume scheme
+        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(MESHTYPE), POINTER :: m
+        ! First partial derivatives of temperature in x and y directions
+        REAL(KIND=8) :: dTdx, dTdy
+        INTEGER :: IBLK, I, J
+
+        DO IBLK = 1, NBLK
+            m => b(IBLK)%mesh
+
+            ! RESET SUMMATION
+            m%Ttmp = 0.D0
+
+            ! PREVIOUSLY SET ITERATION LIMITS TO UTILIZE GHOST NODES ONLY
+                !ON INTERIOR FACES
+            DO J = b(IBLK)%JMINLOC, b(IBLK)%JMAXLOC
+                DO I = b(IBLK)%IMINLOC, b(IBLK)%IMAXLOC
+                    ! CALC FIRST DERIVATIVES
+                    dTdx = + 0.5d0 &
+                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Ayi(I+1,J) &
+                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Ayi(I,  J) &
+                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Ayj(I,J+1) &
+                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Ayj(I,  J) &
+                                    ) / m%V(I,J)
+                    dTdy = - 0.5d0 &
+                                * (( m%T(I+1,J) + m%T(I+1,J+1) ) * m%Axi(I+1,J) &
+                                -  ( m%T(I,  J) + m%T(I,  J+1) ) * m%Axi(I,  J) &
+                                -  ( m%T(I,J+1) + m%T(I+1,J+1) ) * m%Axj(I,J+1) &
+                                +  ( m%T(I,  J) + m%T(I+1,  J) ) * m%Axj(I,  J) &
+                                    ) / m%V(I,J)
+
+                    ! Alternate distributive scheme second-derivative operator.
+                    m%Ttmp(I+1,  J) = m%Ttmp(I+1,  J) + m%term(I+1,  J) * ( m%yNN(I,J) * dTdx + m%xPP(I,J) * dTdy )
+                    m%Ttmp(I,    J) = m%Ttmp(I,    J) + m%term(I,    J) * ( m%yPN(I,J) * dTdx + m%xNP(I,J) * dTdy )
+                    m%Ttmp(I,  J+1) = m%Ttmp(I,  J+1) + m%term(I,  J+1) * ( m%yPP(I,J) * dTdx + m%xNN(I,J) * dTdy )
+                    m%Ttmp(I+1,J+1) = m%Ttmp(I+1,J+1) + m%term(I+1,J+1) * ( m%yNP(I,J) * dTdx + m%xPN(I,J) * dTdy )
+                END DO
+            END DO
+            ! SAVE NEW TEMPERATURE DISTRIBUTION
+                ! (preserve Ttmp for residual calculation in solver loop)
+
+            ! Previously set bounds, add one to lower limit so as not to
+            ! update BC. (dont need to for upper limit because explicit scheme)
+            DO J = b(IBLK)%JMINLOC + 1, b(IBLK)%JMAXLOC
+                DO I = b(IBLK)%IMINLOC + 1, b(IBLK)%IMAXLOC
+                    m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)
+                END DO
+            END DO
+        END DO
+    END SUBROUTINE calc_temp
 
 END MODULE BLOCKMOD
 

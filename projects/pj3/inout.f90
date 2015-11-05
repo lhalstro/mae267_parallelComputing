@@ -108,36 +108,4 @@ MODULE IO
         CLOSE(tempUnit)
     END SUBROUTINE plot3D
 
-    SUBROUTINE write_blocks(b)
-        ! WRITE BLOCK CONNECTIVITY FILE
-
-        ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
-        INTEGER :: I, BLKFILE = 99
-
-        11 format(3I5)
-        22 format(33I5)
-
-        OPEN (UNIT = BLKFILE , FILE = casedir // "blockconfig.dat", form='formatted')
-        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
-        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
-        DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
-            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
-            ! NORTH EAST SOUTH WEST
-            WRITE(BLKFILE, 22) b(I)%ID, &
-                b(I)%IMIN, b(I)%JMIN, &
-                b(I)%NB%N, &
-                b(I)%NB%NE, &
-                b(I)%NB%E, &
-                b(I)%NB%SE, &
-                b(I)%NB%S, &
-                b(I)%NB%SW, &
-                b(I)%NB%W, &
-                b(I)%NB%NW, &
-                b(I)%ORIENT
-        END DO
-        CLOSE(BLKFILE)
-    END SUBROUTINE write_blocks
-
 END MODULE IO
