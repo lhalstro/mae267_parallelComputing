@@ -148,7 +148,7 @@ MODULE BLOCKMOD
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
         INTEGER :: IMIN, IMAX, JMIN, JMAX
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
-        INTEGER :: IMINLOC, JMINLOC
+        INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
@@ -165,7 +165,7 @@ MODULE BLOCKMOD
     ! Collection of linked lists for faces and corners
 
     TYPE NBRLIST
-        TYPE(LNKLIST) :: N, E, S, W, NE, SE, SW, NW
+        TYPE(LNKLIST), POINTER :: N, E, S, W, NE, SE, SW, NW
     END TYPE NBRLIST
 
 CONTAINS
@@ -410,7 +410,7 @@ CONTAINS
         INTEGER :: IBLK, I, J
 
         DO IBLK = 1, NBLK
-            NB => blocks(IBLK)%NB
+            NB => b(IBLK)%NB
 
             ! Set iteration bounds of each block to preserve BCs
                 ! south and west boundaries:
@@ -456,6 +456,7 @@ CONTAINS
                 b%IMINLOC = 1
             END IF
         END DO
+    END SUBROUTINE calc_block_params
 
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes. ! Call after reading mesh data
