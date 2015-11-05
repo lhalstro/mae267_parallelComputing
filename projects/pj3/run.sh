@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH -J PJ1MAE267
+#SBATCH -J PJ3MAE267
 #SBATCH -o slurm-%J.out
 #SBATCH -e slurm-%J.err
 NPROCS=1
@@ -13,5 +13,5 @@ echo $START
 echo $START >> "a.out"
 
 # '&' will run process in background until it is complete
-#./main >> "a.out"
-./main
+./main >> "a.out"
+#./main
