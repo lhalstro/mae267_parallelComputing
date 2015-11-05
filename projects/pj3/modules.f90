@@ -455,14 +455,6 @@ CONTAINS
                 ! At North Boundary
                 b%IMINLOC = 1
             END IF
-
-
-            DO J = 0, JMAXBLK+1-1
-                DO I = 0, IMAXBLK+1-1
-
-                END DO
-            END DO
-
         END DO
 
     SUBROUTINE calc_cell_params(blocks)
@@ -479,8 +471,8 @@ CONTAINS
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
 
-            DO J = 0, JMAXBLK+1-1
-                DO I = 0, IMAXBLK+1-1
+            DO J = 0, JMAXBLK
+                DO I = 0, IMAXBLK
                     ! CALC CELL VOLUME
                         ! cross product of cell diagonals p, q
                         ! where p has x,y components px, py and q likewise.
@@ -496,13 +488,13 @@ CONTAINS
 
             ! CALC CELL AREAS (FLUXES) IN J-DIRECTION
             DO J = 0, JMAXBLK+1
-                DO I = 0, IMAXBLK+1-1
+                DO I = 0, IMAXBLK
                     m%Axj(I,J) = m%x(I+1,J) - m%x(I,J)
                     m%Ayj(I,J) = m%y(I+1,J) - m%y(I,J)
                 END DO
             END DO
             ! CALC CELL AREAS (FLUXES) IN I-DIRECTION
-            DO J = 0, JMAXBLK-1+1
+            DO J = 0, JMAXBLK
                 DO I = 0, IMAXBLK+1
                     ! CALC CELL AREAS (FLUXES)
                     m%Axi(I,J) = m%x(I,J+1) - m%x(I,J)
@@ -511,8 +503,8 @@ CONTAINS
             END DO
 
             ! Actual finite-volume scheme equation parameters
-            DO J = 1, JMAXBLK-1
-                DO I = 1, IMAXBLK-1
+            DO J = 1-1, JMAXBLK-1+1
+                DO I = 1-1, IMAXBLK-1+1
 
                     Axi_half = ( m%Axi(I+1,J) + m%Axi(I,J) ) * 0.25D0
                     Axj_half = ( m%Axj(I,J+1) + m%Axj(I,J) ) * 0.25D0
@@ -542,8 +534,8 @@ CONTAINS
         INTEGER :: IBLK, I, J
         DO IBLK = 1, NBLK
             m => blocks(IBLK)%mesh
-            DO J = 2-1, JMAXBLK - 1+1
-                DO I = 2-1, IMAXBLK - 1+1
+            DO J = 2-2, JMAXBLK - 1+2
+                DO I = 2-2, IMAXBLK - 1+2
                     ! CALC TIMESTEP FROM CFL
                     m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
                                     / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
