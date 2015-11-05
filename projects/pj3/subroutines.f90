@@ -32,6 +32,8 @@ CONTAINS
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         CALL init_temp(blocks)
+        ! WRITE GRID AND INITIAL TEMPERATURE TO PLOT3D RESTART FILES
+        CALL plot3D(blocks)
 
     END SUBROUTINE init_gridsystem
 
@@ -42,10 +44,11 @@ CONTAINS
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists
 
-        ! READ GRID
+        ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
+        CALL read_blocks(blocks)
 
-
-        ! READ INITIAL TEMPERATURE
+        ! READ GRID AND INITIAL TEMPERATURE FROM PLOT3D RESTART FILE
+        CALL readPlot3D(blocks)
 
 
         ! CALC LOCAL BOUNDARIES OF CELLS

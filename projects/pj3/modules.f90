@@ -334,6 +334,41 @@ CONTAINS
         CLOSE(BLKFILE)
     END SUBROUTINE write_blocks
 
+    SUBROUTINE read_blocks(b)
+        ! READ BLOCK CONNECTIVITY FILE
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE) :: b(:)
+        INTEGER :: I, BLKFILE = 99
+        ! READ INFOR FOR BLOCK DIMENSIONS
+        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+
+        11 format(3I5)
+        22 format(33I5)
+
+!         OPEN (UNIT = BLKFILE , FILE = TRIM(casedir) // "blockconfig.dat", form='formatted')
+        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
+        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        READ(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        DO I = 1, NBLK
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+            ! NORTH EAST SOUTH WEST
+            READ(BLKFILE, 22) b(I)%ID, &
+                b(I)%IMIN, b(I)%JMIN, &
+                b(I)%NB%N, &
+                b(I)%NB%NE, &
+                b(I)%NB%E, &
+                b(I)%NB%SE, &
+                b(I)%NB%S, &
+                b(I)%NB%SW, &
+                b(I)%NB%W, &
+                b(I)%NB%NW, &
+                b(I)%ORIENT
+        END DO
+        CLOSE(BLKFILE)
+    END SUBROUTINE read_blocks
+
     SUBROUTINE init_mesh(b)
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: b(:)

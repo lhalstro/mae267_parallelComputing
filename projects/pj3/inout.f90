@@ -123,6 +123,61 @@ MODULE IO
         CLOSE(tempUnit)
     END SUBROUTINE plot3D
 
+    SUBROUTINE readPlot3D(blocks)
+        IMPLICIT NONE
+
+        TYPE(BLKTYPE) :: blocks(:)
+        INTEGER :: IBLK, I, J
+        ! READ INFO FOR BLOCK DIMENSIONS
+        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+
+        ! FORMAT STATEMENTS
+            ! I --> Integer, number following is number of sig figs
+            ! E --> scientific notation,
+                        ! before decimal is sig figs of exponent?
+                        ! after decimal is sig figs of value
+            ! number before letter is how many entries on single line
+                ! before newline (number of columns)
+        10     FORMAT(I10)
+        20     FORMAT(10I10)
+        30     FORMAT(10E20.8)
+
+        !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! OPEN FILES
+!         OPEN(UNIT=gridUnit,FILE= TRIM(casedir) // 'grid_form.xyz',FORM='formatted')
+!         OPEN(UNIT=tempUnit,FILE= TRIM(casedir) // 'T_form.dat',FORM='formatted')
+        OPEN(UNIT=gridUnit,FILE= 'grid_form.xyz',FORM='formatted')
+        OPEN(UNIT=tempUnit,FILE= 'T_form.dat',FORM='formatted')
+
+        ! READ GRID FILE
+        READ(gridUnit, 10) NBLKREAD
+        READ(gridUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
+!         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
+        DO IBLK = 1, NBLKREAD
+            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                                ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+        END DO
+
+
+        ! READ TEMPERATURE FILE
+            ! When read in paraview, 'density' will be equivalent to temperature
+        READ(tempUnit, 10) NBLKREAD
+        READ(tempUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
+        DO IBLK = 1, NBLKREAD
+
+            READ(tempUnit, 30) tRef,dum,dum,dum
+            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+        END DO
+
+        ! CLOSE FILES
+        CLOSE(gridUnit)
+        CLOSE(tempUnit)
+    END SUBROUTINE readPlot3D
+
     SUBROUTINE write_res(res_hist)
         TYPE(RESLIST), POINTER :: res_hist
         ! pointer to iterate linked list
