@@ -515,11 +515,11 @@ CONTAINS
                 b%IMINUPD = 2
             END IF
         END DO
-        DO IBLK = 1, NBLK
-            WRITE(*,*) 'BLOCK', IBLK
-            WRITE(*,*) 'ILOC:', blocks(IBLK)%IMINLOC, '-->', blocks(IBLK)%IMAXLOC
-            WRITE(*,*) 'JLOC:', blocks(IBLK)%JMINLOC, '-->', blocks(IBLK)%JMAXLOC
-        END DO
+!         DO IBLK = 1, NBLK
+!             WRITE(*,*) 'BLOCK', IBLK
+!             WRITE(*,*) 'ILOC:', blocks(IBLK)%IMINLOC, '-->', blocks(IBLK)%IMAXLOC
+!             WRITE(*,*) 'JLOC:', blocks(IBLK)%JMINLOC, '-->', blocks(IBLK)%JMAXLOC
+!         END DO
     END SUBROUTINE set_block_bounds
 
     SUBROUTINE init_ghosts(b)
@@ -1163,8 +1163,6 @@ CONTAINS
 
             ! Previously set bounds, add one to lower limit so as not to
             ! update BC. (dont need to for upper limit because explicit scheme)
-            write(*,*) 'block ', IBLK
-            write(*,*) 'ij update start', b(IBLK)%IMINLOC + 1, b(IBLK)%JMINLOC + 1
             DO J = b(IBLK)%JMINLOC + 1, b(IBLK)%JMAXLOC
                 DO I = b(IBLK)%IMINLOC + 1, b(IBLK)%IMAXLOC
                     m%T(I,J) = m%T(I,J) + m%Ttmp(I,J)

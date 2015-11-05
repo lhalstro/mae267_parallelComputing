@@ -31,7 +31,7 @@ PROGRAM heatTrans
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000 * 0 + 1, iter = 1, IBLK
+    INTEGER :: max_iter = 1000000, iter = 1, IBLK
 
     INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
