@@ -7,10 +7,23 @@
 ! Subroutines utilizing linked lists are here so that linked lists do not need
 ! to be function inputs.
 ! Utilizes modules from 'modules.f90'
+
 ! CONTENTS:
-! init --> Initialize the solution with dirichlet B.C.s
-! solve --> Solve heat conduction equation with finite volume scheme
-! output --> Save solution parameters to file
+    ! init_gridsystem
+        ! Initialize the solution with dirichlet B.C.s.  Save to restart files.
+
+    ! init_solution
+        ! Read initial conditions from restart files.  Then calculate parameters
+        ! used in solution
+
+    ! solve
+        ! Solve heat conduction equation with finite volume scheme
+        ! (within iteration loop)
+
+    ! output
+        ! Save solution performance parameters to file
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE subroutines
     USE CONSTANTS
@@ -22,6 +35,7 @@ MODULE subroutines
 CONTAINS
     SUBROUTINE init_gridsystem(blocks)
         ! Initialize the solution with dirichlet B.C.s.  Save to restart files.
+
         TYPE(BLKTYPE)  :: blocks(:)
 
         ! INITIALIZE BLOCKS
@@ -40,6 +54,7 @@ CONTAINS
     SUBROUTINE init_solution(blocks, nbrlists)
         ! Read initial conditions from restart files.  Then calculate parameters
         ! used in solution
+
         TYPE(BLKTYPE)  :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists
@@ -77,6 +92,8 @@ CONTAINS
 
     SUBROUTINE solve(blocks, nbrlists, iter, res_hist)
         ! Solve heat conduction equation with finite volume scheme
+        ! (within iteration loop)
+
         TYPE(BLKTYPE) :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists
@@ -153,7 +170,8 @@ CONTAINS
     END SUBROUTINE solve
 
     SUBROUTINE output(blocks, iter)
-        ! Save solution parameters to file
+        ! Save solution performance parameters to file
+
         TYPE(BLKTYPE), TARGET :: blocks(:)
         REAL(KIND=8), POINTER :: tmpT(:,:), tempTemperature(:,:)
         REAL(KIND=8) :: resloc, resmax
