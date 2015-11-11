@@ -5,10 +5,13 @@
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
-! To compile: mpif90 -o main -O3 modules.f90 plot3D_module.f90 subroutines.f90 main.f90
-    ! makes executable file 'main'
-    ! 'rm *.mod' afterward to clean up unneeded compiled files
-! To run: ./main or ./run.sh or sbatch run.sh on hpc1
+! To compile:
+    ! mpif90 -o main -O3 modules.f90 inout.f90 subroutines.f90 main.f90
+        ! makes executable file 'main'
+        ! 'rm *.mod' afterward to clean up unneeded compiled files
+! To run on hpc1 nodes: sbatch run.sh
+! To run on hpc1 front end: ./main or ./run.sh
+
 
 
 PROGRAM heatTrans
