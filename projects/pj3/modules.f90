@@ -7,13 +7,69 @@
 ! Initialize and store constants used in all subroutines.
 
 ! CONTENTS:
-! CONSTANTS --> Initializes constants for simulation.  Sets grid size.
-! CLOCK --> Calculates clock wall-time of a process.
-! MAKEGRID --> Initialize grid with correct number of points and rotation,
-!                 set boundary conditions, etc.
-! CELLS -->  Initialize finite volume cells and do associated calculations
-! TEMPERATURE --> Calculate and store new temperature distribution
-!                     for given iteration
+
+! CONSTANTS --> Module that reads, initializes, and stores constants.
+    ! Math and material contants, solver parameters, block sizing
+    ! CONTAINS:
+
+    ! read_input:
+        ! Reads grid/block size and other simulation parameters from
+        ! "config.in" file.  Avoids recompiling for simple input changes
+
+! BLOCKMOD --> Module that contains data types and functions pertaining to
+    ! block mesh generation and solution.  Derived data types include;
+    ! MESHTYPE containing node information like temperature, and area,
+    ! NBRTYPE containing information about cell neighbors
+    ! LNKLIST linked list for storing similar neighbor information
+    ! CONTAINS:
+
+        ! init_blocks
+        ! Assign individual block global indicies, neighbor, BCs, and
+        ! orientation information
+
+        ! write_blocks
+        ! Write block connectivity file with neighbor and BC info
+
+        ! read_blocks
+        ! Read block connectivity file
+
+        ! init_mesh
+        ! Create xprime/yprime non-uniform grid, then rotate by angle 'rot'.
+        ! Allocate arrays for node parameters (i.e. temperature, cell area, etc)
+
+        ! init_temp
+        ! Initialize temperature across mesh with dirichlet BCs
+        ! or constant temperature BCs for DEBUG=1
+
+        ! set_block_bounds
+        ! Calculate iteration bounds for each block to avoid overwriting BCs.
+        ! Call after reading in mesh data from restart file
+
+        ! init_linklists
+        ! Calculate iteration bounds for each block to avoid overwriting BCs.
+        ! Call after reading in mesh data from restart file
+
+        ! update_ghosts
+        ! Update ghost nodes of each block based on neightbor linked lists.
+        ! Ghost nodes contain solution from respective block face/corner
+        ! neighbor for use in current block solution.
+
+        ! update_ghosts_debug
+        ! Update ghost nodes of each block using logical statements.
+        ! used to debug linked lists
+
+        ! calc_cell_params
+        ! calculate areas for secondary fluxes and constant terms in heat
+        ! treansfer eqn. Call after reading mesh data from restart file
+
+        ! calc_constants
+        ! Calculate terms that are constant regardless of iteration
+        !(time step, secondary volumes, constant term.)  This way,
+        ! they don't need to be calculated within the loop at each iteration
+
+        ! calc_temp
+        ! Calculate temperature at all points in mesh, excluding BC cells.
+        ! Calculate first and second derivatives for finite-volume scheme
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!! CONSTANTS MODULE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -58,6 +114,9 @@ MODULE CONSTANTS
 CONTAINS
 
     SUBROUTINE read_input()
+        ! Reads grid/block size and other simulation parameters from
+        ! "config.in" file.  Avoids recompiling for simple input changes
+
         INTEGER :: I
         CHARACTER(LEN=3) :: strNX
         CHARACTER(LEN=1) :: strN, strM
@@ -204,6 +263,9 @@ CONTAINS
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE init_blocks(b)
+        ! Assign individual block global indicies, neighbor, BCs, and
+        ! orientation information
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: b(:)
         ! Neighbor information pointer
@@ -302,7 +364,7 @@ CONTAINS
     END SUBROUTINE init_blocks
 
     SUBROUTINE write_blocks(b)
-        ! WRITE BLOCK CONNECTIVITY FILE
+        ! Write block connectivity file with neighbor and BC info
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE) :: b(:)
@@ -335,7 +397,7 @@ CONTAINS
     END SUBROUTINE write_blocks
 
     SUBROUTINE read_blocks(b)
-        ! READ BLOCK CONNECTIVITY FILE
+        ! Read block connectivity file
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE) :: b(:)
@@ -370,6 +432,9 @@ CONTAINS
     END SUBROUTINE read_blocks
 
     SUBROUTINE init_mesh(b)
+        ! Create xprime/yprime non-uniform grid, then rotate by angle 'rot'.
+        ! Allocate arrays for node parameters (i.e. temperature, cell area, etc)
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: b(:)
         TYPE(MESHTYPE), POINTER :: m
@@ -421,7 +486,9 @@ CONTAINS
     END SUBROUTINE init_mesh
 
     SUBROUTINE init_temp(blocks)
-        ! Initialize temperature across mesh
+        ! Initialize temperature across mesh with dirichlet BCs
+        ! or constant temperature BCs for DEBUG=1
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET  :: blocks(:)
         TYPE(BLKTYPE), POINTER :: b
@@ -488,28 +555,14 @@ CONTAINS
         END DO
     END SUBROUTINE init_temp
 
-
-
-    ! WRITE GRID HERE!!!!!!!!!!!!!!!!!!!!!!
-
-    ! WRITE TEMPERATURE HERE!!!!!!!!!!!!!!!!!!!!!!
-
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE SOLUTION AFTER RESTART FILE READ IN !!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-    ! READ BLOCKS HERE!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
     SUBROUTINE set_block_bounds(blocks)
-        ! Calculate iteration bounds for each block to avoid updating BCs.
-        ! Populate block ghost nodes from initial temperature distribution
-        ! call after reading in mesh data from restart file
+        ! Calculate iteration bounds for each block to avoid overwriting BCs.
+        ! Call after reading in mesh data from restart file
+
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(BLKTYPE), POINTER :: b
         TYPE(NBRTYPE), POINTER :: NB
@@ -569,7 +622,10 @@ CONTAINS
     END SUBROUTINE set_block_bounds
 
     SUBROUTINE init_linklists(blocks, nbrlists)
-        ! Create linked lists governing block boundary communication
+        ! Create linked lists governing block boundary communication.
+        ! Separate list for each neighbor type so we can avoid logic when
+        ! updating ghost nodes.
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
         ! Neighbor information pointer
@@ -701,7 +757,9 @@ CONTAINS
     END SUBROUTINE init_linklists
 
     SUBROUTINE update_ghosts(b, nbrlists)
-        ! Update ghost nodes of each block based on neightbor linked lists
+        ! Update ghost nodes of each block based on neightbor linked lists.
+        ! Ghost nodes contain solution from respective block face/corner
+        ! neighbor for use in current block solution.
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: b(:)
@@ -947,8 +1005,9 @@ CONTAINS
     END SUBROUTINE update_ghosts_debug
 
     SUBROUTINE calc_cell_params(blocks)
-        ! calculate areas for secondary fluxes. ! Call after reading mesh data
-        ! from restart file
+        ! calculate areas for secondary fluxes and constant terms in heat
+        ! treansfer eqn. Call after reading mesh data from restart file
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(MESHTYPE), POINTER :: m
@@ -1016,8 +1075,10 @@ CONTAINS
     END SUBROUTINE calc_cell_params
 
     SUBROUTINE calc_constants(blocks)
-        ! Calculate constants for a given iteration loop.  This way,
+        ! Calculate terms that are constant regardless of iteration
+        !(time step, secondary volumes, constant term.)  This way,
         ! they don't need to be calculated within the loop at each iteration
+
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(MESHTYPE), POINTER :: m
         INTEGER :: IBLK, I, J
@@ -1049,7 +1110,9 @@ CONTAINS
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE calc_temp(b)
+        ! Calculate temperature at all points in mesh, excluding BC cells.
         ! Calculate first and second derivatives for finite-volume scheme
+
         TYPE(BLKTYPE), TARGET :: b(:)
         TYPE(MESHTYPE), POINTER :: m
         ! First partial derivatives of temperature in x and y directions

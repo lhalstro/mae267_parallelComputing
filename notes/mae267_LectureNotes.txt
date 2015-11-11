@@ -128,3 +128,14 @@ linked list of boundaries --> allows for different boundaries,
             (instead of storing bc with the data for each point)
             so lists of northfaces, south faces, bc faces, etc
 
+11/5
+time each portion of code to see what the slowest parts are
+each compiler has a tuning guide that explains how to make it fast
+how data locality works;
+    the closer data is to eachother, the less you have to go up the memory heirarchy.  Local memory is the fastest.  The further you go away, the higher in cache you need to go which is slower.
+combine loops to make them faster
+    less, longer loops are faster than many, short ones
+
+speed up equations on pg 37, PUT THESE IN REPORT*******
+
+
