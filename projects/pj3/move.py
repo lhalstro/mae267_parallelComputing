@@ -13,7 +13,6 @@ NOTE:  Update the sha-bang (top line) depending on running
 linux (usr/bin/python3) or MacOS (usr/local/bin/python3)
 """
 
-import numpy as np
 import os
 import subprocess
 
