@@ -102,8 +102,8 @@ MODULE CONSTANTS
     INTEGER :: M, N, NBLK, NP
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
-!     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
-    INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4
+        ! If boundary is on a different proc, multiply bnd type by proc boundary
+    INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4, BND=0, PROCBND = 10
     ! Output directory
     CHARACTER(LEN=18) :: casedir
     ! Debug mode = 1
@@ -227,16 +227,6 @@ MODULE BLOCKMOD
         INTEGER :: N, E, S, W, NE, SE, SW, NW
     END TYPE NBRTYPE
 
-    ! DATA TYPE FOR PROCESSOR INFORMATION
-
-    TYPE PROCTYPE
-        ! Information pertaining to each processor: procID, number of blocks
-        ! on proc, weight.
-        INTEGER :: ID, NBLK, W
-        ! Blocks contained on processor
-        TYPE(BLKTYPE) :: blocks(NBLK)
-    END TYPE PROCTYPE
-
     ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
 
     TYPE BLKTYPE
@@ -253,6 +243,16 @@ MODULE BLOCKMOD
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
+
+    ! DATA TYPE FOR PROCESSOR INFORMATION
+
+    TYPE PROCTYPE
+        ! Information pertaining to each processor: procID, number of blocks
+        ! on proc, weight.
+        INTEGER :: ID, NBLK, W
+        ! Blocks contained on processor
+        TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
+    END TYPE PROCTYPE
 
     ! LINKED LIST: RECURSIVE POINTER THAT POINTS THE NEXT ELEMENT IN THE LIST
 
@@ -308,7 +308,7 @@ CONTAINS
         !           |  1  |  2  |  3  |  4  |  5  |
         !        1 -|-----|-----|-----|-----|-----|
         !           |                             |
-        !           1             I  ->         IMAX
+        !           1             I  ->          IMAX
         !                          N=5
         !                       SBND = -3
         !
@@ -412,20 +412,16 @@ CONTAINS
         !                                               |   1        IMAXBLK-1 |
         !                                               0         I ->     IMAXBLK
         !
-        !    Solver  : I = 1 --> IMAXBLK        |   Solver  : I = 0 --> IMAXBLK-1
-        !        to get: dT: 1 --> IMAXBLK+1    |       to get: dT: 0 --> IMAXBLK
-        !    Update T: I = 2 --> IMAXBLK        |   Update T: I = 1 --> IMAXBLK-1
-        !        (avoid updating BC's at I=1)   |       (avoid updating BC's at I=IMAXBLK)
-        !        (IMAXBLK+1 ghost updated later)|       (I=0 ghost updated later)
+        !    Solver  : I = 1 --> IMAXBLK          | Solver  : I = 0 --> IMAXBLK-1
+        !        to get: dT: 1 --> IMAXBLK+1      |     to get: dT: 0 --> IMAXBLK
+        !    Update T: I = 2 --> IMAXBLK          | Update T: I = 1 --> IMAXBLK-1
+        !        (avoid updating BC's at I=1)     |     (avoid updating BC's at I=IMAXBLK)
+        !        (IMAXBLK+1 ghost updated later)  |     (I=0 ghost updated later)
         !
         !  RESULT:  Set local iteration bounds IMINLOC, IMAXLOC, etc according to solver limits
         !           Update temperature starting at IMINLOC+1 to avoid lower BC's
         !               (upper BC's automatically avoided by explicit scheme solving for i+1)
         !
-        !  Where block is block data type, IBLK is index of current block
-        !
-        !  Convert from local to global (where I is local index):
-        !  Iglobal = block(IBLK)%IMIN + (I-1)
         !
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -469,28 +465,28 @@ CONTAINS
                 IF ( b(IBLK)%JMAX == JMAX ) THEN
                     ! NORTH BLOCK FACE AND CORNERS ARE ON MESH NORTH BOUNDARY
                         ! AT ACTUAL CORNERS OF MESH, CORNERS ARE AMBIGUOUS
-                    NB%N  = NBND
-                    NB%NE = NBND
-                    NB%NW = NBND
+                    NB%N  = BND
+                    NB%NE = BND
+                    NB%NW = BND
                 END IF
                 IF ( b(IBLK)%IMAX == IMAX ) THEN
                     ! EAST BLOCK FACE IS ON MESH EAST BOUNDARY
-                    NB%E  = EBND
-                    NB%NE = EBND
-                    NB%SE = EBND
+                    NB%E  = BND
+                    NB%NE = BND
+                    NB%SE = BND
 
                 END IF
                 IF ( b(IBLK)%JMIN == 1 ) THEN
                     ! SOUTH BLOCK FACE IS ON MESH SOUTH BOUNDARY
-                    NB%S  = SBND
-                    NB%SE = SBND
-                    NB%SW = SBND
+                    NB%S  = BND
+                    NB%SE = BND
+                    NB%SW = BND
                 END IF
                 IF ( b(IBLK)%IMIN == 1 ) THEN
                     ! WEST BLOCK FACE IS ON MESH WEST BOUNDARY
-                    NB%W  = WBND
-                    NB%SW = WBND
-                    NB%NW = WBND
+                    NB%W  = BND
+                    NB%SW = BND
+                    NB%NW = BND
                 END IF
 
                 ! BLOCK ORIENTATION
@@ -504,17 +500,27 @@ CONTAINS
     SUBROUTINE write_blocks(b)
         ! Write block connectivity file with neighbor and BC info
 
+        ! FILE FORMAT:
+        ! NBLK IMAXBLK JMAXBLK
+        ! BLKID BLKIMIN BLKJMIN N NE E SE S SW NW
+
+
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE) :: b(:)
         INTEGER :: I, BLKFILE = 99
 
-        11 format(3I5)
-        22 format(33I5)
+        11 FORMAT(3I5)
+        33 FORMAT(A)
+        22 FORMAT(33I5)
+        44 FORMAT(33A5)
 
 !         OPEN (UNIT = BLKFILE , FILE = TRIM(casedir) // "blockconfig.dat", form='formatted')
         OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        WRITE(BLKFILE, 33) 'NBLK' // ' IMAXBLK' // ' JMAXBLK'
         WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        ! HEADER
+        WRITE(BLKFILE, 44) 'ID', 'IMIN', 'JMIN', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'ORI'
         DO I = 1, NBLK
             ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
             ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
@@ -543,13 +549,16 @@ CONTAINS
         ! READ INFOR FOR BLOCK DIMENSIONS
         INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
 
-        11 format(3I5)
-        22 format(33I5)
+        11 FORMAT(3I5)
+        33 FORMAT(A)
+        22 FORMAT(33I5)
+        44 FORMAT(33A5)
 
-!         OPEN (UNIT = BLKFILE , FILE = TRIM(casedir) // "blockconfig.dat", form='formatted')
         OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        READ(BLKFILE,*)
         READ(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        READ(BLKFILE,*)
         DO I = 1, NBLK
             ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
             ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
@@ -645,22 +654,22 @@ CONTAINS
 
                 ! DIRICHLET B.C.
                 ! face on north boundary
-                IF (NB%N == NBND) THEN
+                IF (NB%N == BND) THEN
                     DO I = 1, IMAXBLK
                         m%T(I, JMAXBLK) = 5.D0 * (SIN(PI * m%xp(I, JMAXBLK)) + 1.D0)
                     END DO
                 END IF
-                IF (NB%S == SBND) THEN
+                IF (NB%S == BND) THEN
                     DO I = 1, IMAXBLK
                         m%T(I, 1) = ABS(COS(PI * m%xp(I, 1))) + 1.D0
                     END DO
                 END IF
-                IF (NB%E == EBND) THEN
+                IF (NB%E == BND) THEN
                     DO J = 1, JMAXBLK
                         m%T(IMAXBLK, J) = 3.D0 * m%yp(IMAXBLK, J) + 2.D0
                     END DO
                 END IF
-                IF (NB%W == WBND) THEN
+                IF (NB%W == BND) THEN
                     DO J = 1, JMAXBLK
                         m%T(1, J) = 3.D0 * m%yp(1, J) + 2.D0
                     END DO
@@ -669,22 +678,22 @@ CONTAINS
             ELSE
 
                 ! DEBUG BCS
-                IF (NB%N < 0) THEN
+                IF (NB%N == BND) THEN
                     DO I = 1, IMAXBLK
                         m%T(I, JMAXBLK) = TDEBUG
                     END DO
                 END IF
-                IF (NB%S < 0) THEN
+                IF (NB%S == BND) THEN
                     DO I = 1, IMAXBLK
                         m%T(I, 1) = TDEBUG
                     END DO
                 END IF
-                IF (NB%E < 0) THEN
+                IF (NB%E == BND) THEN
                     DO J = 1, JMAXBLK
                         m%T(IMAXBLK, J) = TDEBUG
                     END DO
                 END IF
-                IF (NB%W < 0) THEN
+                IF (NB%W == BND) THEN
                     DO J = 1, JMAXBLK
                         m%T(1, J) = TDEBUG
                     END DO
