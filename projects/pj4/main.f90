@@ -30,28 +30,53 @@ PROGRAM heatTrans
     TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
     ! LINKED LISTS STORING NEIGHBOR INFO
     TYPE(NBRLIST) :: nbrlists
+    ! PROCESSORS
+    TYPE(PROCTYPE), ALLOCATABLE :: procs(:)
     ! ITERATION PARAMETERS
     ! Residual history linked list
     TYPE(RESLIST), POINTER :: res_hist
     ! Maximum number of iterations
     INTEGER :: iter = 1, IBLK
-
-    INCLUDE "mpif.h"
     REAL(KIND=8) :: start_total, end_total
     REAL(KIND=8) :: start_solve, end_solve
     ! CLOCK TOTAL TIME OF RUN
     start_total = MPI_Wtime()
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!! START MPI !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     ! INITIALIZE MPI
+!     CALL MPI_Init(IERROR)
+!     ! DETERMINE MY PROCESSOR ID
+!     ! ARGUMENTS: COMM, MYID, IERROR
+!     CALL MPI_Comm_rank(MPI_COMM_WORLD, MYID, IERROR)
+!     ! FIND OUT HOW MANY PROCESSORS ARE USED
+!     ! ARGUMENTS: COMM, NPROCS, IERROR
+!     CALL MPI_Comm_size(MPI_COMM_WORLD, NPROCS, IERROR)
+
+    ! SET NPROCS MANUALLY NOW FOR DEBUG
+    NPROCS = 4
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!     ! have the first processor only set up problem
+!     IF(MYID == 0) THEN
 
     ! READ INPUTS FROM FILE
     CALL read_input()
     ALLOCATE( blocks(NBLK) )
+    ALLOCATE( procs(NPROCS) )
     ! INIITIALIZE GRID SYSTEM
     WRITE(*,*) 'Making mesh...'
-    CALL init_gridsystem(blocks)
+    CALL init_gridsystem(blocks, procs)
+
+!         ! CLEAN UP INITIALIZATION
+!         DEALLOCATE(blocks, procs)
+!     END IF
+
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

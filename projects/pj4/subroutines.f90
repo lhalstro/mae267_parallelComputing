@@ -33,13 +33,16 @@ MODULE subroutines
     IMPLICIT NONE
 
 CONTAINS
-    SUBROUTINE init_gridsystem(blocks)
+    SUBROUTINE init_gridsystem(blocks, procs)
         ! Initialize the solution with dirichlet B.C.s.  Save to restart files.
 
         TYPE(BLKTYPE)  :: blocks(:)
+        TYPE(PROCTYPE) :: procs(:)
 
         ! INITIALIZE BLOCKS
         CALL init_blocks(blocks)
+        ! DISTRIBUTE BLOCKS TO PROCESSORS
+        CALL dist_blocks(blocks, procs)
         ! WRITE BLOCK CONNECTIVITY FILE
         CALL write_blocks(blocks)
         ! INITIALIZE MESH
