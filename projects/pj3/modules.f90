@@ -635,17 +635,18 @@ CONTAINS
         TYPE(NBRLIST) :: nbrl
         INTEGER :: IBLK
 
+        ! INITIALIZE LINKED LISTS (HPC1 REQUIRES THIS)
+        NULLIFY(nbrlists%N)
+        NULLIFY(nbrlists%S)
+        NULLIFY(nbrlists%E)
+        NULLIFY(nbrlists%W)
+        NULLIFY(nbrlists%NW)
+        NULLIFY(nbrlists%NE)
+        NULLIFY(nbrlists%SE)
+        NULLIFY(nbrlists%SW)
+
         DO IBLK = 1, NBLK
             NB => blocks(IBLK)%NB
-            ! INITIALIZE LINKED LISTS (HPC1 REQUIRES THIS)
-            NULLIFY(nbrlists%N)
-            NULLIFY(nbrlists%S)
-            NULLIFY(nbrlists%E)
-            NULLIFY(nbrlists%W)
-            NULLIFY(nbrlists%NW)
-            NULLIFY(nbrlists%NE)
-            NULLIFY(nbrlists%SE)
-            NULLIFY(nbrlists%SW)
 
             ! NORTH
             ! If block north face is internal, add it to appropriate linked list
