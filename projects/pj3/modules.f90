@@ -635,21 +635,43 @@ CONTAINS
         TYPE(NBRLIST) :: nbrl
         INTEGER :: IBLK
 
+        write(*,*) "starting linked lists"
+        
+
         DO IBLK = 1, NBLK
             NB => blocks(IBLK)%NB
+
+            write(*,*) "bcs for block:", IBLK
+            NULLIFY(nbrlists%N)
+            NULLIFY(nbrlists%S)
+            NULLIFY(nbrlists%E)
+            NULLIFY(nbrlists%W)
+            NULLIFY(nbrlists%NW)
+            NULLIFY(nbrlists%NE)
+            NULLIFY(nbrlists%SE)
+            NULLIFY(nbrlists%SW)
 
             ! NORTH
             ! If block north face is internal, add it to appropriate linked list
             ! for north internal faces.
             IF (NB%N > 0) THEN
 
+                write(*,*) "north boundary"
+
                 IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
+
+                    write(*,*) "starting north boundary list"
+
+
                     ! Allocate linked list if it hasnt been accessed yet
                     ALLOCATE(nbrlists%N)
                     ! Pointer linked list that will help iterate through the
                     ! primary list in this loop
                     nbrl%N => nbrlists%N
                 ELSE
+
+                    write(*,*) "continuing north boundary list"
+
                     ! linked list already allocated (started).  Allocate next
                     ! link as assign current block to it
                     ALLOCATE(nbrl%N%next)
