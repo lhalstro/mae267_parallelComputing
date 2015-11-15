@@ -148,6 +148,38 @@ y(i,j) &= y_p \cos(rot) + x_p \sin(rot)
 
 \noindent A similar scheme is used to find the first-derivative in the y-direction.
 
+Size of each block (no ghost nodes)
+Total mesh points in I-direction including block overlap points:
+
+\begin{equation}
+\begin{split}
+IMAX_{tot} = IMAX + (N-1)
+\end{split}
+\label{overlappoints}
+\end{equation}
+
+Points in I-direction per block
+
+\begin{equation}
+\begin{split}
+IMAXBLK = \frac{IMAX_{tot}}{N} = \frac{IMAX + (N-1)}{N} = 1 + \frac{IMAX-1}{N}
+\end{split}
+\label{pointsperblock}
+\end{equation}
+
+For points in J-direction, replace I with J and N with M
+
+Global starting index of each block in I-direction:
+
+\begin{equation}
+\begin{split}
+IMIN_{block} = IMIN_{global} + (IMAXBLK-1)(I-1)
+\end{split}
+\label{blockstartingindex}
+\end{equation}
+
+\noindent where I counts blocks in the direction of N and $IMIN_{global}=1$.  The first block in the N-direction has a global starting index of 0, and IMAXBLK must be reduced by one to account for the single-point overlap at block boundaries.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%\vspace{-2em}

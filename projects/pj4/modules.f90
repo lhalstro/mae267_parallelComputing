@@ -98,8 +98,8 @@ MODULE CONSTANTS
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)
     INTEGER :: nx, IMAX, JMAX, IMAXBLK, JMAXBLK
-    ! Dimensions of block layout, Number of Blocks,
-    INTEGER :: M, N, NBLK
+    ! Dimensions of block layout, Number of Blocks, number of processors
+    INTEGER :: M, N, NBLK, NP
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
 !     INTEGER :: NBND = 1, SBND = 2, EBND = 3, WBND = 4
@@ -137,7 +137,10 @@ CONTAINS
         READ(1,*) M
         READ(1,*)
         READ(1,*) N
-        ! DEBUG MODE (10th line)
+        ! READ NUMBER OF PROCESSORS (10th line)
+        READ(1,*)
+        READ(1,*) NP
+        ! DEBUG MODE (12th line)
         READ(1,*)
         READ(1,*) DEBUG
 
@@ -224,6 +227,16 @@ MODULE BLOCKMOD
         INTEGER :: N, E, S, W, NE, SE, SW, NW
     END TYPE NBRTYPE
 
+    ! DATA TYPE FOR PROCESSOR INFORMATION
+
+    TYPE PROCTYPE
+        ! Information pertaining to each processor: procID, number of blocks
+        ! on proc, weight.
+        INTEGER :: ID, NBLK, W
+        ! Blocks contained on processor
+        TYPE(BLKTYPE) :: blocks(NBLK)
+    END TYPE PROCTYPE
+
     ! DERIVED DATA TYPE WITH INFORMATION PERTAINING TO SPECIFIC BLOCK
 
     TYPE BLKTYPE
@@ -275,7 +288,91 @@ CONTAINS
             ! (IBLK COUNTS BLOCK NUMBERS, INBR IS BLOCK NEIGHBOR INDEX)
         INTEGER :: I, J, IBLK, INBR
 
-        ! STEP THROUGH BLOCKS, ASSIGN IDENTIFYING INFO
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !
+        ! BLOCK SUBDOMAIN DIAGRAM WITH BOUNDARY CONDITIONS (FOR MXN = 4X5)
+        !
+        !                     NBND = -1
+        !
+        !     JMAX -|-----|-----|-----|-----|-----|
+        !           |     |     |     |     |     |
+        !           | 16  | 17  | 18  | 19  | 20  |
+        !           |-----|-----|-----|-----|-----|
+        !           |     |     |     |     |     |
+        !     J^    | 11  | 12  | 13  | 14  | 15  |
+        !    M=4    |-----|-----|-----|-----|-----|  EBND = -2
+        !  WBND=-4  |     |     |     |     |     |
+        !           |  6  |  7  |  8  |  9  | 10  |
+        !           |-----|-----|-----|-----|-----|
+        !           |     |     |     |     |     |
+        !           |  1  |  2  |  3  |  4  |  5  |
+        !        1 -|-----|-----|-----|-----|-----|
+        !           |                             |
+        !           1             I  ->         IMAX
+        !                          N=5
+        !                       SBND = -3
+        !
+        !  Where IMAX, N, NBND, etc are all global variable stored in CONSTANTS
+        !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !
+        ! LOCAL/GLOBAL BLOCK INDICIES
+        !
+        !                        GLOBAL
+        !    block(IBLK)%IMIN              block(IBLK)%IMAX
+        !           |                              |
+        !  JMAXBLK -|------------------------------|- block(IBLK)%JMAX
+        !           |                              |
+        !           |                              |
+        !           |                              |
+        !     L     |                              |    G
+        !     O     |                              |    L
+        !     C J^  |      LOCAL BLOCK INDICES     |    O
+        !     A     |                              |    B
+        !     L     |                              |    A
+        !           |                              |    L
+        !           |                              |
+        !           |                              |
+        !        1 -|------------------------------|- block(IBLK)%JMIN
+        !           |                              |
+        !           1              I ->         IMAXBLK
+        !                         LOCAL
+        !
+        !  Where block is block data type, IBLK is index of current block
+        !
+        !  Convert from local to global (where I is local index):
+        !  Iglobal = block(IBLK)%IMIN + (I-1)
+        !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !
+        ! LOCAL BLOCK INDICIES WITH GHOST NODES
+        !
+        ! JMAXBLK+1 |---|------------------------------|---|
+        !           |NWG|       NORTH GHOST NODES      |NEG|
+        !   JMAXBLK |---|------------------------------|---|
+        !           |   |                              |   |
+        !           | W |                              | E |
+        !           | E |                              | A |
+        !           | S |                              | S |
+        !           | T |                              | T |
+        !       J^  |   |      LOCAL BLOCK INDICES     |   |
+        !           | G |                              | G |
+        !           | H |                              | H |
+        !           | O |                              | O |
+        !           | S |                              | S |
+        !           | T |                              | T |
+        !           |   |                              |   |
+        !         1 |---|------------------------------|---|
+        !           |SWG|       SOUTH GHOST NODES      |SEG|
+        !         0 |---|------------------------------|---|
+        !           |   1                          IMAXBLK |
+        !           0                I ->              IMAXBLK+1
+        !
+        !  Where NWG, NEG, etc are corner ghosts
+        !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !
+        ! BLOCK NEIGHBORS
         !
         !               |                |
         !               |     North      |
@@ -292,6 +389,47 @@ CONTAINS
         !               |  (IBLK - N)    |
         !               |                |
         !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !
+        ! LOCAL ITERATION BOUNDS (TO INCLUDE GHOSTS/EXCLUDE BC'S)
+        !  -------------
+        ! | ~ ~ = BC    |
+        ! | . . = Ghost |
+        !  -------------
+        ! JMAXBLK+1 -|---|--------------|---|
+        !            | ~ |. . . . . . . | . |
+        !   JMAXBLK -|---|--------------|---|  JMAXBLK -|---|--------------|---|
+        !            | ~ |              | . |           | ~ |~ ~ ~ ~ ~ ~ ~ | ~ |
+        !            | ~ |              | . | JMAXBLK-1-|---|--------------|---|
+        !       J^   | ~ |   M=1, N=1   | . |           | . |              | ~ |
+        !            | ~ |              | . |           | . |              | ~ |
+        !            | ~ |              | . |      J^   | . |   M=M, N=N   | ~ |
+        !         2 -|---|--------------|---|           | . |              | ~ |
+        !            | ~ |~ ~ ~ ~ ~ ~ ~ | ~ |           | . |              | ~ |
+        !         1 -|---|--------------|---|        1 -|---|--------------|---|
+        !            |   2          IMAXBLK |           | . |. . . . . . . | ~ |
+        !            1         I ->     IMAXBLK+1    0 -|---|--------------|---|
+        !                                               |   1        IMAXBLK-1 |
+        !                                               0         I ->     IMAXBLK
+        !
+        !    Solver  : I = 1 --> IMAXBLK        |   Solver  : I = 0 --> IMAXBLK-1
+        !        to get: dT: 1 --> IMAXBLK+1    |       to get: dT: 0 --> IMAXBLK
+        !    Update T: I = 2 --> IMAXBLK        |   Update T: I = 1 --> IMAXBLK-1
+        !        (avoid updating BC's at I=1)   |       (avoid updating BC's at I=IMAXBLK)
+        !        (IMAXBLK+1 ghost updated later)|       (I=0 ghost updated later)
+        !
+        !  RESULT:  Set local iteration bounds IMINLOC, IMAXLOC, etc according to solver limits
+        !           Update temperature starting at IMINLOC+1 to avoid lower BC's
+        !               (upper BC's automatically avoided by explicit scheme solving for i+1)
+        !
+        !  Where block is block data type, IBLK is index of current block
+        !
+        !  Convert from local to global (where I is local index):
+        !  Iglobal = block(IBLK)%IMIN + (I-1)
+        !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! STEP THROUGH BLOCKS, ASSIGN IDENTIFYING INFO
 
         ! START AT BLOCK 1 (INCREMENT IN LOOP)
         IBLK = 0
