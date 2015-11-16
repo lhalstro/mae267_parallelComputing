@@ -519,17 +519,28 @@ CONTAINS
         ! PROCESSOR DATA TYPE
         TYPE(PROCTYPE), TARGET :: procs(:)
         TYPE(PROCTYPE), POINTER :: pcur
-
-        ! COUNTER VARIABLES
-            ! index of current processor, index of current proc's neighbor proc
-        INTEGER :: IBLK, IPCUR, IPNBR
+        ! COUNTER VARIABLE
+        INTEGER :: IBLK, I
         ! CURRENT BLOCK DIMENSIONS
         INTEGER :: NXLOC, NYLOC
         ! COMPUTATIONAL COST PARAMETERS
         ! (geometric (grid size) and communication weights)
-        INTEGER ::GEOM=0, COMM=0, MAXCOMM, MAXGEOM
-        ! WEIGHTS FOR LOAD BALANCING (geometry, communication, fudge factor)
-        REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0
+        INTEGER :: GEOM=0, COMM=0, MAXCOMM, MAXGEOM
+        ! WEIGHTS FOR LOAD BALANCING
+        ! (geometry, communication, fudge factor, perfect load balance)
+        REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0, PLB=0.D0
+        ! VARIABLES FOR SORTING BLOCKS BY LOAD
+        ! maximum block load
+        REAL(KIND=8) :: MAXSIZE=0.D0
+        ! 'sorted' is list of IDs of blocks in order of size greatest to least
+        ! 'claimed' idicates if a block has already been sorted (0/1 --> unsorted/sorted)
+            ! initial list is all zeros
+        ! 'IMAXSIZE' is index of remaining block with greatest size
+        INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! SET WEIGHTING FACTORS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! SET COMMUNICATION WEIGHT TO BE PROPORTIONAL TO GEOMETRY
         ! Maximum geometry cost is all cells with ghost nodes at all faces
@@ -540,9 +551,6 @@ CONTAINS
         WCOMM = FACTOR * ( DFLOAT(MAXGEOM) / DFLOAT(MAXCOMM) )
         ! COME UP WITH A BETTER WEIGHTING FACTOR IN PROJECT 5 WHEN YOU CAN BENCHMARK TIMES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        !  CALC BLOCK WEIGHTS FOR PROCESSOR LOAD BALANCING
-        ! need local block sizes
-        CALL set_block_bounds(blocks)
         10      FORMAT(10A12)
         WRITE(*,*)
         WRITE(*,*) 'Processor Load Weighting Factors:'
@@ -552,6 +560,13 @@ CONTAINS
         WRITE(*,*)
         WRITE(*,*) 'Block Load Factors:'
         WRITE(*,10) 'BLKID', 'GEOM', 'COMM', 'SIZE'
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!  CALC BLOCK WEIGHTS FOR PROCESSOR LOAD BALANCING !!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! need local block sizes
+        CALL set_block_bounds(blocks)
         DO IBLK = 1, NBLK
             b => blocks(IBLK)
             NB => b%NB
@@ -606,10 +621,48 @@ CONTAINS
             ! CALCULATE TOTAL LOAD OF BLOCK WITH WEIGHTING FACTORS
             b%SIZE = WGEOM * DFLOAT(GEOM) + WCOMM * DFLOAT(COMM)
 
+            ! WRITE BLOCK LOADS
             WRITE(*,*) IBLK, GEOM, COMM, b%SIZE
 
+            ! SUM BLOCK LOADS
+            PLB = PLB + b%SIZE
         END DO
 
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!  CALC OPTIMAL LOAD DISTRIBUTION (PERFECT LOAD BALANCE) !!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! (total load of all blocks divided by number of processors)
+        PLB = PLB / DFLOAT(NPROCS)
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!  SORT BLOCKS BY LOAD IN DECREASING ORDER !!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        DO IBLK = 1, NBLK
+
+            ! Reset current max size
+            MAXSIZE = 0.D0
+
+            ! FIND MAX SIZE OF REMAINING BLOCKS
+            DO I = 1, NBLK
+                b => blocks(I)
+
+                ! (all sorted blocks will be excluded by 'claimed')
+                IF (claimed(I)==0 .AND. b%SIZE>MAXSIZE) THEN
+                    ! CURRENT BLOCK HAS GREATEST LOAD SIZE OF REMAINING BLOCKS
+                    MAXSIZE = b%SIZE
+                    ! INDEX OF MAX REMAINING SIZE BLOCK
+                    IMAXSIZE = I
+                END IF
+            END DO
+            ! MARK LATEST MAX AS SORTED (so it doesn't come up again)
+            claimed(IMAXSIZE) = 1
+            ! ADD INDEX OF LATEST MAX TO SORTED INDEX LIST
+            sorted(IBLK) = IMAXSIZE
+        END DO
+
+        ! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD
 
     END SUBROUTINE dist_blocks
 
