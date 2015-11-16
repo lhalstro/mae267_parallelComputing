@@ -46,7 +46,7 @@ CONTAINS
         ! DETERMIN NEIGHBOR PROCESSOR INFORMATION
         CALL init_neighbor_procs(blocks, procs)
         ! WRITE BLOCK CONNECTIVITY FILE
-        CALL write_blocks(blocks)
+        CALL write_blocks(procs)
         ! INITIALIZE MESH
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.

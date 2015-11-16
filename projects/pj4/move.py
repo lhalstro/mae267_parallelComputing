@@ -15,6 +15,7 @@ linux (usr/bin/python3) or MacOS (usr/local/bin/python3)
 
 import os
 import subprocess
+import glob
 
 def cmd(command):
     """Execute a shell command.
@@ -54,20 +55,27 @@ def GetCaseInfo(configfile='config.in'):
         #READ NUMBER OF BLOCKS IN I-DIRECTION
         if i == 7:
             N = int(line)
-    return nx, M, N
+        #GET NUMBER OF PROCESSORS FROM PROC CONFIG FILES
+        #list of config file names for each proc
+        configs = glob.glob('p*.config')
+        nproc = len(configs)
+    return nx, M, N, nproc, configs
 
 def main():
 
     #GET CASE INFO
-    nx, M, N = GetCaseInfo()
-    #MAKE CASE DIRECTORY
-    outdir = 'Results/{}_{}x{}'.format(nx, N, M)
+    nx, M, N, nproc, configs = GetCaseInfo()
+    #MAKE CASE DIRECTORY (i.e. np4_nx101_n5_m4)
+    outdir = 'Results/np{}_nx{}_n{}_m{}'.format(nproc, nx, N, M)
     MakeOutputDir(outdir)
     #MOVE FILES
     filelist = [
-                    'blockconfig.dat', 'a.out', 'SolnInfo.dat', 'res_hist.dat',
+                    # 'blockconfig.dat',
+                    'a.out', 'SolnInfo.dat', 'res_hist.dat',
                     'grid.xyz', 'grid_form.xyz', 'T.dat', 'T_form.dat'
                ]
+    #add config files to move
+    filelist += configs
     for f in filelist:
         cmd( 'mv {} {}/.'.format(f, outdir) )
 

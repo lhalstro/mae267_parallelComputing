@@ -892,47 +892,66 @@ CONTAINS
 
     END SUBROUTINE init_neighbor_procs
 
-    SUBROUTINE write_blocks(b)
+    SUBROUTINE write_blocks(procs)
         ! Write block connectivity file with neighbor and BC info
+        ! for each processor.
 
         ! FILE FORMAT:
         ! NBLK IMAXBLK JMAXBLK
         ! BLKID BLKIMIN BLKJMIN N NE E SE S SW NW
 
-
+        TYPE(PROCTYPE), TARGET :: procs(:)
+        TYPE(PROCTYPE), POINTER :: p
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
-        INTEGER :: I, BLKFILE = 99
+        TYPE(BLKTYPE), POINTER :: b
+        INTEGER :: IP, IB, BLKFILE = 99
+        CHARACTER(2) :: procname
 
         11 FORMAT(3I5)
         33 FORMAT(A)
         22 FORMAT(33I5)
         44 FORMAT(33A5)
 
-!         OPEN (UNIT = BLKFILE , FILE = TRIM(casedir) // "blockconfig.dat", form='formatted')
-        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
-        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
-        WRITE(BLKFILE, 33) 'NBLK' // ' IMAXBLK' // ' JMAXBLK'
-        WRITE(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
-        ! HEADER
-        WRITE(BLKFILE, 44) 'ID', 'IMIN', 'JMIN', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'ORI'
-        DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
-            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
-            ! NORTH EAST SOUTH WEST
-            WRITE(BLKFILE, 22) b(I)%ID, &
-                b(I)%IMIN, b(I)%JMIN, &
-                b(I)%NB%N, &
-                b(I)%NB%NE, &
-                b(I)%NB%E, &
-                b(I)%NB%SE, &
-                b(I)%NB%S, &
-                b(I)%NB%SW, &
-                b(I)%NB%W, &
-                b(I)%NB%NW, &
-                b(I)%ORIENT
+        ! WRITE CONFIG FILE FOR EACH PROCESSOR
+        DO IP = 1, NPROCS
+            p => procs(IP)
+
+            ! MAKE FILE NAME (i.e. 'p01.config')
+            IF (p%ID<10) THEN
+                ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+                WRITE(procname, '(A,I1)') '0', p%ID
+            ELSE
+                WRITE(procname, '(I2)') p%ID
+            END IF
+
+            OPEN (UNIT = BLKFILE , FILE = TRIM("p" // procname // ".config"), form='formatted')
+
+            ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+            WRITE(BLKFILE, 33) 'NBLK' // ' IMAXBLK' // ' JMAXBLK'
+            WRITE(BLKFILE, 11) p%NBLK, IMAXBLK, JMAXBLK
+
+            ! HEADER
+            WRITE(BLKFILE, 44) 'ID', 'IMIN', 'JMIN', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'ORI'
+            DO IB = 1, p%NBLK
+                b => p%blocks(IB)
+                ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+                ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+                ! NORTH EAST SOUTH WEST
+                WRITE(BLKFILE, 22) b%ID, &
+                                   b%IMIN, &
+                                   b%JMIN, &
+                                   b%NB%N, &
+                                   b%NB%NE, &
+                                   b%NB%E, &
+                                   b%NB%SE, &
+                                   b%NB%S, &
+                                   b%NB%SW, &
+                                   b%NB%W, &
+                                   b%NB%NW, &
+                                   b%ORIENT
+            END DO
+            CLOSE(BLKFILE)
         END DO
-        CLOSE(BLKFILE)
     END SUBROUTINE write_blocks
 
     SUBROUTINE read_blocks(b)
