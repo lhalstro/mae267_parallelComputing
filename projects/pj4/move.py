@@ -71,8 +71,9 @@ def main():
     #MOVE FILES
     filelist = [
                     # 'blockconfig.dat',
-                    'a.out', 'SolnInfo.dat', 'res_hist.dat',
-                    'grid.xyz', 'grid_form.xyz', 'T.dat', 'T_form.dat'
+                    # 'a.out', 'SolnInfo.dat', 'res_hist.dat',
+                    # 'grid.xyz', 'grid_form.xyz', 'T.dat', 'T_form.dat'
+                    '*.out', '*.xyz', '*.dat'
                ]
     #add config files to move
     filelist += configs

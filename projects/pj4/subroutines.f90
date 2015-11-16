@@ -41,18 +41,20 @@ CONTAINS
 
         ! INITIALIZE BLOCKS
         CALL init_blocks(blocks)
-        ! DISTRIBUTE BLOCKS TO PROCESSORS
-        CALL dist_blocks(blocks, procs)
-        ! DETERMIN NEIGHBOR PROCESSOR INFORMATION
-        CALL init_neighbor_procs(blocks, procs)
-        ! WRITE BLOCK CONNECTIVITY FILE
-        CALL write_blocks(procs)
         ! INITIALIZE MESH
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
         CALL init_temp(blocks)
-        ! WRITE GRID AND INITIAL TEMPERATURE TO PLOT3D RESTART FILES
-        CALL plot3D(blocks)
+
+        ! DISTRIBUTE BLOCKS TO PROCESSORS
+        CALL dist_blocks(blocks, procs)
+        ! DETERMIN NEIGHBOR PROCESSOR INFORMATION
+        CALL init_neighbor_procs(blocks, procs)
+
+        ! WRITE BLOCK CONNECTIVITY FILE
+        CALL write_config(procs)
+!         ! WRITE GRID AND INITIAL TEMPERATURE TO PLOT3D RESTART FILES
+!         CALL plot3D(blocks)
 
     END SUBROUTINE init_gridsystem
 
@@ -65,7 +67,7 @@ CONTAINS
         TYPE(NBRLIST) :: nbrlists
 
         ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
-        CALL read_blocks(blocks)
+        CALL read_config(blocks)
 
         ! READ GRID AND INITIAL TEMPERATURE FROM PLOT3D RESTART FILE
         CALL readPlot3D(blocks)
