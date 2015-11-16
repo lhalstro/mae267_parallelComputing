@@ -82,6 +82,11 @@ MODULE CONSTANTS
 
     ! INCLUDE MPI FOR ALL SUBROUTINES THAT USE CONSTANTS
     INCLUDE "mpif.h"
+    ! MPI PROCESSOR ID
+    INTEGER :: MYID
+    ! MPI ERROR STATUS, NUMBER OF MPI PROCESSORS
+    INTEGER :: IERROR, NPROCS, request
+    INTEGER :: STATUS(MPI_STATUS_SIZE)
 
     ! CFL number, for convergence (D0 is double-precision, scientific notation)
     REAL(KIND=8), PARAMETER :: CFL = 0.95D0
@@ -109,9 +114,6 @@ MODULE CONSTANTS
         ! If block face is on North,east,south,west of main grid, identify
         ! If boundary is on a different proc, multiply bnd type by proc boundary
     INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4, BND=0, PROCBND = -1
-    ! MPI VARIABLES
-        ! mpi_nprocs is number of processors provided in mpirun command
-    INTEGER :: NPROCS
     ! Output directory
     CHARACTER(LEN=18) :: casedir
     ! Debug mode = 1

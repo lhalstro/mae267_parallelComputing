@@ -5,12 +5,17 @@
 
 
 ! DESCRIPTION:  Solve heat conduction equation for single block of steel.
-! To compile:
+
+! INPUTS: Set grid size, block decomposition, debug in 'config.in'
+!         Set number of processors in 'run.sh'
+
+! TO COMPILE:
     ! mpif90 -o main -O3 modules.f90 inout.f90 subroutines.f90 main.f90
         ! makes executable file 'main'
         ! 'rm *.mod' afterward to clean up unneeded compiled files
-! To run on hpc1 nodes: sbatch run.sh
-! To run on hpc1 front end: ./main or ./run.sh
+! TO RUN:
+    ! on hpc1 nodes: sbatch run.sh
+    ! on hpc1 front end: ./main or ./run.sh
 
 
 
@@ -42,39 +47,47 @@ PROGRAM heatTrans
     ! CLOCK TOTAL TIME OF RUN
     start_total = MPI_Wtime()
 
+
+    write(*,*) 'starting mpi'
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! START MPI !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     ! INITIALIZE MPI
-!     CALL MPI_Init(IERROR)
-!     ! DETERMINE MY PROCESSOR ID
-!     ! ARGUMENTS: COMM, MYID, IERROR
-!     CALL MPI_Comm_rank(MPI_COMM_WORLD, MYID, IERROR)
-!     ! FIND OUT HOW MANY PROCESSORS ARE USED
-!     ! ARGUMENTS: COMM, NPROCS, IERROR
-!     CALL MPI_Comm_size(MPI_COMM_WORLD, NPROCS, IERROR)
+    ! INITIALIZE MPI
+    CALL MPI_Init(IERROR)
+    ! DETERMINE MY PROCESSOR ID
+    ! ARGUMENTS: COMM, MYID, IERROR
+    CALL MPI_Comm_rank(MPI_COMM_WORLD, MYID, IERROR)
+    ! FIND OUT HOW MANY PROCESSORS ARE USED
+    ! ARGUMENTS: COMM, NPROCS, IERROR
+    CALL MPI_Comm_size(MPI_COMM_WORLD, NPROCS, IERROR)
 
-    ! SET NPROCS MANUALLY NOW FOR DEBUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    NPROCS = 4
+!     ! SET NPROCS MANUALLY NOW FOR DEBUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     NPROCS = 4
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!     ! have the first processor only set up problem
-!     IF(MYID == 0) THEN
+    ! have the first processor only set up problem
+    IF(MYID == 0) THEN
 
-    ! READ INPUTS FROM FILE
-    CALL read_input()
-    ALLOCATE( blocks(NBLK) )
-    ALLOCATE( procs(NPROCS) )
-    ! INIITIALIZE GRID SYSTEM
-    WRITE(*,*) 'Making mesh...'
-    CALL init_gridsystem(blocks, procs)
+        write(*,*) 'initializing'
 
+
+
+        ! READ INPUTS FROM FILE
+        CALL read_input()
+        ALLOCATE( blocks(NBLK) )
+        ALLOCATE( procs(NPROCS) )
+        ! INIITIALIZE GRID SYSTEM
+        WRITE(*,*) 'Making mesh...'
+        CALL init_gridsystem(blocks, procs)
+
+        !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !         ! CLEAN UP INITIALIZATION
 !         DEALLOCATE(blocks, procs)
-!     END IF
+    END IF
 
 
 
@@ -82,27 +95,32 @@ PROGRAM heatTrans
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! INITIALIZE SOLUTION
-    CALL init_solution(blocks, nbrlists)
-    ! SOLVE
-    WRITE(*,*) 'Solving heat conduction...'
-    CALL solve(blocks, nbrlists, iter, res_hist)
+!     ! INITIALIZE SOLUTION
+!     CALL init_solution(blocks, nbrlists)
+!     ! SOLVE
+!     WRITE(*,*) 'Solving heat conduction...'
+!     CALL solve(blocks, nbrlists, iter, res_hist)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     WRITE(*,*) 'Writing results...'
-    ! SAVE SOLUTION AS PLOT3D FILES
-    CALL plot3D(blocks)
+
+    !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!     ! SAVE SOLUTION AS PLOT3D FILES
+!     CALL plot3D(blocks)
     ! CALC TOTAL WALL TIME
     end_total = MPI_Wtime()
     wall_time_total = end_total - start_total
 
-    ! SAVE RESIDUAL HISTORY
-    CALL write_res(res_hist)
-    ! SAVE SOLVER PERFORMANCE PARAMETERS
-    CALL output(blocks, iter)
+    !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!     ! SAVE RESIDUAL HISTORY
+!     CALL write_res(res_hist)
+!     ! SAVE SOLVER PERFORMANCE PARAMETERS
+!     CALL output(blocks, iter)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -131,8 +149,5 @@ PROGRAM heatTrans
 
     WRITE(*,*) 'Done!'
 
-    ! MOVE OUTPUT FILE TO OUTPUT DIRECTORY
-!     CALL EXECUTE_COMMAND_LINE ("mv a.out " // casedir // '.')
-
-
+    CALL MPI_Finalize(ierror)
 END PROGRAM heatTrans
