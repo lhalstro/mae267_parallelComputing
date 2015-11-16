@@ -54,7 +54,7 @@ PROGRAM heatTrans
 !     ! ARGUMENTS: COMM, NPROCS, IERROR
 !     CALL MPI_Comm_size(MPI_COMM_WORLD, NPROCS, IERROR)
 
-    ! SET NPROCS MANUALLY NOW FOR DEBUG
+    ! SET NPROCS MANUALLY NOW FOR DEBUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     NPROCS = 4
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -43,6 +43,8 @@ CONTAINS
         CALL init_blocks(blocks)
         ! DISTRIBUTE BLOCKS TO PROCESSORS
         CALL dist_blocks(blocks, procs)
+        ! DETERMIN NEIGHBOR PROCESSOR INFORMATION
+        CALL init_neighbor_procs(blocks, procs)
         ! WRITE BLOCK CONNECTIVITY FILE
         CALL write_blocks(blocks)
         ! INITIALIZE MESH

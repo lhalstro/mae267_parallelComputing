@@ -377,9 +377,10 @@ MODULE BLOCKMOD
         ! DER. DATA TYPE STORES LOCAL MESH INFO
         TYPE(MESHTYPE) :: mesh
         ! IDENTIFY FACE AND CORNER NEIGHBOR BLOCKS AND PROCESSORS
-        TYPE(NBRTYPE) :: NB, NP
-        ! BLOCK NUMBER
-        INTEGER :: ID
+        ! AND LOCAL PROCESSOR BLOCK INDICIES
+        TYPE(NBRTYPE) :: NB, NP, NBLOC
+        ! BLOCK NUMBER, PROCESSOR NUMBER
+        INTEGER :: ID, procID
         ! GLOBAL INDICIES OF MINIMUM AND MAXIMUM INDICIES OF BLOCK
         INTEGER :: IMIN, IMAX, JMIN, JMAX
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
@@ -512,7 +513,14 @@ CONTAINS
     END SUBROUTINE init_blocks
 
     SUBROUTINE dist_blocks(blocks, procs)
-        ! Distribute blocks to processors
+        ! Distribute blocks to processors.  Calculate processor load of each
+        ! block based on geometry and communication costs and weighting factors
+        ! for each.
+        ! Initialize processor list with proc ID's and allocate proc block lists
+        ! Distribute blocks to processors by sorting blocks in decreasing order
+        ! of load, then distributing sequentially to the processor with the
+        ! least load.
+        ! Calculate load balance of all processors.
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
@@ -714,13 +722,7 @@ CONTAINS
             WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
         END DO
 
-
-
-
-
     END SUBROUTINE dist_blocks
-
-
 
     SUBROUTINE assign_block(b, p)
         ! Assign block to given processor
@@ -741,38 +743,154 @@ CONTAINS
 
     END SUBROUTINE assign_block
 
-
-
-
-    SUBROUTINE init_procs(b, p)
-        ! Initialize processor arrays
+    SUBROUTINE init_neighbor_procs(blocks, procs)
+        ! Initialize neighbor processor information for each block
 
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE), TARGET :: b(:)
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: bcur, bnbr
         ! PROCESSOR DATA TYPE
-        TYPE(PROCTYPE), TARGET :: p(:)
-        TYPE(PROCTYPE), POINTER :: pcur
-
+        TYPE(PROCTYPE), TARGET :: procs(:)
+        TYPE(PROCTYPE), POINTER :: pcur, pnbr
         ! Neighbor information pointer
-        TYPE(NBRTYPE), POINTER :: NB
+        TYPE(NBRTYPE), POINTER :: NBCUR, NBNBR, NPCUR
         ! COUNTER VARIABLES
             ! index of current processor, index of current proc's neighbor proc
-        INTEGER :: IPCUR, IPNBR
+        INTEGER :: IPCUR, IPNBR, IBCUR, IBNBR
 
         ! ASSIGN PROC INFORMATION TO PROC DATA TYPE LIST
         DO IPCUR = 1, NPROCS
-            pcur => p(IPCUR)
+            pcur => procs(IPCUR)
 
-            ! SET EACH PROCESSOR'S ID
-            ! (Processor indexing starts at zero)
-            pcur%ID = IPCUR-1
+            ! ALL BLOCKS ASSIGNED TO CURRENT PROC ARE ON CURRENT PROC
+            pcur%blocks%procID = pcur%ID
+            ! DEFAULT ALL NEIGHBORS TO -1
+                ! (indicates boundary with no neighbor if not reassigned later)
+            DO IBCUR = 1, pcur%NBLK
+                NPCUR => pcur%blocks(IBCUR)%NP
 
-
-
+                NPCUR%N  = -1
+                NPCUR%S  = -1
+                NPCUR%E  = -1
+                NPCUR%W  = -1
+                NPCUR%NE = -1
+                NPCUR%SE = -1
+                NPCUR%SW = -1
+                NPCUR%NW = -1
+            END DO
         END DO
 
+        ! FIND PROC WITH NEIGHBOR FOR EACH BLOCK
+        DO IPCUR = 1, NPROCS
+            pcur => procs(IPCUR)
 
-    END SUBROUTINE init_procs
+            ! FOR EACH PROC, STEP THROUGH EACH CONTAINED BLOCK AND FIND NEIGHBORS
+            DO IBCUR = 1, pcur%NBLK
+                bcur => pcur%blocks(IBCUR)
+
+                ! STEP THROUGH EACH NEIGHBOR PROCESSOR TO FIND NEIGHBOR BLOCK
+                DO IPNBR = 1, NPROCS
+                    pnbr => procs(IPNBR)
+
+                    ! STEP THROUGH BLOCKS ON NEIGHBOR PROCESSORS
+                    DO IBNBR = 1, pnbr%NBLK
+                        bnbr => pnbr%blocks(IBNBR)
+
+                        ! CHECK EACH FACE/CORNER FOR MATCH AND ASSIGN
+                            ! (neighbor procID and local index of
+                            !  neighbor block on neighbor proc)
+
+                        ! NORTH
+                        IF (bcur%NB%N == bnbr%ID) THEN
+                            ! PROCESSOR CONTAINING NEIGHBOR BLOCK
+                            bcur%NP%N = pnbr%ID
+                            ! NEIGHBOR BLOCK LOCAL INDEX ON NEIGHBOR PROCESSOR
+                                !(used to access neighbor on neighbor processor)
+                            bcur%NBLOC%N = IBNBR
+
+                            ! IF NEIGHBOR PROC IS DIFFERENT FROM CURRENT PROC,
+                            ! COMMUNICATION WILL BE REQUIRED
+                            ! (indicate processor boundary by making the block
+                            !  neighbor number negative)
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%N = -bcur%NB%N
+                            END IF
+                        END IF
+                        ! SOUTH
+                        IF (bcur%NB%S == bnbr%ID) THEN
+                            bcur%NP%S = pnbr%ID
+                            bcur%NBLOC%S = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%S = -bcur%NB%S
+                            END IF
+                        END IF
+                        ! EAST
+                        IF (bcur%NB%E == bnbr%ID) THEN
+                            bcur%NP%E = pnbr%ID
+                            bcur%NBLOC%E = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%E = -bcur%NB%E
+                            END IF
+                        END IF
+                        ! WEST
+                        IF (bcur%NB%W == bnbr%ID) THEN
+                            bcur%NP%W = pnbr%ID
+                            bcur%NBLOC%W = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%W = -bcur%NB%W
+                            END IF
+                        END IF
+                        ! NORTH EAST
+                        IF (bcur%NB%NE == bnbr%ID) THEN
+                            bcur%NP%NE = pnbr%ID
+                            bcur%NBLOC%NE = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%NE = -bcur%NB%NE
+                            END IF
+                        END IF
+                        ! SOUTH EAST
+                        IF (bcur%NB%SE == bnbr%ID) THEN
+                            bcur%NP%SE = pnbr%ID
+                            bcur%NBLOC%SE = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%SE = -bcur%NB%SE
+                            END IF
+                        END IF
+                        ! SOUTH WEST
+                        IF (bcur%NB%SW == bnbr%ID) THEN
+                            bcur%NP%SW = pnbr%ID
+                            bcur%NBLOC%SW = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%SW = -bcur%NB%SW
+                            END IF
+                        END IF
+                        ! NORTH WEST
+                        IF (bcur%NB%NW == bnbr%ID) THEN
+                            bcur%NP%NW = pnbr%ID
+                            bcur%NBLOC%NW = IBNBR
+                            IF (pcur%ID /= pnbr%ID) THEN
+                                bcur%NB%NW = -bcur%NB%NW
+                            END IF
+                        END IF
+                    END DO
+                END DO
+            END DO
+        END DO
+
+!         10      FORMAT(10A12)
+!         WRITE(*,*)
+!         WRITE(*,*) 'Check proc neighbors'
+!         WRITE(*,10) 'BLKID', 'NB%N', 'NP%N', 'NBLOC%N'
+!         DO IPCUR = 1, NPROCS
+!             pcur => procs(IPCUR)
+!             WRITE(*,*) 'Proc:', pcur%ID
+!             DO IBCUR = 1, pcur%NBLK
+!                 bcur => pcur%blocks(IBCUR)
+!                 WRITE(*,*) bcur%ID, bcur%NB%N, bcur%NP%N, bcur%NBLOC%N
+!             END DO
+!         END DO
+
+    END SUBROUTINE init_neighbor_procs
 
     SUBROUTINE write_blocks(b)
         ! Write block connectivity file with neighbor and BC info
