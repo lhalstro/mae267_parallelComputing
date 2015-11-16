@@ -394,8 +394,10 @@ MODULE BLOCKMOD
 
     TYPE PROCTYPE
         ! Information pertaining to each processor: procID, number of blocks
-        ! on proc, weight.
-        INTEGER :: ID, NBLK, W
+        ! on proc
+        INTEGER :: ID, NBLK=0
+        ! processor load, load balance
+        REAL(KIND=8) :: load=0.D0, balance=0.D0
         ! Blocks contained on processor
         TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
     END TYPE PROCTYPE
@@ -518,9 +520,9 @@ CONTAINS
         TYPE(NBRTYPE), POINTER :: NB
         ! PROCESSOR DATA TYPE
         TYPE(PROCTYPE), TARGET :: procs(:)
-        TYPE(PROCTYPE), POINTER :: pcur
+        TYPE(PROCTYPE), POINTER :: p
         ! COUNTER VARIABLE
-        INTEGER :: IBLK, I
+        INTEGER :: IBLK, I, IPROC
         ! CURRENT BLOCK DIMENSIONS
         INTEGER :: NXLOC, NYLOC
         ! COMPUTATIONAL COST PARAMETERS
@@ -531,12 +533,12 @@ CONTAINS
         REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0, PLB=0.D0
         ! VARIABLES FOR SORTING BLOCKS BY LOAD
         ! maximum block load
-        REAL(KIND=8) :: MAXSIZE=0.D0
+        REAL(KIND=8) :: MAXSIZE=0.D0, MINLOAD
         ! 'sorted' is list of IDs of blocks in order of size greatest to least
         ! 'claimed' idicates if a block has already been sorted (0/1 --> unsorted/sorted)
             ! initial list is all zeros
         ! 'IMAXSIZE' is index of remaining block with greatest size
-        INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE
+        INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE, IMINLOAD
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! SET WEIGHTING FACTORS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -562,7 +564,7 @@ CONTAINS
         WRITE(*,10) 'BLKID', 'GEOM', 'COMM', 'SIZE'
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !!!  CALC BLOCK WEIGHTS FOR PROCESSOR LOAD BALANCING !!!!!!!!!!!
+        !!! CALC BLOCK WEIGHTS FOR PROCESSOR LOAD BALANCING !!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! need local block sizes
@@ -629,14 +631,14 @@ CONTAINS
         END DO
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !!!  CALC OPTIMAL LOAD DISTRIBUTION (PERFECT LOAD BALANCE) !!!!!
+        !!! CALC OPTIMAL LOAD DISTRIBUTION (PERFECT LOAD BALANCE) !!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! (total load of all blocks divided by number of processors)
         PLB = PLB / DFLOAT(NPROCS)
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !!!  SORT BLOCKS BY LOAD IN DECREASING ORDER !!!!!!!!!!!!!!!!!!!
+        !!! SORT BLOCKS BY LOAD IN DECREASING ORDER !!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         DO IBLK = 1, NBLK
@@ -662,9 +664,85 @@ CONTAINS
             sorted(IBLK) = IMAXSIZE
         END DO
 
-        ! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! INITIALIZE PROCS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        DO IPROC = 1, NPROCS
+            ! SET EACH PROCESSOR'S ID
+            ! (Processor indexing starts at zero)
+            procs(IPROC)%ID = IPROC-1
+            ! ALLOCATE BLOCK LISTS FOR EACH PROC
+            ! (Make them NBLK long even though they will contain less than that
+            ! so we dont have to reallocate)
+            ALLOCATE( procs(IPROC)%blocks(NBLK) )
+        END DO
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! LOOP THROUGH BLOCKS IN DECREASING ORDER OF SIZE
+        DO I = 1, NBLK
+            ! sorted gives the indicies of blocks sorted by size
+            b => blocks( sorted(I) )
+
+            ! Reset minimum load
+            MINLOAD = 1.0E10
+            ! FIND CURRENT PROCESSOR WITH LEAST LOAD
+            DO IPROC = 1, NPROCS
+                p => procs(IPROC)
+
+                IF (p%load<MINLOAD) THEN
+                    MINLOAD = p%load
+                    IMINLOAD = IPROC
+                END IF
+            END DO
+            ! ASSIGN BLOCK TO MIN. LOAD PROC
+            CALL assign_block( b, procs(IMINLOAD) )
+        END DO
+
+        ! CALC LOAD BALANCE
+        20      FORMAT(10A13)
+        WRITE(*,*)
+        WRITE(*,*) 'Processor Load Balancing:'
+        WRITE(*,20) 'ID', 'LOAD BALANCE'
+
+        DO IPROC = 1, NPROCS
+            procs(IPROC)%balance = procs(IPROC)%load / PLB
+
+            WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
+        END DO
+
+
+
+
 
     END SUBROUTINE dist_blocks
+
+
+
+    SUBROUTINE assign_block(b, p)
+        ! Assign block to given processor
+
+        ! Block to assign (not list)
+        TYPE(BLKTYPE), TARGET :: b
+        ! Processor to assign to
+        TYPE(PROCTYPE), TARGET :: p
+
+        ! INCREMENT NUMBER OF BLOCKS ON PROC
+        p%NBLK = p%NBLK + 1
+        ! ADD BLOCK LOAD TO TOTAL PROCESSOR LOAD
+        p%load = p%load + b%SIZE
+        ! ADD BLOCK TO PROC
+        p%blocks(p%NBLK) = b
+        ! ADD BLOCK TO PROC
+        p%blocks(p%NBLK) = b
+
+    END SUBROUTINE assign_block
+
+
+
 
     SUBROUTINE init_procs(b, p)
         ! Initialize processor arrays
