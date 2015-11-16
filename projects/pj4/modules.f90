@@ -384,9 +384,8 @@ MODULE BLOCKMOD
         INTEGER :: IMIN, IMAX, JMIN, JMAX
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
         INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC, IMINUPD, JMINUPD
-        ! BLOCK WEIGHT PARAMETERS FOR PROCESSOR LOAD BALANCING
-        ! (geometric (grid size) and communication weights)
-        INTEGER :: WGEOM, WCOMM
+        ! BLOCK LOAD PARAMETERS FOR PROCESSOR LOAD BALANCING
+        REAL(KIND=8) :: SIZE
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
@@ -526,62 +525,88 @@ CONTAINS
         INTEGER :: IBLK, IPCUR, IPNBR
         ! CURRENT BLOCK DIMENSIONS
         INTEGER :: NXLOC, NYLOC
+        ! COMPUTATIONAL COST PARAMETERS
+        ! (geometric (grid size) and communication weights)
+        INTEGER ::GEOM=0, COMM=0, MAXCOMM, MAXGEOM
+        ! WEIGHTS FOR LOAD BALANCING (geometry, communication, fudge factor)
+        REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0
 
+        ! SET COMMUNICATION WEIGHT TO BE PROPORTIONAL TO GEOMETRY
+        ! Maximum geometry cost is all cells with ghost nodes at all faces
+        MAXGEOM = ( IMAXBLK + 2.D0 ) * ( JMAXBLK + 2.D0 )
+        ! Maximum communication cost is all face boundaries plus four corners
+        MAXCOMM = ( 2.D0 * IMAXBLK ) + ( 2.D0 * JMAXBLK ) + 4.D0
+        ! Put comm cost on same scale as geom
+        WCOMM = FACTOR * ( DFLOAT(MAXGEOM) / DFLOAT(MAXCOMM) )
+        ! COME UP WITH A BETTER WEIGHTING FACTOR IN PROJECT 5 WHEN YOU CAN BENCHMARK TIMES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         !  CALC BLOCK WEIGHTS FOR PROCESSOR LOAD BALANCING
         ! need local block sizes
         CALL set_block_bounds(blocks)
+        10      FORMAT(10A12)
+        WRITE(*,*)
+        WRITE(*,*) 'Processor Load Weighting Factors:'
+        WRITE(*,*) 'WGEOM=', WGEOM, 'WCOMM=', WCOMM
+        WRITE(*,*)
+        WRITE(*,*) 'SIZE = WGEOM*GEOM + WCOMM*COMM'
+        WRITE(*,*)
+        WRITE(*,*) 'Block Load Factors:'
+        WRITE(*,10) 'BLKID', 'GEOM', 'COMM', 'SIZE'
         DO IBLK = 1, NBLK
             b => blocks(IBLK)
             NB => b%NB
+
+            ! RESET COST SUMS
+            GEOM = 0
+            COMM = 0
 
             ! LOCAL BLOCK DIMENSIONS
             NXLOC = b%IMAXLOC - b%IMINLOC
             NYLOC = b%JMAXLOC - b%JMINLOC
 
             ! GEOMETRIC BLOCK WEIGHT ("VOLUME")
-            b%WGEOM = NXLOC * NYLOC
+            GEOM = NXLOC * NYLOC
 
             ! COMMUNICATION BLOCK WEIGHT
-            ! initialize
-            b%WCOMM = 0
             ! NORTH
             IF (NB%N > 0) THEN
                 ! Interior faces have communication cost for populating ghosts
-                b%WCOMM = b%WCOMM + IMAXLOC
+                COMM = COMM + IMAXBLK
             END IF
             ! EAST
             IF (NB%E > 0) THEN
-                b%WCOMM = b%WCOMM + JMAXLOC
+                COMM = COMM + JMAXBLK
             END IF
             ! SOUTH
             IF (NB%S > 0) THEN
-                b%WCOMM = b%WCOMM + IMAXLOC
+                COMM = COMM + IMAXBLK
             END IF
             ! WEST
             IF (NB%W > 0) THEN
-                b%WCOMM = b%WCOMM + JMAXLOC
+                COMM = COMM + JMAXBLK
             END IF
             ! NORTHEAST
             IF (NB%N > 0) THEN
                 ! Interior corners have communication cost for populating ghosts
-                b%WCOMM = b%WCOMM + 1
+                COMM = COMM + 1
             END IF
             ! SOUTHEAST
             IF (NB%E > 0) THEN
-                b%WCOMM = b%WCOMM + 1
+                COMM = COMM + 1
             END IF
             ! SOUTHWEST
             IF (NB%S > 0) THEN
-                b%WCOMM = b%WCOMM + 1
+                COMM = COMM + 1
             END IF
             ! NORTHWEST
             IF (NB%W > 0) THEN
-                b%WCOMM = b%WCOMM + 1
+                COMM = COMM + 1
             END IF
 
+            ! CALCULATE TOTAL LOAD OF BLOCK WITH WEIGHTING FACTORS
+            b%SIZE = WGEOM * DFLOAT(GEOM) + WCOMM * DFLOAT(COMM)
 
-            WRITE(*,*) IBLK, b%WGEOM, b%WCOMM
+            WRITE(*,*) IBLK, GEOM, COMM, b%SIZE
 
         END DO
 
