@@ -257,9 +257,9 @@ GEOM = (IMAXLOC - IMINLOC) \cdot (JMAXLOC - JMINLOC)
 \end{split}
 \label{commcost}
 \end{equation}
-\noindent where Eqn~\ref{comcost} must be evaluated for all faces and corners of a given block and the results must be summed.
+\noindent where Eqn~\ref{commcost} must be evaluated for all faces and corners of a given block and the results must be summed.
 
-Weights of each type of cost are currently set to make the maximum possible geometric cost equal to the maximum possible communication cost, as accomplished by Eqn~\ref{costweight}.
+Weights of each type of cost are currently set to make the maximum possible geometric cost equal to the maximum possible communication cost, as accomplished by Eqn~\ref{blockload}.
 
 \vspace{-1em}
 \begin{equation}
@@ -268,13 +268,24 @@ Weights of each type of cost are currently set to make the maximum possible geom
 &WCOMM = FACTOR \cdot \frac{(IMAXBLK+2)(JMAXBLK+2)}{(2 \cdot IMAXBLK)+(2 \cdot IMAXBLK)+4 } \\
 &SIZE = (WGEOM \cdot GEOM) + (WCOMM \cdot COMM)
 \end{split}
-\label{costweight}
+\label{blockload}
 \end{equation}
 \noindent where $FACTOR$ is a number that can be varied to tune cost weighting, but is currently set to 1.
 
+Once block loads are calculated, they are sorted by size in order of greatest to least.  They are then distributed to the processors in this order, where each block is assigned to the current processor with the least load.  This produces the theoretical load balancing presented in Section~\ref{results}.  Actual load balancing performance will be determined in Project 5 and tuning will be performed to optimized load balancing.
 
-\subsection{Neighbor Indentification} \label{neighborsec}
+\subsection{Ghost Nodes and Neighbor Indentification} \label{neighborsec}
 
+In order for each block to function independently for a given iteration of the solver, it must know information about the nodes immediately outside of its boundaries, or, in other words, the interior nodes of its neighbors.  To preserve block independence, each block stores the information it needs from its neighbor at the beginning of each iteration in extra, off-block nodes called “ghost nodes”.  These nodes change the local size of each block and necessitate the local iteration parameters $ILOCMIN$, $ILOCMAX$, etc. discussed earlier.
+
+To update each ghost boundary, the identity of the neighbor block for each face is stored in a variable $NB$, which is a neighbor derived data type $NBRTYPE$, which contains IDs for the north, south, east, and west faces and the north east, south east, south west, and north west corners.  If the block boundary is a physical boundary instead of an inter-block boundary, the corresponding neighbor identifier is instead set to 0 to indicate a BC boundary.  For parallel computing, if a neighbor block is on a different processor (indicating a processor boundary), the neighbor block ID is negated to indicate as such while still preserving the neighbor block ID.
+
+Neighbor information is used to populate a linked list for each boundary type with block IDs so that all similar types of boundaries may be looped through in sequence, rather than using logical sorting at the beginning of each iteration.  (Linked lists were shown to produces a 25\% speed-up compared to logical sorting for the serial, multi-block code).
+
+When moving to parallel computing, the ID of the neighbor block’s processor must also be bookeeped, as it is required information for accessing the neighbor block for ghost updating.  In addition to the neighbor block’s processor, the local index of the neighbor block on it’s processor must also be stored for this same reason.  Thus, this data is stored in corresponding $NBRTYPEs$.  Neighbor processor ID’s are stored in the variable $NP$.  If a block boundary is a BC, the processor ID is negated to indicate as such.  Local indices of neighbor blocks on neighbor processors are stored in $NBLOC$ and are set to 0 if a boundary is a BC.
+
+\subsection{Configuration Restart Files}
+After all of the above mentioned initialization processes have been completed, this information is stored in restart files so that the solver may start up independently from these files without needing to determine boundary procedures.  Neighbor information, grid, and temperature files are written for each processor.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -298,13 +309,33 @@ Weights of each type of cost are currently set to make the maximum possible geom
 % \end{figure}
 % %%\vspace{-2em}
 
-\section{Results and Discussion}
-
-All simulations in this analysis were run on a 501x501 point grid, once with a single block solver and once with at 10x10 multi-block solver.  Fig~\ref{501x10x10} portrays the multi-block solution, which is comparable to that of the single block solver.  Convergence histories of the two solvers are compared in Fig~\ref{reshist}.  It can be seen that the two solvers are comparable in performance, both following a similar convergence path and converging at almost the same iteration.
-
-Actual solver times are compared in Appendix A.  The multi-block solver was found to be approximately 11 seconds (2.6\%) faster than the single block solver.  This may be due to more code streamlining in the later project.  It can be expected that the speed of the multi-block solver will improve even further when linked-lists are employed to navigate neighbor boundary actions (this capability is currently functional in the code, but does not work on HPC1, so a logic-based approach was used for this project.)
+\section{Results and Discussion} \label{results}
 
 
+
+%LOAD BALANCING
+\vspace{-1.8em}
+\begin{table}[htb]
+\begin{center}
+\caption{Processor Theoretical Load Balances}
+\begin{tabular}{|c | c c c c|}
+\hline
+\textbf{$NPROCS$} & 4   & 4   & 6     & 6     \\
+\textbf{$MxN$}    & 5x4 & 10x10 & 5x4 & 10x10 \\
+\hline
+\textbf{Proc0}    & load & load & load & load \\
+\textbf{Proc1}    & load & load & load & load \\
+\textbf{Proc2}    & load & load & load & load \\
+\textbf{Proc3}    & load & load & load & load \\
+\textbf{Proc4}    & N/A & N/A & load & load \\
+\textbf{Proc5}    & N/A & N/A & load & load \\
+
+\hline
+\end{tabular}
+\label{lbtable}
+\end{center}
+\end{table}
+\vspace{-2.3em}
 
 
 
