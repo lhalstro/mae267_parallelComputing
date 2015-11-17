@@ -130,7 +130,7 @@ The numerical solution is initialized with the Dirichlet boundary conditions (Eq
 
 \begin{equation}
 \begin{split}
-T = &\left\{ \begin{array}{lll}
+T_{BCs} = &\left\{ \begin{array}{lll}
     \mbox{$5.0 \left[ \sin\left( \pi x_p \right) + 1.0 \right]$} & \mbox{for } &j = j_{max} \\
     \mbox{$\left| \cos\left( \pi x_p \right)\right|+1.0$} & \mbox{for } &j = 0 \\
     \mbox{$3.0 y_p + 2.0$} & \mbox{for } &i = 0, \, i_{max}
@@ -139,18 +139,18 @@ T = &\left\{ \begin{array}{lll}
 \label{dirichlet}
 \end{equation}
 
-\noindent Square grids are generated according to Eqn~\ref{grideqn} to create non-uniform spacing in both the x and y directions (with finer spacing at the larger indices).  The ``prime'' system is then rotated by angle $rot$ to create the final grid.
-
 \begin{equation}
 \begin{split}
    rot &= 30.0 \frac{\pi}{180.0} \\
-   x_p &= \cos \left[ 0.5\pi \frac{i_{max}-i}{i_{max}-1} \right] \\
-   y_p &= \cos \left[ 0.5\pi \frac{j_{max}-j}{j_{max}-1} \right] \\
-x(i,j) &= x_p \cos(rot) + (1.0 - y_p) \sin(rot) \\
-y(i,j) &= y_p \cos(rot) + x_p \sin(rot)
+   x_p(i) &= \cos \left[ 0.5\pi \frac{i_{max}-i}{i_{max}-1} \right] \\
+   y_p(j) &= \cos \left[ 0.5\pi \frac{j_{max}-j}{j_{max}-1} \right] \\
+   x &= x_p \cos(rot) + (1.0 - y_p) \sin(rot) \\
+   y &= y_p \cos(rot) + x_p \sin(rot)
 \end{split}
 \label{grideqn}
 \end{equation}
+
+\noindent Square grids are generated according to Eqn~\ref{grideqn} to create non-uniform spacing in both the x and y directions (with finer spacing at the larger indices).  The ``prime'' system is then rotated by angle $rot$ to create the final grid.
 
 \subsection{Numerical Solver}
 
@@ -183,28 +183,30 @@ The solver developed for this analysis utilizes a finite-volume numerical soluti
 
 \subsection{Subdomain Decomposition}
 
-Size of each block (no ghost nodes)
-Total mesh points in I-direction including block overlap points:
+After grid initialization, the grid is divided into N blocks in the x/I direction and M blocks in the y/J direction, creating a total number of blocks $NBLK=N\cdot M$.  All blocks are constrained to have the same number of nodes, so the dimensions of every block $IBLKMAX$ and $JBLKMAX$ are calculated in Eqn~\ref{iblocksize} as a fraction of the total number of nodes in each direction, including one point overlap at each inter-block boundary (Ghost nodes are excluded for the moment).  In the I-direction, the total number of nodes including overlap (Eqn~\ref{idirpoints}) is:
 
+\vspace{-1em}
 \begin{equation}
 \begin{split}
 IMAX_{tot} = IMAX + (N-1)
 \end{split}
-\label{overlappoints}
+\label{idirpoints}
 \end{equation}
+\vspace{-1em}
 
-Points in I-direction per block
+\noindent and the total number of nodes per block in the I-direction (Eqn~\ref{iblocksize}) is:
 
+\vspace{-1em}
 \begin{equation}
 \begin{split}
 IMAXBLK = \frac{IMAX_{tot}}{N} = \frac{IMAX + (N-1)}{N} = 1 + \frac{IMAX-1}{N}
 \end{split}
-\label{pointsperblock}
+\label{iblocksize}
 \end{equation}
 
-For points in J-direction, replace I with J and N with M
+\noindent Note: For points in J-direction, replace I with J and N with M
 
-Global starting index of each block in I-direction:
+Blocks are distributed from 1 to NBLK starting in the lower-left corner of the grid and zipping left to right (the x/I/N direction), then up one (the y/J/M direction) starting again at the left.  This is accomplished by two DO loops, the outer loop stepping through J from 1 to M and the inner loop stepping through I from 1 to N. Block locations are stored by assigning global starting indices to each block according to Eqn~\ref{blockstartingindex}.
 
 \begin{equation}
 \begin{split}
@@ -214,6 +216,65 @@ IMIN_{block} = IMIN_{global} + (IMAXBLK-1)(I-1)
 \end{equation}
 
 \noindent where I counts blocks in the direction of N and $IMIN_{global}=1$.  The first block in the N-direction has a global starting index of 0, and IMAXBLK must be reduced by one to account for the single-point overlap at block boundaries.
+
+Information for each block is stored as an element in an array of BLKTYPE derived data types.  BLKTYPE stores local mesh, temperature, and solver information as well as the block ID, global  indices, iteration bounds to prevent overwriting boundary conditions (discussed in Section~\ref{neighborsec}), and neighbor identification information.
+
+\subsection{Processor Distribution}
+
+For the parallel code, blocks are distributed among $NPROCS$ processors (determined in `miprun’ call), with the goal of equal load balancing for all processors (Eqn~\ref{loadbalance}).  Load balance is the ratio of a processor's workload to the ``Perfect Load Balance'' ($PLB$), the total load of all blocks divided by $NPROCS$.  In this code, a block's load is refered to as its $SIZE$, so a processor's work load is equal to the sum of the $SIZEs$ of its blocks.
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+P_{LoadBalance} = \frac{SUM(SIZEs)}{PLB}
+\end{split}
+\label{loadbalance}
+\end{equation}
+
+The workload of each block ($SIZE$) is calculated as a weighted sum (Eqn~\ref{blockload}) of its geometric cost $GEOM$ due to grid size (Eqn~\ref{geomcost}) and communication cost $COMM$ due to boundary size (~\ref{commcost}).  Geometric cost is essentially the node area of the block iteration bounds:
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+GEOM = (IMAXLOC - IMINLOC) \cdot (JMAXLOC - JMINLOC)
+\end{split}
+\label{geomcost}
+\end{equation}
+
+\noindent Geometric cost will be greater for cells that are not on physical boundaries as they require more ghosts nodes for their inter-block boundaries.  Communication cost is calculated as the total length of all faces and corners at interblock boundaries:
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+&COMM(i) =
+      \begin{cases}
+        0, & \text{if BC} \\
+        IMAXBLK - IMINBLK, & \text{if N or S Face Neighbor} \\
+        JMAXBLK - JMINBLK, & \text{if E or W Face Neighbor} \\
+        1, & \text{if Corner Neighbor}
+      \end{cases} \\
+&COMM = SUM(COMM(i))
+\end{split}
+\label{commcost}
+\end{equation}
+\noindent where Eqn~\ref{comcost} must be evaluated for all faces and corners of a given block and the results must be summed.
+
+Weights of each type of cost are currently set to make the maximum possible geometric cost equal to the maximum possible communication cost, as accomplished by Eqn~\ref{costweight}.
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+&WGEOM = 1 \\
+&WCOMM = FACTOR \cdot \frac{(IMAXBLK+2)(JMAXBLK+2)}{(2 \cdot IMAXBLK)+(2 \cdot IMAXBLK)+4 } \\
+&SIZE = (WGEOM \cdot GEOM) + (WCOMM \cdot COMM)
+\end{split}
+\label{costweight}
+\end{equation}
+\noindent where $FACTOR$ is a number that can be varied to tune cost weighting, but is currently set to 1.
+
+
+\subsection{Neighbor Indentification} \label{neighborsec}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
