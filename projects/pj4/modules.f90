@@ -688,6 +688,12 @@ CONTAINS
             ALLOCATE( procs(IPROC)%blocks(NBLK) )
         END DO
 
+        write(*,*) NBLK
+        DO I = 1, NBLK
+            b => blocks( sorted(I) )
+            write(*,*) b%ID, b%SIZE
+        END DO
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -709,6 +715,7 @@ CONTAINS
                 END IF
             END DO
             ! ASSIGN BLOCK TO MIN. LOAD PROC
+            write(*,*) b%ID, procs(IMINLOAD)%ID
             CALL assign_block( b, procs(IMINLOAD) )
         END DO
 

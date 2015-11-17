@@ -85,8 +85,8 @@ PROGRAM heatTrans
         CALL init_gridsystem(blocks, procs)
 
         !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         ! CLEAN UP INITIALIZATION
-!         DEALLOCATE(blocks, procs)
+        ! CLEAN UP INITIALIZATION
+        DEALLOCATE(blocks, procs)
     END IF
 
 
@@ -126,26 +126,26 @@ PROGRAM heatTrans
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    DO IBLK = 1, NBLK
-        DEALLOCATE( blocks(IBLK)%mesh%xp   )
-        DEALLOCATE( blocks(IBLK)%mesh%yp   )
-        DEALLOCATE( blocks(IBLK)%mesh%x    )
-        DEALLOCATE( blocks(IBLK)%mesh%y    )
-        DEALLOCATE( blocks(IBLK)%mesh%T    )
-        DEALLOCATE( blocks(IBLK)%mesh%Ttmp )
-        DEALLOCATE( blocks(IBLK)%mesh%dt   )
-        DEALLOCATE( blocks(IBLK)%mesh%V  )
-        DEALLOCATE( blocks(IBLK)%mesh%V2nd )
-        DEALLOCATE( blocks(IBLK)%mesh%term )
-        DEALLOCATE( blocks(IBLK)%mesh%yPP)
-        DEALLOCATE( blocks(IBLK)%mesh%yNP)
-        DEALLOCATE( blocks(IBLK)%mesh%yNN)
-        DEALLOCATE( blocks(IBLK)%mesh%yPN)
-        DEALLOCATE( blocks(IBLK)%mesh%xNN)
-        DEALLOCATE( blocks(IBLK)%mesh%xPN)
-        DEALLOCATE( blocks(IBLK)%mesh%xPP)
-        DEALLOCATE( blocks(IBLK)%mesh%xNP)
-    END DO
+!     DO IBLK = 1, NBLK
+!         DEALLOCATE( blocks(IBLK)%mesh%xp   )
+!         DEALLOCATE( blocks(IBLK)%mesh%yp   )
+!         DEALLOCATE( blocks(IBLK)%mesh%x    )
+!         DEALLOCATE( blocks(IBLK)%mesh%y    )
+!         DEALLOCATE( blocks(IBLK)%mesh%T    )
+!         DEALLOCATE( blocks(IBLK)%mesh%Ttmp )
+!         DEALLOCATE( blocks(IBLK)%mesh%dt   )
+!         DEALLOCATE( blocks(IBLK)%mesh%V  )
+!         DEALLOCATE( blocks(IBLK)%mesh%V2nd )
+!         DEALLOCATE( blocks(IBLK)%mesh%term )
+!         DEALLOCATE( blocks(IBLK)%mesh%yPP)
+!         DEALLOCATE( blocks(IBLK)%mesh%yNP)
+!         DEALLOCATE( blocks(IBLK)%mesh%yNN)
+!         DEALLOCATE( blocks(IBLK)%mesh%yPN)
+!         DEALLOCATE( blocks(IBLK)%mesh%xNN)
+!         DEALLOCATE( blocks(IBLK)%mesh%xPN)
+!         DEALLOCATE( blocks(IBLK)%mesh%xPP)
+!         DEALLOCATE( blocks(IBLK)%mesh%xNP)
+!     END DO
 
     WRITE(*,*) 'Done!'
 
