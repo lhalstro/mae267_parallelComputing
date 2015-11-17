@@ -84,11 +84,12 @@ PROGRAM heatTrans
         WRITE(*,*) 'Making mesh...'
         CALL init_gridsystem(blocks, procs)
 
-        !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! CLEAN UP INITIALIZATION
         DEALLOCATE(blocks, procs)
     END IF
 
+    ! HOLD ALL PROCESSORS UNTIL INITIALIZATION IS COMPLETE
+    CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
