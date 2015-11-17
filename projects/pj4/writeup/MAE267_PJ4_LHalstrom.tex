@@ -89,25 +89,44 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Statement of Problem}
 
-This analysis details the solution of the steady-state temperature distribution on a 1m x 1m block of steel with Dirichlet boundary conditions (Eqn~\ref{dirichlet}).  Single-processor solutions were previously performed on a square, non-uniform grids rotatated in the positive z-direction by $rot=30^o$.  Two grids of 101x101 points and 501x501 points were used to solve the equation of heat transfer.  Temperature was uniformly initialized to a value of 3.5 and the solution was iterated until the maximum residual found was less than $1.0x10^{-5}$.  The equation for heat conduction (Eqn~\ref{heat}) was solved using an explicit, node-centered, finite-volume scheme, with an alternative distributive scheme for the second-derivative operator.  Steady-state temperature distribution was saved in a PLOT3D unformatted file, and CPU wall time of the solver was recorded.
+This analysis demonstrates the fundamentals of parallel computing through the numerical solution of the steady-state, two-dimensional temperature distribution of a 1m x 1m steel block with properties listed in Table~\ref{props}.
 
-Now, the code has been modified to decompose the domain into sub-domains refered to as blocks.  Boundary and neighbor information for each block is stored so that connectivity can be accurately assessed when communication between blocks is required.  The block domain, associated meshes, and initial temperature distribution are initialized and then saved to restart files.  These are read in at the beginning of the solver.
+%STEEL PROPERTIES TABLE
+\vspace{-1.8em}
+\begin{table}[htb]
+\begin{center}
+\caption{Steel Block Properties}
+\begin{tabular}{|l | c|}
+\hline
+Dimensions & 1m x 1m \\
+\hline
+Thermal Conductivity & $k=18.8\frac{W}{m \cdot K}$  \\
+\hline
+Density & $\rho=8000\frac{kg}{m^3}$  \\
+\hline
+Specific Heat Ratio & $c_p=500$  \\
+\hline
+\end{tabular}
+\label{props}
+\end{center}
+\end{table}
+\vspace{-2.3em}
+
+The demonstration of parallel computing techniques was accomplished in stages, starting with a serial (single-processor) solution of a single grid of dimensions 101x101 and 501x501, which serves as a solver basis and performance benchmark for later parallel codes.
+
+The next stage was to divide the grid into NxM subdomains (blocks), on each of which the solution for a given iteration was calculated independently.  5x4 and 10x10 block decompositions of both previous grid dimensions were solved to demonstrate compartmentalization of solver processes, which is a necessary step for distributing processes in parallel computing.
+
+Finally, the code will be adapted to solve multi-block decompositions on multiple processors for the 501x501 grid decomposed into 10x10 blocks running on 4 to 8 processors.  This stage steps closer to that solution by performing domain decomposition and processor distribution for 5x4 and 10x10 blocks on 4 and 6 processors, and saving the decompositions to restart files to be loaded by the parallel solver.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Equations and Algorithms}
+\section{Methods and Equations}
 
-The solver developed for this analysis utilizes a finite-volume numerical solution method to solve the transient heat conduction equation (Eqn~\ref{heat}).
+The core of this demonstration code is the heat transfer solver developed in the first project, but a number of domain decomposition functions have since been included, as will be detailed in this section.
 
-\begin{equation}
-\begin{split}
-\rho c_p \frac{\partial T}{\partial t} =
-    k \left[ \frac{\partial^2 T}{\partial x^2}
-    + \frac{\partial^2 T}{\partial y^2} \right]
-\end{split}
-\label{heat}
-\end{equation}
+\subsection{Grid Initialization}
 
-\noindent The solution is initialized with the Dirichlet boundary conditions (Eqn~\ref{dirichlet}).
+The numerical solution is initialized with the Dirichlet boundary conditions (Eqn~\ref{dirichlet}) using a single processor.
 
 \begin{equation}
 \begin{split}
@@ -120,7 +139,7 @@ T = &\left\{ \begin{array}{lll}
 \label{dirichlet}
 \end{equation}
 
-\noindent Grids were generated according to the following (Eqn~\ref{grideqn})
+\noindent Square grids are generated according to Eqn~\ref{grideqn} to create non-uniform spacing in both the x and y directions (with finer spacing at the larger indices).  The ``prime'' system is then rotated by angle $rot$ to create the final grid.
 
 \begin{equation}
 \begin{split}
@@ -133,7 +152,20 @@ y(i,j) &= y_p \cos(rot) + x_p \sin(rot)
 \label{grideqn}
 \end{equation}
 
-\noindent To solve Eqn~\ref{heat} numerically, the equation is discretized according to a node-centered finite-volume scheme, where first-derivatives at the nodes are found using Green's theorem integrating around the secondary control volumes.  Trapezoidal, counter-clockwise integration for the first-derivative in the x-direction is achieved with Eqn~\ref{FVx1st}.
+\subsection{Numerical Solver}
+
+The solver developed for this analysis utilizes a finite-volume numerical solution method to solve the transient heat conduction equation (Eqn~\ref{heat}).
+
+\begin{equation}
+\begin{split}
+\rho c_p \frac{\partial T}{\partial t} =
+    k \left[ \frac{\partial^2 T}{\partial x^2}
+    + \frac{\partial^2 T}{\partial y^2} \right]
+\end{split}
+\label{heat}
+\end{equation}
+
+\noindent To solve Eqn~\ref{heat} numerically, the equation is discretized according to a node-centered, finite-volume scheme, where first-derivatives at the nodes are found using Green's theorem integrating around the secondary control volumes.  Trapezoidal, counter-clockwise integration for the first-derivative in the x-direction is achieved with Eqn~\ref{FVx1st}.
 
 \begin{equation}
 \begin{split}
@@ -147,6 +179,9 @@ y(i,j) &= y_p \cos(rot) + x_p \sin(rot)
 \end{equation}
 
 \noindent A similar scheme is used to find the first-derivative in the y-direction.
+
+
+\subsection{Subdomain Decomposition}
 
 Size of each block (no ghost nodes)
 Total mesh points in I-direction including block overlap points:
@@ -235,24 +270,24 @@ Decomposing the domain introduced unforseen complications in adapting the single
 \onecolumn
 \appendix       %%% starting appendix
 
-\section*{Appendix A: Solver Performace Comparison} \label{times}
+% \section*{Appendix A: Solver Performace Comparison} \label{times}
 % \lstinputlisting[caption=Single block solver performance, language={}]{../Results/finalSingle/SolnInfo.dat}
 % \lstinputlisting[caption=Multi block solver performance, language={}]{../Results/finalMulti/SolnInfo.dat}
 
-\section*{Appendix B: Multi-Block Grid Decomposition Code}
-\lstinputlisting[caption=Grids are decomposed into blocks and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
+% \section*{Appendix B: Multi-Block Grid Decomposition Code}
+% \lstinputlisting[caption=Grids are decomposed into blocks and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
 
-\section*{Appendix C: Multi-Block Solver Subroutines}
-\lstinputlisting[caption=Main subroutines used for solving heat transfer on a multi-block grid, language=Fortran]{../subroutines.f90}
-
-\clearpage
-
-\section*{Appendix D: Multi-Block Plot3D Reader-Writer}
-\lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
+% \section*{Appendix C: Multi-Block Solver Subroutines}
+% \lstinputlisting[caption=Main subroutines used for solving heat transfer on a multi-block grid, language=Fortran]{../subroutines.f90}
 
 % \clearpage
-\section*{Appendix E: Other Relevant Codes}
-\lstinputlisting[caption=Wrapper program, language=Fortran]{../main.f90}
+
+% \section*{Appendix D: Multi-Block Plot3D Reader-Writer}
+% \lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
+
+% % \clearpage
+% \section*{Appendix E: Other Relevant Codes}
+% \lstinputlisting[caption=Wrapper program, language=Fortran]{../main.f90}
 
 
 
