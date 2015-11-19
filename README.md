@@ -22,6 +22,8 @@ Paralell computing methods for solving 2D heat transfer with explicity, finite-v
   * Modify solver to solve heat conduction on multiple blocks with multiple processors
   * Include MPI code for multiple processors
 
+### How To:
+
 ###### TO COMPILE A FORTRAN CODE (.f90 extension)
 
     'gfortran -o outname progname.f90'
