@@ -4,6 +4,24 @@
 
 Paralell computing methods for solving 2D heat transfer with explicity, finite-volume schemes using Fortran and MPI.
 
+### Projects
+1. Serial, Single-Block Heat Conduction Solver
+  * Solve heat conduction numerically on a single, non-uniform, 2D grid
+  * Use one processor
+2. Serial, Multi-Block Solver Intitialization
+  * Initialize solver solution for single processor with grid decomposed into sub-domains (blocks)
+  * Write block configuration files to restart solution
+3. Serial, Multi-Block Solver
+  * Modify solver to solve heat conduction on multiple blocks
+  * Use ghost nodes to store neighbor information
+4. Parallel, Multi-Block Solver Initialization
+  * Initialize solver solution for multiple processors with grid decomposed into sub-domains
+  * Distribute blocks to processors to achive equal load balancing
+  * Save configuration files for each processor to restart solution
+5. Parallel, Multi-Block Solver
+  * Modify solver to solve heat conduction on multiple blocks with multiple processors
+  * Include MPI code for multiple processors
+
 ###### TO COMPILE A FORTRAN CODE (.f90 extension)
 
     'gfortran -o outname progname.f90'
@@ -23,21 +41,3 @@ Paralell computing methods for solving 2D heat transfer with explicity, finite-v
 ###### TO CHANGE FROM LOWER TO UPPER CASE IN SUBLIME TEXT:
 
     'ctrl+k,u' (l for lower)
-
-### Projects
-1. Serial, Single-Block Heat Conduction Solver
-  * Solve heat conduction numerically on a single, non-uniform, 2D grid
-  * Use one processor
-2. Serial, Multi-Block Solver Intitialization
-  * Initialize solver solution for single processor with grid decomposed into sub-domains (blocks)
-  * Write block configuration files to restart solution
-3. Serial, Multi-Block Solver
-  * Modify solver to solve heat conduction on multiple blocks
-  * Use ghost nodes to store neighbor information
-4. Parallel, Multi-Block Solver Initialization
-  * Initialize solver solution for multiple processors with grid decomposed into sub-domains
-  * Distribute blocks to processors to achive equal load balancing
-  * Save configuration files for each processor to restart solution
-5. Parallel, Multi-Block Solver
-  * Modify solver to solve heat conduction on multiple blocks with multiple processors
-  * Include MPI code for multiple processors
