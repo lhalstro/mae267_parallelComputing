@@ -48,10 +48,10 @@ MODULE IO
         CHARACTER(2) :: procname
         CHARACTER(20) :: xfile, qfile
 
-        11 FORMAT(3I5)
         33 FORMAT(A)
-        22 FORMAT(33I5)
-        44 FORMAT(33A5)
+        11 FORMAT( 3I7)
+        22 FORMAT(33I7)
+        44 FORMAT(33A7)
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! WRITE CONFIG FILE FOR EACH PROCESSOR !!!!!!!!!!!!!!!!!!!!!!!
@@ -122,6 +122,64 @@ MODULE IO
             CALL plot3D(p%blocks, p%NBLK, xfile, qfile)
         END DO
     END SUBROUTINE write_config
+
+    SUBROUTINE read_config(b)
+        ! Read block connectivity file with neighbor and BC info
+        ! for each processor.
+        ! Also read PLOT3D restart files for each processor.
+
+!         TYPE(PROCTYPE), TARGET :: procs(:)
+!         TYPE(PROCTYPE), POINTER :: p
+!         ! BLOCK DATA TYPE
+!         TYPE(BLKTYPE), POINTER :: b
+!         INTEGER :: IP, IB, BLKFILE = 99
+!         CHARACTER(2) :: procname
+!         CHARACTER(20) :: xfile, qfile
+
+!         33 FORMAT(A)
+!         11 FORMAT( 3I7)
+!         22 FORMAT(33I7)
+!         44 FORMAT(33A7)
+
+
+
+
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE) :: b(:)
+        INTEGER :: I, BLKFILE = 99
+        ! READ INFOR FOR BLOCK DIMENSIONS
+        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+
+        11 FORMAT(3I5)
+        33 FORMAT(A)
+        22 FORMAT(33I5)
+        44 FORMAT(33A5)
+
+        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
+        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
+        READ(BLKFILE,*)
+        READ(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
+        READ(BLKFILE,*)
+        DO I = 1, NBLK
+            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
+            ! NORTH EAST SOUTH WEST
+            READ(BLKFILE, 22) b(I)%ID, &
+                b(I)%IMIN, b(I)%JMIN, &
+                b(I)%NB%N, &
+                b(I)%NB%NE, &
+                b(I)%NB%E, &
+                b(I)%NB%SE, &
+                b(I)%NB%S, &
+                b(I)%NB%SW, &
+                b(I)%NB%W, &
+                b(I)%NB%NW, &
+                b(I)%ORIENT
+        END DO
+        CLOSE(BLKFILE)
+    END SUBROUTINE read_config
+
 
     SUBROUTINE plot3D(blocks, NBLKS, xfile, qfile)
         IMPLICIT NONE

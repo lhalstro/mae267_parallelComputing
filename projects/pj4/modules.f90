@@ -388,8 +388,6 @@ MODULE BLOCKMOD
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
         INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC, IMINUPD, JMINUPD
         ! BLOCK LOAD PARAMETERS FOR PROCESSOR LOAD BALANCING
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         REAL(KIND=8) :: SIZE
         INTEGER :: SIZE
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
@@ -402,8 +400,6 @@ MODULE BLOCKMOD
         ! on proc
         INTEGER :: ID, NBLK=0
         ! processor load, load balance
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         REAL(KIND=8) :: load=0.D0, balance=0.D0
         INTEGER :: load=0
         REAL(KIND=8) :: balance=0
         ! Blocks contained on processor
@@ -921,44 +917,6 @@ CONTAINS
 !         END DO
 
     END SUBROUTINE init_neighbor_procs
-
-    SUBROUTINE read_config(b)
-        ! Read block connectivity file
-
-        ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
-        INTEGER :: I, BLKFILE = 99
-        ! READ INFOR FOR BLOCK DIMENSIONS
-        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
-
-        11 FORMAT(3I5)
-        33 FORMAT(A)
-        22 FORMAT(33I5)
-        44 FORMAT(33A5)
-
-        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
-        ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
-        READ(BLKFILE,*)
-        READ(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
-        READ(BLKFILE,*)
-        DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
-            ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
-            ! NORTH EAST SOUTH WEST
-            READ(BLKFILE, 22) b(I)%ID, &
-                b(I)%IMIN, b(I)%JMIN, &
-                b(I)%NB%N, &
-                b(I)%NB%NE, &
-                b(I)%NB%E, &
-                b(I)%NB%SE, &
-                b(I)%NB%S, &
-                b(I)%NB%SW, &
-                b(I)%NB%W, &
-                b(I)%NB%NW, &
-                b(I)%ORIENT
-        END DO
-        CLOSE(BLKFILE)
-    END SUBROUTINE read_config
 
     SUBROUTINE init_mesh(b)
         ! Create xprime/yprime non-uniform grid, then rotate by angle 'rot'.
