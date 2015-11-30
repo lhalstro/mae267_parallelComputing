@@ -388,7 +388,9 @@ MODULE BLOCKMOD
         ! LOCAL ITERATION BOUNDS TO AVOID UPDATING BC'S + UTILIZE GHOST NODES
         INTEGER :: IMINLOC, JMINLOC, IMAXLOC, JMAXLOC, IMINUPD, JMINUPD
         ! BLOCK LOAD PARAMETERS FOR PROCESSOR LOAD BALANCING
-        REAL(KIND=8) :: SIZE
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         REAL(KIND=8) :: SIZE
+        INTEGER :: SIZE
         ! BLOCK ORIENTATION
         INTEGER :: ORIENT
     END TYPE BLKTYPE
@@ -400,7 +402,10 @@ MODULE BLOCKMOD
         ! on proc
         INTEGER :: ID, NBLK=0
         ! processor load, load balance
-        REAL(KIND=8) :: load=0.D0, balance=0.D0
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         REAL(KIND=8) :: load=0.D0, balance=0.D0
+        INTEGER :: load=0
+        REAL(KIND=8) :: balance=0
         ! Blocks contained on processor
         TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
     END TYPE PROCTYPE
@@ -532,23 +537,35 @@ CONTAINS
         TYPE(PROCTYPE), TARGET :: procs(:)
         TYPE(PROCTYPE), POINTER :: p
         ! COUNTER VARIABLE
-        INTEGER :: IBLK, I, IPROC
+        INTEGER :: IBLK, I, IPROC, II
         ! CURRENT BLOCK DIMENSIONS
         INTEGER :: NXLOC, NYLOC
         ! COMPUTATIONAL COST PARAMETERS
         ! (geometric (grid size) and communication weights)
         INTEGER :: GEOM=0, COMM=0, MAXCOMM, MAXGEOM
         ! WEIGHTS FOR LOAD BALANCING
-        ! (geometry, communication, fudge factor, perfect load balance)
-        REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0, PLB=0.D0
+        ! (geometry, communication, fudge factor)
+        REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0
+        ! Perfect load balance
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         REAL(KIND=8) :: PLB=0.D0
+        INTEGER :: PLB = 0
         ! VARIABLES FOR SORTING BLOCKS BY LOAD
         ! maximum block load
-        REAL(KIND=8) :: MAXSIZE=0.D0, MINLOAD
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         REAL(KIND=8) :: MAXSIZE=0.D0, MINLOAD
+        INTEGER :: MAXSIZE=0, MINLOAD
         ! 'sorted' is list of IDs of blocks in order of size greatest to least
         ! 'claimed' idicates if a block has already been sorted (0/1 --> unsorted/sorted)
             ! initial list is all zeros
         ! 'IMAXSIZE' is index of remaining block with greatest size
         INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE, IMINLOAD
+
+        ! INITIALIZE LISTS
+        DO I = 1, NBLK
+            claimed(I) = 0
+            sorted(I) = 0
+        END DO
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! SET WEIGHTING FACTORS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -556,9 +573,12 @@ CONTAINS
 
         ! SET COMMUNICATION WEIGHT TO BE PROPORTIONAL TO GEOMETRY
         ! Maximum geometry cost is all cells with ghost nodes at all faces
-        MAXGEOM = ( IMAXBLK + 2.D0 ) * ( JMAXBLK + 2.D0 )
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         MAXGEOM = ( IMAXBLK + 2.D0 ) * ( JMAXBLK + 2.D0 )
+        MAXGEOM = ( IMAXBLK + 2 ) * ( JMAXBLK + 2 )
         ! Maximum communication cost is all face boundaries plus four corners
-        MAXCOMM = ( 2.D0 * IMAXBLK ) + ( 2.D0 * JMAXBLK ) + 4.D0
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        MAXCOMM = ( 2 * IMAXBLK ) + ( 2 * JMAXBLK ) + 4
         ! Put comm cost on same scale as geom
         WCOMM = FACTOR * ( DFLOAT(MAXGEOM) / DFLOAT(MAXCOMM) )
         ! COME UP WITH A BETTER WEIGHTING FACTOR IN PROJECT 5 WHEN YOU CAN BENCHMARK TIMES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -631,7 +651,7 @@ CONTAINS
             END IF
 
             ! CALCULATE TOTAL LOAD OF BLOCK WITH WEIGHTING FACTORS
-            b%SIZE = WGEOM * DFLOAT(GEOM) + WCOMM * DFLOAT(COMM)
+            b%SIZE = INT( WGEOM * DFLOAT(GEOM) + WCOMM * DFLOAT(COMM) )
 
             ! WRITE BLOCK LOADS
             WRITE(*,*) IBLK, GEOM, COMM, b%SIZE
@@ -645,7 +665,9 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! (total load of all blocks divided by number of processors)
-        PLB = PLB / DFLOAT(NPROCS)
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         PLB = PLB / DFLOAT(NPROCS)
+        PLB = INT( DFLOAT(PLB) / DFLOAT(NPROCS) )
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! SORT BLOCKS BY LOAD IN DECREASING ORDER !!!!!!!!!!!!!!!!!!!!
@@ -654,14 +676,16 @@ CONTAINS
         DO IBLK = 1, NBLK
 
             ! Reset current max size
-            MAXSIZE = 0.D0
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!             MAXSIZE = 0.D0
+            MAXSIZE = 0
 
             ! FIND MAX SIZE OF REMAINING BLOCKS
             DO I = 1, NBLK
                 b => blocks(I)
 
                 ! (all sorted blocks will be excluded by 'claimed')
-                IF (claimed(I)==0 .AND. b%SIZE>MAXSIZE) THEN
+                IF (claimed(I)==0 .AND. b%SIZE>=MAXSIZE) THEN
                     ! CURRENT BLOCK HAS GREATEST LOAD SIZE OF REMAINING BLOCKS
                     MAXSIZE = b%SIZE
                     ! INDEX OF MAX REMAINING SIZE BLOCK
@@ -673,13 +697,6 @@ CONTAINS
             ! ADD INDEX OF LATEST MAX TO SORTED INDEX LIST
             sorted(IBLK) = IMAXSIZE
         END DO
-
-        write(*,*) " "
-        write(*,*) "Blocks ordered by size, greatest to least:"
-        DO IBLK = 1, NBLK
-            write(*,*) sorted(IBLK)
-        End Do
-        write(*,*) " "
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! INITIALIZE PROCS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -695,15 +712,21 @@ CONTAINS
             ALLOCATE( procs(IPROC)%blocks(NBLK) )
         END DO
 
-        write(*,*) NBLK
+        ! write block size order
+        write(*,*) " "
+        write(*,*) "Blocks ordered by size, greatest to least, with sizes:"
         DO I = 1, NBLK
             b => blocks( sorted(I) )
             write(*,*) b%ID, b%SIZE
         END DO
+        write(*,*) " "
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        write(*,*) " "
+        write(*,*) "Block ID assigned to Proc ID:"
 
         ! LOOP THROUGH BLOCKS IN DECREASING ORDER OF SIZE
         DO I = 1, NBLK
@@ -711,7 +734,7 @@ CONTAINS
             b => blocks( sorted(I) )
 
             ! Reset minimum load
-            MINLOAD = 1.0E10
+            MINLOAD = 1000000
             ! FIND CURRENT PROCESSOR WITH LEAST LOAD
             DO IPROC = 1, NPROCS
                 p => procs(IPROC)
@@ -721,8 +744,9 @@ CONTAINS
                     IMINLOAD = IPROC
                 END IF
             END DO
-            ! ASSIGN BLOCK TO MIN. LOAD PROC
+            ! write block processor assignment
             write(*,*) b%ID, procs(IMINLOAD)%ID
+            ! ASSIGN BLOCK TO MIN. LOAD PROC
             CALL assign_block( b, procs(IMINLOAD) )
         END DO
 
@@ -733,10 +757,11 @@ CONTAINS
         WRITE(*,20) 'ID', 'LOAD BALANCE'
 
         DO IPROC = 1, NPROCS
-            procs(IPROC)%balance = procs(IPROC)%load / PLB
+            procs(IPROC)%balance = DFLOAT( procs(IPROC)%load ) / DFLOAT( PLB )
 
             WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
         END DO
+        WRITE(*,*)
 
     END SUBROUTINE dist_blocks
 
