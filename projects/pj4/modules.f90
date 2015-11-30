@@ -547,13 +547,9 @@ CONTAINS
         ! (geometry, communication, fudge factor)
         REAL(KIND=8) :: WGEOM = 1.0D0, WCOMM, FACTOR=1.D0
         ! Perfect load balance
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         REAL(KIND=8) :: PLB=0.D0
         INTEGER :: PLB = 0
         ! VARIABLES FOR SORTING BLOCKS BY LOAD
         ! maximum block load
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         REAL(KIND=8) :: MAXSIZE=0.D0, MINLOAD
         INTEGER :: MAXSIZE=0, MINLOAD
         ! 'sorted' is list of IDs of blocks in order of size greatest to least
         ! 'claimed' idicates if a block has already been sorted (0/1 --> unsorted/sorted)
@@ -573,11 +569,8 @@ CONTAINS
 
         ! SET COMMUNICATION WEIGHT TO BE PROPORTIONAL TO GEOMETRY
         ! Maximum geometry cost is all cells with ghost nodes at all faces
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         MAXGEOM = ( IMAXBLK + 2.D0 ) * ( JMAXBLK + 2.D0 )
         MAXGEOM = ( IMAXBLK + 2 ) * ( JMAXBLK + 2 )
         ! Maximum communication cost is all face boundaries plus four corners
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         MAXCOMM = ( 2 * IMAXBLK ) + ( 2 * JMAXBLK ) + 4
         ! Put comm cost on same scale as geom
         WCOMM = FACTOR * ( DFLOAT(MAXGEOM) / DFLOAT(MAXCOMM) )
@@ -665,8 +658,6 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! (total load of all blocks divided by number of processors)
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         PLB = PLB / DFLOAT(NPROCS)
         PLB = INT( DFLOAT(PLB) / DFLOAT(NPROCS) )
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -676,8 +667,6 @@ CONTAINS
         DO IBLK = 1, NBLK
 
             ! Reset current max size
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!             MAXSIZE = 0.D0
             MAXSIZE = 0
 
             ! FIND MAX SIZE OF REMAINING BLOCKS
