@@ -2,7 +2,7 @@
 
 ##### MAE 267 - Fall Quarter 2015<br>UC Davis<br>Prof: Roger Davis
 
-Paralell computing methods for solving 2D heat transfer with explicity, finite-volume schemes using Fortran and MPI.
+Parallel computing methods for solving 2D heat transfer with explicity, finite-volume schemes using Fortran and MPI.
 
 ### Projects
 1. Serial, Single-Block Heat Conduction Solver

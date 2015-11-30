@@ -674,6 +674,13 @@ CONTAINS
             sorted(IBLK) = IMAXSIZE
         END DO
 
+        write(*,*) " "
+        write(*,*) "Blocks ordered by size, greatest to least:"
+        DO IBLK = 1, NBLK
+            write(*,*) sorted(IBLK)
+        End Do
+        write(*,*) " "
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! INITIALIZE PROCS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
