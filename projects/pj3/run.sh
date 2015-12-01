@@ -13,8 +13,8 @@ echo $START
 echo $START > "a.out"
 
 # '&' will run process in background until it is complete
-./main >> "a.out"
-#./main
+#./main >> "a.out"
+./main
 
 # Move files to case directory
 python3 move.py

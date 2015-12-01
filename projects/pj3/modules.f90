@@ -621,6 +621,38 @@ CONTAINS
         END DO
     END SUBROUTINE set_block_bounds
 
+    SUBROUTINE make_link(NB, list, nbrl, ID)
+        ! make a single link in a linked list given the neighbor
+        ! information (i.e. NB%N) and the neighbor linked
+        ! list (i.e. nbrlists%N) and the block id to assign
+
+        ! Neighbor information pointer
+        INTEGER :: NB, ID
+        ! Linked lists of neighbor communication instructions
+        TYPE(LNKLIST), POINTER :: list
+        TYPE(LNKLIST), POINTER :: nbrl
+
+        IF ( .NOT. ASSOCIATED(list) ) THEN
+            ! Allocate linked list if it hasnt been accessed yet
+            ALLOCATE(list)
+            ! Pointer linked list that will help iterate through the
+            ! primary list in this loop
+            nbrl => list
+        ELSE
+            ! linked list already allocated (started).  Allocate next
+            ! link as assign current block to it
+            ALLOCATE(nbrl%next)
+            nbrl => nbrl%next
+        END IF
+
+        ! associate this linked list entry with the current block
+        nbrl%ID = ID
+        ! break link to pre-existing pointer target.  We will
+        ! allocated this target later as the next item in the linked list
+        NULLIFY(nbrl%next)
+
+    END SUBROUTINE make_link
+
     SUBROUTINE init_linklists(blocks, nbrlists)
         ! Create linked lists governing block boundary communication.
         ! Separate list for each neighbor type so we can avoid logic when
@@ -648,29 +680,38 @@ CONTAINS
         DO IBLK = 1, NBLK
             NB => blocks(IBLK)%NB
 
-            ! NORTH
-            ! If block north face is internal, add it to appropriate linked list
-            ! for north internal faces.
-            IF (NB%N > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
-                    ! Allocate linked list if it hasnt been accessed yet
-                    ALLOCATE(nbrlists%N)
-                    ! Pointer linked list that will help iterate through the
-                    ! primary list in this loop
-                    nbrl%N => nbrlists%N
-                ELSE
-                    ! linked list already allocated (started).  Allocate next
-                    ! link as assign current block to it
-                    ALLOCATE(nbrl%N%next)
-                    nbrl%N => nbrl%N%next
-                END IF
 
-                ! associate this linked list entry with the current block
-                nbrl%N%ID = IBLK
-                ! break link to pre-existing pointer target.  We will
-                ! allocated this target later as the next item in the linked list
-                NULLIFY(nbrl%N%next)
+            ! NORTH
+
+!             ! If block north face is internal, add it to appropriate linked list
+!             ! for north internal faces.
+
+            ! Alternate way using function instead of hardcoding.
+            ! this was a demo test for project 5
+            IF (NB%N > 0) THEN
+                CALL make_link(NB%N, nbrlists%N, nbrl%N, IBLK)
             END IF
+
+!             IF (NB%N > 0) THEN
+!                 IF ( .NOT. ASSOCIATED(nbrlists%N) ) THEN
+!                     ! Allocate linked list if it hasnt been accessed yet
+!                     ALLOCATE(nbrlists%N)
+!                     ! Pointer linked list that will help iterate through the
+!                     ! primary list in this loop
+!                     nbrl%N => nbrlists%N
+!                 ELSE
+!                     ! linked list already allocated (started).  Allocate next
+!                     ! link as assign current block to it
+!                     ALLOCATE(nbrl%N%next)
+!                     nbrl%N => nbrl%N%next
+!                 END IF
+
+!                 ! associate this linked list entry with the current block
+!                 nbrl%N%ID = IBLK
+!                 ! break link to pre-existing pointer target.  We will
+!                 ! allocated this target later as the next item in the linked list
+!                 NULLIFY(nbrl%N%next)
+!             END IF
 
             ! SOUTH
             IF (NB%S > 0) THEN
