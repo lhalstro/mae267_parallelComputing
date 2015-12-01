@@ -31,10 +31,9 @@ PROGRAM heatTrans
     !!! INITIALIZE VARIABLES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! BLOCKS
-    TYPE(BLKTYPE), ALLOCATABLE :: blocks(:)
-    ! LINKED LISTS STORING NEIGHBOR INFO
-    TYPE(NBRLIST) :: nbrlists
+    ! ALL BLOCKS IN ONE LIST
+    TYPE(BLKTYPE), ALLOCATABLE :: allblocks(:)
+
     ! PROCESSORS
     TYPE(PROCTYPE), ALLOCATABLE :: procs(:)
     ! ITERATION PARAMETERS
@@ -73,26 +72,27 @@ PROGRAM heatTrans
 
         ! READ INPUTS FROM FILE
         CALL read_input()
-        ALLOCATE( blocks(NBLK) )
+        ALLOCATE( allblocks(NBLK) )
         ALLOCATE( procs(NPROCS) )
         ! INIITIALIZE GRID SYSTEM
         WRITE(*,*) 'Making mesh...'
-        CALL init_gridsystem(blocks, procs)
+        CALL init_gridsystem(allblocks, procs)
 
         ! CLEAN UP INITIALIZATION
-        DEALLOCATE(blocks, procs)
+        DEALLOCATE(allblocks, procs)
     END IF
 
     ! HOLD ALL PROCESSORS UNTIL INITIALIZATION IS COMPLETE
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
 
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SOLVER !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!     ! INITIALIZE SOLUTION
-!     CALL init_solution(blocks, nbrlists)
+    ! INITIALIZE SOLUTION
+    write(*,*) "Initialize for proc ", MYID
+    CALL init_solution(blocks, nbrlists)
+    CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
 !     ! SOLVE
 !     WRITE(*,*) 'Solving heat conduction...'
 !     CALL solve(blocks, nbrlists, iter, res_hist)
@@ -108,8 +108,8 @@ PROGRAM heatTrans
 !     ! SAVE SOLUTION AS PLOT3D FILES
 !     CALL plot3D(blocks)
     ! CALC TOTAL WALL TIME
-    end_total = MPI_Wtime()
-    wall_time_total = end_total - start_total
+!     end_total = MPI_Wtime()
+!     wall_time_total = end_total - start_total
 
     !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -142,6 +142,8 @@ PROGRAM heatTrans
 !         DEALLOCATE( blocks(IBLK)%mesh%xPP)
 !         DEALLOCATE( blocks(IBLK)%mesh%xNP)
 !     END DO
+
+    DEALLOCATE(blocks)
 
     WRITE(*,*) 'Done!'
 

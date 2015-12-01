@@ -76,6 +76,7 @@ MODULE IO
 
             ! HEADER
             WRITE(BLKFILE, 44) 'ID', 'IMIN', 'JMIN', 'SIZE', &
+                               'IMNL', 'IMXL', 'JMNL', 'JMXL', &
                                'NNB', 'NNP', 'NLOC', &
                                'SNB', 'SNP', 'SLOC', &
                                'ENB', 'ENP', 'ELOC', &
@@ -91,6 +92,7 @@ MODULE IO
                 ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
                 ! NORTH EAST SOUTH WEST
                 WRITE(BLKFILE, 22) b%ID, b%IMIN, b%JMIN, INT(b%SIZE), &
+                                   b%IMINLOC, b%IMAXLOC, b%JMINLOC, b%JMAXLOC, &
                                    b%NB%N,  b%NP%N,  b%NBLOC%N, &
                                    b%NB%S,  b%NP%S,  b%NBLOC%S, &
                                    b%NB%E,  b%NP%E,  b%NBLOC%E, &
@@ -130,7 +132,9 @@ MODULE IO
         ! Also read PLOT3D restart files for grids for given processor
 
         ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), POINTER :: blocks(:)
         TYPE(BLKTYPE), POINTER :: b
+        TYPE(MESHTYPE), POINTER :: m
         INTEGER :: IP, IB, BLKFILE = 99
         CHARACTER(2) :: procname
         CHARACTER(20) :: xfile, qfile
@@ -166,6 +170,36 @@ MODULE IO
         !  in parallel for each processor)
         ALLOCATE( blocks(1:MYNBLK) )
 
+        ! ALLOCATE MESH STUFF TO BE READ IN
+        DO IB = 1, MYNBLK
+            m => blocks(IB)%mesh
+
+            ! ALLOCATE MESH INFORMATION
+                ! ADD EXTRA INDEX AT BEGINNING AND END FOR GHOST NODES
+            ALLOCATE( m%xp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%yp(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%x(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%y(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%T(   0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ttmp(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%dt(  0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%V2nd(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%term(0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ayi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Axi( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Ayj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%Axj( 0:IMAXBLK+1,   0:JMAXBLK+1) )
+            ALLOCATE( m%V(   0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%yPP( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%yNP( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%yNN( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%yPN( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%xNN( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%xPN( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%xPP( 0:IMAXBLK,     0:JMAXBLK  ) )
+            ALLOCATE( m%xNP( 0:IMAXBLK,     0:JMAXBLK  ) )
+        END DO
+
         ! HEADER
         READ(BLKFILE, *)
         DO IB = 1, MYNBLK
@@ -174,15 +208,16 @@ MODULE IO
             ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
             ! NORTH EAST SOUTH WEST
             READ(BLKFILE, 22) b%ID, b%IMIN, b%JMIN, b%SIZE, &
-                               b%NB%N,  b%NP%N,  b%NBLOC%N, &
-                               b%NB%S,  b%NP%S,  b%NBLOC%S, &
-                               b%NB%E,  b%NP%E,  b%NBLOC%E, &
-                               b%NB%W,  b%NP%W,  b%NBLOC%W, &
-                               b%NB%NE, b%NP%NE, b%NBLOC%NE, &
-                               b%NB%SE, b%NP%SE, b%NBLOC%SE, &
-                               b%NB%SW, b%NP%SW, b%NBLOC%SW, &
-                               b%NB%NW, b%NP%NW, b%NBLOC%NW, &
-                               b%ORIENT
+                              b%IMINLOC, b%IMAXLOC, b%JMINLOC, b%JMAXLOC, &
+                              b%NB%N,  b%NP%N,  b%NBLOC%N, &
+                              b%NB%S,  b%NP%S,  b%NBLOC%S, &
+                              b%NB%E,  b%NP%E,  b%NBLOC%E, &
+                              b%NB%W,  b%NP%W,  b%NBLOC%W, &
+                              b%NB%NE, b%NP%NE, b%NBLOC%NE, &
+                              b%NB%SE, b%NP%SE, b%NBLOC%SE, &
+                              b%NB%SW, b%NP%SW, b%NBLOC%SW, &
+                              b%NB%NW, b%NP%NW, b%NBLOC%NW, &
+                              b%ORIENT
         END DO
         CLOSE(BLKFILE)
 
@@ -199,7 +234,7 @@ MODULE IO
         END IF
         xfile = "p" // procname // ".grid"
         qfile = "p" // procname // ".T"
-        CALL plot3D(blocks, MYNBLK, xfile, qfile)
+        CALL readPlot3D(blocks, xfile, qfile)
     END SUBROUTINE read_config
 
 
@@ -296,6 +331,7 @@ MODULE IO
         TYPE(BLKTYPE) :: blocks(:)
         INTEGER :: IBLK, I, J, NBLKS
         INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+        REAL(KIND=8) :: dum1, dum2, dum3, dum4
         ! OUTPUT FILES (without file exension)
         CHARACTER(20) :: xfile, qfile
 
@@ -319,22 +355,22 @@ MODULE IO
         ! READ GRID FILE
         READ(gridUnit, 10) NBLKREAD
         READ(gridUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
-        DO IBLK = 1, NBLKS
-            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
-                               ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD)
+        DO IBLK = 1, NBLKREAD
+            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                               ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
         END DO
-
 
         ! READ TEMPERATURE FILE
         READ(tempUnit, 10) NBLKREAD
         READ(tempUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
         DO IBLK = 1, NBLKREAD
 
-            READ(tempUnit, 30) tRef,dum,dum,dum
-            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD)
+!             READ(tempUnit, 30) tRef,dum,dum,dum
+            READ(tempUnit, 30) dum1, dum2, dum3, dum4
+            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
         END DO
 
         ! CLOSE FILES

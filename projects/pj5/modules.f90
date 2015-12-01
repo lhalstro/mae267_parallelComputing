@@ -1133,7 +1133,7 @@ CONTAINS
         NULLIFY(nbrlists%SE)
         NULLIFY(nbrlists%SW)
 
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             NB => blocks(IBLK)%NB
 
             ! NORTH
@@ -1269,7 +1269,7 @@ CONTAINS
         INTEGER :: I, J, INBR
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        write(*,*) "north ghosts ", MYID
         ! NORTH FACE GHOST NODES
         nbrl%N => nbrlists%N
         ! Step through linked list of north faces with ghosts until end of list
@@ -1278,6 +1278,9 @@ CONTAINS
             IF ( .NOT. ASSOCIATED(nbrl%N) ) EXIT
 
             ! Otherwise, assign neighbor values to all ghost nodes:
+
+
+
 
             ! TEMPERATURE OF CURRENT BLOCK (CONTAINS GHOST NODES)
                 ! (identified by linked list id)
@@ -1289,15 +1292,17 @@ CONTAINS
             Tnb => b( INBR )%mesh%T
 
             DO I = 1, IMAXBLK
+                write(*,*) "in north loop ", I
                 ! NORTH FACE GHOST NODE TEMPERATURE IS EQUAL TO TEMPERATURE OF
                 ! SECOND-FROM-SOUTH FACE OF NORTH NEIGHBOR
                 ! (Remember face nodes are shared between blocks)
                 Tgh(I, JMAXBLK+1) = Tnb(I, 2)
+                write(*,*) "end north loop ", I
             END DO
             ! switch pointer to next link in list
             nbrl%N => nbrl%N%next
         END DO
-
+        write(*,*) "south ghosts ", MYID
         ! SOUTH FACE GHOST NODES
         nbrl%S => nbrlists%S
         DO
@@ -1407,7 +1412,7 @@ CONTAINS
         INTEGER :: I, J, INBR, IBLK
 
 
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             NB => b(iblk)%NB
 
 
@@ -1513,7 +1518,7 @@ CONTAINS
         ! x and y first-derivatives for center of each cell (Green's thm)
         REAL(KIND=8) :: Ayi_half, Axi_half, Ayj_half, Axj_half
 
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             m => blocks(IBLK)%mesh
 
             DO J = 0, JMAXBLK
@@ -1579,7 +1584,7 @@ CONTAINS
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(MESHTYPE), POINTER :: m
         INTEGER :: IBLK, I, J
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             m => blocks(IBLK)%mesh
             DO J = 0, JMAXBLK + 1
                 DO I = 0, IMAXBLK + 1
@@ -1616,7 +1621,7 @@ CONTAINS
         REAL(KIND=8) :: dTdx, dTdy
         INTEGER :: IBLK, I, J
 
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             m => b(IBLK)%mesh
 
             ! RESET SUMMATION

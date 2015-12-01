@@ -35,7 +35,11 @@ MODULE subroutines
     ! SOLUTION BLOCKS
     ! (initialized individually for each parallel processor,
     !   holds specific blocks distributed to each specific processor)
-    TYPE(BLKTYPE) :: blocks(:)
+    TYPE(BLKTYPE), POINTER :: blocks(:)
+    ! LINKED LISTS STORING NEIGHBOR INFO
+    TYPE(NBRLIST) :: nbrlists
+    ! neighbors on other processors
+    TYPE(NBRLIST) :: mpilists
 
 CONTAINS
     SUBROUTINE init_gridsystem(blocks, procs)
@@ -46,6 +50,10 @@ CONTAINS
 
         ! INITIALIZE BLOCKS
         CALL init_blocks(blocks)
+
+        ! CALC LOCAL BOUNDARIES OF CELLS
+        CALL set_block_bounds(blocks)
+
         ! INITIALIZE MESH
         CALL init_mesh(blocks)
         ! INITIALIZE TEMPERATURE WITH DIRICHLET B.C.
@@ -56,6 +64,7 @@ CONTAINS
         ! DETERMIN NEIGHBOR PROCESSOR INFORMATION
         CALL init_neighbor_procs(blocks, procs)
 
+
         ! WRITE BLOCK CONNECTIVITY FILE
         CALL write_config(procs)
 
@@ -65,36 +74,32 @@ CONTAINS
         ! Read initial conditions from restart files.  Then calculate parameters
         ! used in solution
 
-        TYPE(BLKTYPE)  :: blocks(:)
+        TYPE(BLKTYPE), POINTER  :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists
 
+        write(*,*) "read config", MYID
         ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
         CALL read_config(blocks)
 
-        ! READ GRID AND INITIAL TEMPERATURE FROM PLOT3D RESTART FILE
-        CALL readPlot3D(blocks)
-
-
-        ! CALC LOCAL BOUNDARIES OF CELLS
-        write(*,*) 'set local bounds'
-        CALL set_block_bounds(blocks)
-
-
+!         ! CALC LOCAL BOUNDARIES OF CELLS
+!         write(*,*) 'set local bounds', MYID
+!         CALL set_block_bounds(blocks)
 
         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
-        write(*,*) 'make linked lists'
+        write(*,*) 'make linked lists', MYID
         CALL init_linklists(blocks, nbrlists)
         ! POPULATE BLOCK GHOST NODES
-        write(*,*) 'update ghosts'
+        write(*,*) 'update ghosts', MYID
         CALL update_ghosts(blocks, nbrlists)
 
 !         CALL update_ghosts_debug(blocks)
 
         ! CALC AREAS FOR SECONDARY FLUXES
-        write(*,*) 'calc solution stuff'
+        write(*,*) 'calc solution stuff', MYID
         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
+        write(*,*) 'calc more solution stuff', MYID
         CALL calc_constants(blocks)
 
     END SUBROUTINE init_solution
