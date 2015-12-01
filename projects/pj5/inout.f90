@@ -239,10 +239,13 @@ MODULE IO
 
 
     SUBROUTINE plot3D(blocks, NBLKS, xfile, qfile)
+        ! write plt 2d file given blocks, number of blocks,
+        ! x and q file names (no file extension), and the bounds for writing
+        ! (0 for real grid, 1 to include ghosts)
         IMPLICIT NONE
 
         TYPE(BLKTYPE) :: blocks(:)
-        INTEGER :: IBLK, I, J, NBLKS
+        INTEGER :: IBLK, I, J, NBLKS, bound = 1
         ! OUTPUT FILES (without file exension)
         CHARACTER(20) :: xfile, qfile
 
@@ -268,8 +271,8 @@ MODULE IO
         WRITE(gridUnit, 20) ( IMAXBLK, JMAXBLK, IBLK=1, NBLKS)
 !         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
         DO IBLK = 1, NBLKS
-            WRITE(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+            WRITE(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                                ( (blocks(IBLK)%mesh%y(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound)
         END DO
 
 
@@ -280,10 +283,10 @@ MODULE IO
         DO IBLK = 1, NBLKS
 
             WRITE(tempUnit, 30) tRef,dum,dum,dum
-            WRITE(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+            WRITE(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                                ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound)
         END DO
 
         ! CLOSE FILES
@@ -330,7 +333,7 @@ MODULE IO
 
         TYPE(BLKTYPE) :: blocks(:)
         INTEGER :: IBLK, I, J, NBLKS
-        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD, bound = 1
         REAL(KIND=8) :: dum1, dum2, dum3, dum4
         ! OUTPUT FILES (without file exension)
         CHARACTER(20) :: xfile, qfile
@@ -356,8 +359,8 @@ MODULE IO
         READ(gridUnit, 10) NBLKREAD
         READ(gridUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
         DO IBLK = 1, NBLKREAD
-            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                               ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                               ( (blocks(IBLK)%mesh%y(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound)
         END DO
 
         ! READ TEMPERATURE FILE
@@ -367,10 +370,10 @@ MODULE IO
 
 !             READ(tempUnit, 30) tRef,dum,dum,dum
             READ(tempUnit, 30) dum1, dum2, dum3, dum4
-            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1-bound,IMAXBLK+bound), J=1-bound,JMAXBLK+bound)
         END DO
 
         ! CLOSE FILES
@@ -437,6 +440,53 @@ MODULE IO
 !         CLOSE(tempUnit)
 !     END SUBROUTINE readPlot3D
 
+    SUBROUTINE compositePlot3D()
+        type(blktype), ALLOCATABLE :: blocks(:)
+        type(proctype), target :: procs(nprocs)
+        type(proctype), pointer :: p
+        CHARACTER(2) :: procname
+        CHARACTER(20) :: xfile, qfile
+
+        integer :: procsort(NBLK), IDsSort(NBLK), I, ii
+        allocate(blocks(NBLK))
+        ! read block amalgamation file
+        OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
+        read(55,*)
+        do I = 1, NBLK
+            read(55,*) Ii, procsort(I), IDsSort(I)
+        end do
+        CLOSE(55)
+
+        OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
+
+        do i = 1, NPROCs
+            p => procs(I)
+            READ(65,*) p%NBLK
+            allocate(p%blocks(p%NBLK))
+
+            IF (p%ID<10) THEN
+                ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+                WRITE(procname, '(A,I1)') '0', p%ID
+            ELSE
+                WRITE(procname, '(I2)') p%ID
+            END IF
+            xfile = "p" // procname // ".grid"
+            qfile = "p" // procname // ".T"
+            call readplot3d(p%blocks, xfile, qfile)
+
+        end do
+        CLOSE(65)
+
+        do i = 1, nblk
+            blocks(I) = procs( procsort(i) )%blocks( idsSort(i) )
+        end do
+
+
+        call plot3d(blocks, nblk, 'grid', 'T')
+
+
+
+    END SUBROUTINE compositePlot3D
 
 
     SUBROUTINE write_res(res_hist)

@@ -126,8 +126,13 @@ PROGRAM heatTrans
 
 !     ! SAVE RESIDUAL HISTORY
 !     CALL write_res(res_hist)
-!     ! SAVE SOLVER PERFORMANCE PARAMETERS
+    ! SAVE SOLVER PERFORMANCE PARAMETERS
 !     CALL output(blocks, iter)
+
+
+    if (myid == 0) then
+        call compositePlot3D()
+    end if
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -159,4 +164,5 @@ PROGRAM heatTrans
     WRITE(*,*) 'Done!'
 
     CALL MPI_Finalize(ierror)
+
 END PROGRAM heatTrans

@@ -104,7 +104,7 @@ MODULE CONSTANTS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 1000000
+    INTEGER :: max_iter = 100000
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)
@@ -553,6 +553,7 @@ CONTAINS
             ! initial list is all zeros
         ! 'IMAXSIZE' is index of remaining block with greatest size
         INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE, IMINLOAD
+        INTEGER :: locIDs(NBLK), proclist(NBLK), idsSort(Nblk), procSort(NBLK)
 
         ! INITIALIZE LISTS
         DO I = 1, NBLK
@@ -732,6 +733,9 @@ CONTAINS
             END DO
             ! write block processor assignment
             write(*,*) b%ID, procs(IMINLOAD)%ID
+            proclist(I) = procs(IMINLOAD)%ID
+            locIDs(I) = procs(IMINLOAD)%NBLK+1
+
             ! ASSIGN BLOCK TO MIN. LOAD PROC
             CALL assign_block( b, procs(IMINLOAD) )
         END DO
@@ -748,6 +752,32 @@ CONTAINS
             WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
         END DO
         WRITE(*,*)
+
+
+
+        do Iblk = 1, Nblk
+            do i = 1, nblk
+                if (sorted(I) == IBLK) then
+                    idsSort(Iblk) = locIds(I)
+                    procSort(Iblk) = proclist(I)
+                end if
+            end do
+        end do
+
+
+        ! write block amalgamation file
+        OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
+        write(55,*) "block, processor, local id"
+        do I = 1, NBLK
+            write(55,*) I, procsort(I), IDsSort(I)
+        end do
+        CLOSE(55)
+
+        OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
+        do I = 1, NPRocs
+            write(65,*) procs(I)%NBLK
+        end do
+        CLOSE(65)
 
     END SUBROUTINE dist_blocks
 
@@ -1731,10 +1761,14 @@ CONTAINS
                         ! Thus, p cross q = px*qy - qx*py
                         ! where, px = x(i+1,j+1) - x(i,j), py = y(i+1,j+1) - y(i,j)
                         ! and    qx = x(i,j+1) - x(i+1,j), qy = y(i,j+1) - y(i+1,j)
-                    m%V(I,J) = ( m%x(I+1,J+1) - m%x(I,  J) ) &
-                             * ( m%y(I,  J+1) - m%y(I+1,J) ) &
-                             - ( m%x(I,  J+1) - m%x(I+1,J) ) &
-                             * ( m%y(I+1,J+1) - m%y(I,  J) )
+                    m%V(I,J) = ABS( ( m%x(I+1,J+1) - m%x(I,  J) ) &
+                                  * ( m%y(I,  J+1) - m%y(I+1,J) ) &
+                                  - ( m%x(I,  J+1) - m%x(I+1,J) ) &
+                                  * ( m%y(I+1,J+1) - m%y(I,  J) ) )
+                    if (m%V(I,j) == 0) then
+                        write(*,*) I, j
+                        write(*,*) m%x(I+1,J+1)
+                    end if
                 END DO
             END DO
 
@@ -1786,6 +1820,18 @@ CONTAINS
         TYPE(BLKTYPE), TARGET :: blocks(:)
         TYPE(MESHTYPE), POINTER :: m
         INTEGER :: IBLK, I, J
+
+        ! CALC PRIME GRID FOR TIME STEP
+        DO IBLK = 1, MYNBLK
+            m => blocks(IBLK)%mesh
+            DO J = 0, JMAXBLK + 1+1
+                DO I = 0, IMAXBLK + 1+1
+                    m%xp(I, J) = COS( 0.5D0 * PI * DFLOAT(IMAX - ( blocks(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
+                    m%yp(I, J) = COS( 0.5D0 * PI * DFLOAT(JMAX - ( blocks(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
+                END DO
+            END DO
+        END DO
+
         DO IBLK = 1, MYNBLK
             m => blocks(IBLK)%mesh
             DO J = 0, JMAXBLK + 1
@@ -1794,11 +1840,13 @@ CONTAINS
                     m%dt(I,J) = ((CFL * 0.5D0) / alpha) * m%V(I,J) ** 2 &
                                     / ( (m%xp(I+1,J) - m%xp(I,J))**2 &
                                       + (m%yp(I,J+1) - m%yp(I,J))**2 )
+!                     write(*,*) "dt ",m%dt(I,J)
                     ! CALC SECONDARY VOLUMES
                     ! (for rectangular mesh, just average volumes of the 4 cells
                     !  surrounding the point)
                     m%V2nd(I,J) = ( m%V(I,  J) + m%V(I-1,  J) &
                                   + m%V(I,J-1) + m%V(I-1,J-1) ) * 0.25D0
+
                     ! CALC CONSTANT TERM
                     ! (this term remains constant in the equation regardless of
                     !  iteration number, so only calculate once here,

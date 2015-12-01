@@ -1,10 +1,10 @@
 #INPUT FILE
 
 #Number of Gridpoints
-501
+101
 #N
 5
 #M
 4
 #DEBUG=1
-0
+1

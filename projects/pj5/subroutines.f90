@@ -149,11 +149,11 @@ CONTAINS
                     resmax = resloc
                 END IF
             END DO
-            write(*,*) "before mpiallreduce:", resmax
+!             write(*,*) "before mpiallreduce:", MYID, resmax
             ! FINAL MAX RESIDUAL (FOR ALL PROCESSORS)
             CALL MPI_ALLREDUCE(resmax, res, 1, MPI_REAL8, MPI_MAX, &
                                     MPI_COMM_WORLD, IERROR)
-            write(*,*) "after mpiallreduce:", res
+!             write(*,*) "after mpiallreduce:", MYID, res
 
             ! SWITCH TO NEXT LINK
                 ! (skip first entry)
@@ -203,7 +203,7 @@ CONTAINS
 
         ! CALC RESIDUAL
         resmax = 0.D0
-        DO IBLK = 1, NBLK
+        DO IBLK = 1, MYNBLK
             ! Find max of each block
             resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
             ! keep biggest residual
@@ -233,19 +233,21 @@ CONTAINS
         WRITE (*,*), "residual ij", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
 
         ! Write to file
-!         OPEN (UNIT = 2, FILE = TRIM(casedir) // "SolnInfo.dat")
-        OPEN (UNIT = 2, FILE = "SolnInfo.dat")
-        WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
-        WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
-        WRITE (2,*), iter, "iterations"
-        WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
-        WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
-!         WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
-        WRITE (2,*)
-        WRITE (2,*), "Found max residual of ", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
-        WRITE (2,*), "on block id", IRES
-        WRITE (2,*), "At ij of ", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
-        CLOSE (2)
+        IF (MYID == 0) THEN
+    !         OPEN (UNIT = 2, FILE = TRIM(casedir) // "SolnInfo.dat")
+            OPEN (UNIT = 2, FILE = "SolnInfo.dat")
+            WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
+            WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
+            WRITE (2,*), iter, "iterations"
+!             WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
+            WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
+    !         WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
+            WRITE (2,*)
+            WRITE (2,*), "Found max residual of ", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+            WRITE (2,*), "on block id", IRES
+            WRITE (2,*), "At ij of ", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+            CLOSE (2)
+        END IF
     END SUBROUTINE output
 
 
