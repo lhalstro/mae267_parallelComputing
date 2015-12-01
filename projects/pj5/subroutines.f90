@@ -70,21 +70,17 @@ CONTAINS
 
     END SUBROUTINE init_gridsystem
 
-    SUBROUTINE init_solution(blocks, nbrlists)
+    SUBROUTINE init_solution(blocks, nbrlists, mpilists)
         ! Read initial conditions from restart files.  Then calculate parameters
         ! used in solution
 
         TYPE(BLKTYPE), POINTER  :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
-        TYPE(NBRLIST) :: nbrlists
+        TYPE(NBRLIST) :: nbrlists, mpilists
 
         write(*,*) "read config", MYID
         ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
         CALL read_config(blocks)
-
-!         ! CALC LOCAL BOUNDARIES OF CELLS
-!         write(*,*) 'set local bounds', MYID
-!         CALL set_block_bounds(blocks)
 
         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
         write(*,*) 'make linked lists', MYID
@@ -92,43 +88,40 @@ CONTAINS
         ! POPULATE BLOCK GHOST NODES
         write(*,*) 'update ghosts', MYID
         CALL update_ghosts_sameproc(blocks, nbrlists)
-        write(*,*) 'send mpi ghosts', MYID
         CALL update_ghosts_diffproc_send(blocks, mpilists)
-        write(*,*) 'recieve mpi ghosts', MYID
         CALL update_ghosts_diffproc_recv(blocks, mpilists)
-
-!         CALL update_ghosts_debug(blocks)
 
         ! CALC AREAS FOR SECONDARY FLUXES
         write(*,*) 'calc solution stuff', MYID
         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
-        write(*,*) 'calc more solution stuff', MYID
         CALL calc_constants(blocks)
 
     END SUBROUTINE init_solution
 
 
-    SUBROUTINE solve(blocks, nbrlists, iter, res_hist)
+    SUBROUTINE solve(blocks, nbrlists, mpilists, iter, res_hist)
         ! Solve heat conduction equation with finite volume scheme
         ! (within iteration loop)
 
         TYPE(BLKTYPE) :: blocks(:)
         ! LINKED LISTS STORING NEIGHBOR INFO
-        TYPE(NBRLIST) :: nbrlists
+        TYPE(NBRLIST) :: nbrlists, mpilists
         ! Residual history linked list
         TYPE(RESLIST), POINTER :: res_hist
         ! pointer to iterate linked list
         TYPE(RESLIST), POINTER :: hist
         ! Minimum residual criteria for iteration, actual residual
-        REAL(KIND=8) :: res = 1000.D0, resloc, resmax
+        REAL(KIND=8) :: res = 1000.D0, resloc=0.D0, resmax=0.D0
         ! iter in function inputs so it can be returned to main
         INTEGER :: iter, IBLK, IBLKRES
 
-        INCLUDE "mpif.h"
+
         REAL(KIND=8) :: start_solve, end_solve
-        WRITE(*,*) 'Starting clock for solver...'
-        start_solve = MPI_Wtime()
+        IF (MYID == 0) THEN
+            ! START SOLVER CLOCK
+            start_solve = MPI_Wtime()
+        END IF
 
         ! residual history
         ALLOCATE(res_hist)
@@ -145,20 +138,22 @@ CONTAINS
             CALL update_ghosts_sameproc(blocks, nbrlists)
             CALL update_ghosts_diffproc_send(blocks, mpilists)
             CALL update_ghosts_diffproc_recv(blocks, mpilists)
-!             CALL update_ghosts_debug(blocks)
 
-            ! CALC RESIDUAL
+            ! CALC RESIDUAL FOR LOCAL BLOCKS
             resmax = 0.D0
-            DO IBLK = 1, NBLK
+            DO IBLK = 1, MYNBLK
                 ! Find max of each block
                 resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
                 ! keep biggest residual
-                IF (resmax < resloc) THEN
+                IF (resloc > resmax) THEN
                     resmax = resloc
                 END IF
             END DO
-            ! FINAL RESIDUAL
-            res = resmax
+            write(*,*) "before mpiallreduce:", resmax
+            ! FINAL MAX RESIDUAL (FOR ALL PROCESSORS)
+            CALL MPI_ALLREDUCE(resmax, res, 1, MPI_REAL8, MPI_MAX, &
+                                    MPI_COMM_WORLD, IERROR)
+            write(*,*) "after mpiallreduce:", res
 
             ! SWITCH TO NEXT LINK
                 ! (skip first entry)
@@ -175,12 +170,17 @@ CONTAINS
 
         END DO iter_loop
 
+        ! HOLD UNTIL ALL PROCESSORS HAVE FINISHED ITERATION LOOP
+        CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
+
         ! there was an extra increment after final iteration we need to subtract
         iter = iter - 1
 
-        ! CACL SOLVER WALL CLOCK TIME
-        end_solve = MPI_Wtime()
-        wall_time_solve = end_solve - start_solve
+        IF (MYID == 0) THEN
+            ! CALC SOLVER WALL CLOCK TIME
+            end_solve = MPI_Wtime()
+            wall_time_solve = end_solve - start_solve
+        END IF
 
         IF (iter > max_iter) THEN
           WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'

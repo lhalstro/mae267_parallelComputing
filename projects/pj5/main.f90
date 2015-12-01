@@ -36,11 +36,13 @@ PROGRAM heatTrans
 
     ! PROCESSORS
     TYPE(PROCTYPE), ALLOCATABLE :: procs(:)
+    CHARACTER(2) :: procname
+    CHARACTER(20) :: xfile, qfile
     ! ITERATION PARAMETERS
     ! Residual history linked list
     TYPE(RESLIST), POINTER :: res_hist
     ! Maximum number of iterations
-    INTEGER :: iter = 1, IBLK
+    INTEGER :: iter = 1, IBLK, IP
     REAL(KIND=8) :: start_total, end_total
     REAL(KIND=8) :: start_solve, end_solve
     ! CLOCK TOTAL TIME OF RUN
@@ -91,11 +93,11 @@ PROGRAM heatTrans
 
     ! INITIALIZE SOLUTION
     write(*,*) "Initialize for proc ", MYID
-    CALL init_solution(blocks, nbrlists)
+    CALL init_solution(blocks, nbrlists, mpilists)
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
-!     ! SOLVE
-!     WRITE(*,*) 'Solving heat conduction...'
-!     CALL solve(blocks, nbrlists, iter, res_hist)
+    ! SOLVE
+    WRITE(*,*) 'Solving heat conduction with Processor ', MYID
+    CALL solve(blocks, nbrlists, mpilists, iter, res_hist)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SAVE RESULTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -105,8 +107,17 @@ PROGRAM heatTrans
 
     !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!     ! SAVE SOLUTION AS PLOT3D FILES
-!     CALL plot3D(blocks)
+    ! SAVE SOLUTION AS PLOT3D FILES
+        ! MAKE FILE NAME
+        IF (MYID<10) THEN
+            ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+            WRITE(procname, '(A,I1)') '0', MYID
+        ELSE
+            WRITE(procname, '(I2)') MYID
+        END IF
+        xfile = "p" // procname // ".grid"
+        qfile = "p" // procname // ".T"
+        CALL plot3D(blocks, MYNBLK, xfile, qfile)
     ! CALC TOTAL WALL TIME
 !     end_total = MPI_Wtime()
 !     wall_time_total = end_total - start_total
