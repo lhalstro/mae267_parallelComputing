@@ -1571,11 +1571,156 @@ CONTAINS
             tag = NBND + WBND * 10
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
-
             mpil%NW => mpil%NW%next
         END DO
 
     END SUBROUTINE update_ghosts_diffproc_send
+
+    SUBROUTINE update_ghosts_diffproc_recv(blocks, mpilists)
+        ! Recieve information on different processors to update current ghosts.
+        ! store in buffers and send via MPI.  Buffers will be MPI recieved
+        ! and distributed to corresponding blocks
+
+        ! BLOCK DATA TYPE
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: b(:)
+        ! temperature information pointers for ghost and neighbor nodes
+        REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
+        ! buffers to store temperature information for I/J faces, and corners
+        REAL(KIND=8) :: bufferI(IMAXBLK), bufferJ(JMAXBLK), buffer
+        ! Linked lists of neighbor communication instructions
+        TYPE(NBRLIST) :: mpilists
+        TYPE(NBRLIST) :: mpil
+        ! iteration parameters, index of neighbor, communication tag, source proc id
+        INTEGER :: I, J, INBR, tag, src
+
+        !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! NORTH FACE GHOST NODES
+        mpil%N => mpilists%N
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
+
+            ! CURRENT BLOCK
+            b => blocks( nbrl%N%ID )
+            ! SOURCE PROCESSOR ID
+            src = b%NP%N
+            ! GET INFO FROM SOURCE PROCESSOR
+            CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+
+            ! ASSIGN GHOST INFORMATION
+            DO I = 1, IMAXBLK
+                b%mesh%T(I, JMAXBLK+1) =  bufferI(I)
+            END DO
+
+            mpil%N => mpil%N%next
+        END DO
+
+        ! SOUTH FACE GHOST NODES
+        mpil%S => mpilists%S
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%S) ) EXIT
+
+            b => blocks( nbrl%S%ID )
+            src = b%NP%S
+            CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            DO I = 1, IMAXBLK
+                b%mesh%T(I, 0) =  bufferI(I)
+            END DO
+
+            mpil%S => mpil%S%next
+        END DO
+
+        ! EAST FACE GHOST NODES
+        mpil%E => mpilists%E
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
+
+            b => blocks( nbrl%E%ID )
+            src = b%NP%E
+            CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            DO J = 1, JMAXBLK
+                 b%mesh%T(IMAXBLK+1, J) = bufferJ(J)
+            END DO
+
+            mpil%E => mpil%E%next
+        END DO
+
+        ! WEST FACE GHOST NODES
+        mpil%W => mpilists%W
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%W) ) EXIT
+
+            b => blocks( nbrl%W%ID )
+            src = b%NP%W
+            CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            DO J = 1, JMAXBLK
+                b%mesh%T(0, J) = bufferJ(J)
+            END DO
+
+            mpil%W => mpil%W%next
+        END DO
+
+        ! NORTH EAST CORNER GHOST NODES
+        mpil%NE => mpilists%NE
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%NE) ) EXIT
+
+            b => blocks( nbrl%NE%ID )
+            src = b%NP%NE
+            CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            b%mesh%T(IMAXBLK+1, JMAXBLK+1)= buffer
+
+            mpil%NE => mpil%NE%next
+        END DO
+
+        ! SOUTH EAST CORNER GHOST NODES
+        mpil%SE => mpilists%SE
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%SE) ) EXIT
+
+            b => blocks( nbrl%SE%ID )
+            src = b%NP%SE
+            CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            b%mesh%T(IMAXBLK+1, 0) = buffer
+
+            mpil%SE => mpil%SE%next
+        END DO
+
+        ! SOUTH WEST CORNER GHOST NODES
+        mpil%SW => mpilists%SW
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%SW) ) EXIT
+
+            b => blocks( nbrl%SW%ID )
+            src = b%NP%SW
+            CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            b%mesh%T(0, 0) = buffer
+
+            mpil%SW => mpil%SW%next
+        END DO
+
+        ! NORTH WEST CORNER GHOST NODES
+        mpil%NW => mpilists%NW
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%NW) ) EXIT
+
+            b => blocks( nbrl%NW%ID )
+            src = b%NP%NW
+            CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
+                MPI_COMM_WORLD, STATUS, IERROR)
+            b%mesh%T(0, JMAXBLK+1) = buffer
+
+            mpil%NW => mpil%NW%next
+        END DO
+
+    END SUBROUTINE update_ghosts_diffproc_recv
 
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes and constant terms in heat
