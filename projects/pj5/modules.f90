@@ -114,7 +114,7 @@ MODULE CONSTANTS
     ! Block boundary condition identifiers
         ! If block face is on North,east,south,west of main grid, identify
         ! If boundary is on a different proc, multiply bnd type by proc boundary
-    INTEGER :: NBND = -1, EBND = -2, SBND = -3, WBND = -4, BND=0, PROCBND = -1
+    INTEGER :: NBND = 1, EBND = 2, SBND = 3, WBND = 4, BND=0, PROCBND = -1
     ! Output directory
     CHARACTER(LEN=18) :: casedir
     ! Debug mode = 1
@@ -1144,24 +1144,31 @@ CONTAINS
 
     END SUBROUTINE make_link
 
-    SUBROUTINE link_type((NB, list, nbrl, ID)
+    SUBROUTINE link_type(NB, list, nbrl, mpi, mpil, ID)
         ! make a single link in a linked list for a neighbor either on same
         ! processor or different processor
         ! NB --> neighbor information (i.e. NB%N)
         ! list --> the neighbor linked list (i.e. nbrlists%N)
         ! nbrl --> pointer for neighbor linked list (i.e. nbrl%N)
         !           needs to be stored throughout the loop
+        ! mpi, mpil --> same as list/nbrl but for faces on other procs
         ! ID --> the block id to assign
 
         ! Neighbor information pointer
         INTEGER :: NB, ID
         ! Linked lists of neighbor communication instructions
-        TYPE(LNKLIST), POINTER :: list
-        TYPE(LNKLIST), POINTER :: nbrl
+        TYPE(LNKLIST), POINTER :: list, nbrl, list, nbrl
 
-
-
-
+        ! If block face is internal, add it to appropriate linked list
+        ! for internal faces of a certian face (i.e. north).
+        IF (NB > 0) THEN
+            ! NEIGHBOR IS ON SAME PROCESSOR
+            CALL make_link(NB, nbrlists, nbrl, IBLK)
+        ELSE IF (NB < 0) THEN
+            ! NEIGHBOR IS ON DIFFERENT PROCESSOR
+            CALL make_link(NB, mpi, mpil, IBLK)
+        END IF
+    END SUBROUTINE link_type
 
 
     SUBROUTINE init_linklists(blocks, nbrlists, mpilists)
@@ -1203,112 +1210,67 @@ CONTAINS
             NB => blocks(IBLK)%NB
 
             ! NORTH
-
-            ! NEIGHBOR IS ON SAME PROCESSOR
-            ! If block north face is internal, add it to appropriate linked list
-            ! for north internal faces.
-            IF (NB%N > 0) THEN
-                CALL make_link(NB%N, nbrlists%N, nbrl%N, IBLK)
-            ! NEIGHBOR IS ON DIFFERENT PROCESSOR
-            ELSE IF (NB%N < 0) THEN
-                CALL make_link(NB%N, mpilists%N, mpil%N, IBLK)
-            END IF
-
+            CALL link_type(     NB%N, &
+                           nbrlist%N, &
+                              nbrl%N, &
+                           mpilist%N, &
+                              mpil%N, &
+                           IBLK)
             ! SOUTH
-            IF (NB%S > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%S) ) THEN
-                    ALLOCATE(nbrlists%S)
-                    nbrl%S => nbrlists%S
-                ELSE
-                    ALLOCATE(nbrl%S%next)
-                    nbrl%S => nbrl%S%next
-                END IF
-                nbrl%S%ID = IBLK
-                NULLIFY(nbrl%S%next)
-            END IF
-
+            CALL link_type(     NB%S, &
+                           nbrlist%S, &
+                              nbrl%S, &
+                           mpilist%S, &
+                              mpil%S, &
+                           IBLK)
             ! EAST
-            IF (NB%E > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%E) ) THEN
-                    ALLOCATE(nbrlists%E)
-                    nbrl%E => nbrlists%E
-                ELSE
-                    ALLOCATE(nbrl%E%next)
-                    nbrl%E => nbrl%E%next
-                END IF
-                nbrl%E%ID = IBLK
-                NULLIFY(nbrl%E%next)
-            END IF
-
+            CALL link_type(     NB%E, &
+                           nbrlist%E, &
+                              nbrl%E, &
+                           mpilist%E, &
+                              mpil%E, &
+                           IBLK)
             ! WEST
-            IF (NB%W > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%W) ) THEN
-                    ALLOCATE(nbrlists%W)
-                    nbrl%W => nbrlists%W
-                ELSE
-                    ALLOCATE(nbrl%W%next)
-                    nbrl%W => nbrl%W%next
-                END IF
-                nbrl%W%ID = IBLK
-                NULLIFY(nbrl%W%next)
-            END IF
-
+            CALL link_type(     NB%W, &
+                           nbrlist%W, &
+                              nbrl%W, &
+                           mpilist%W, &
+                              mpil%W, &
+                           IBLK)
             ! NORTH EAST
-            IF (NB%NE > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%NE) ) THEN
-                    ALLOCATE(nbrlists%NE)
-                    nbrl%NE => nbrlists%NE
-                ELSE
-                    ALLOCATE(nbrl%NE%next)
-                    nbrl%NE => nbrl%NE%next
-                END IF
-                nbrl%NE%ID = IBLK
-                NULLIFY(nbrl%NE%next)
-            END IF
-
+            CALL link_type(     NB%NE, &
+                           nbrlist%NE, &
+                              nbrl%NE, &
+                           mpilist%NE, &
+                              mpil%NE, &
+                           IBLK)
             ! SOUTH EAST
-            IF (NB%SE > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%SE) ) THEN
-                    ALLOCATE(nbrlists%SE)
-                    nbrl%SE => nbrlists%SE
-                ELSE
-                    ALLOCATE(nbrl%SE%next)
-                    nbrl%SE => nbrl%SE%next
-                END IF
-                nbrl%SE%ID = IBLK
-                NULLIFY(nbrl%SE%next)
-            END IF
-
+            CALL link_type(     NB%SE, &
+                           nbrlist%SE, &
+                              nbrl%SE, &
+                           mpilist%SE, &
+                              mpil%SE, &
+                           IBLK)
             ! SOUTH WEST
-            IF (NB%SW > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%SW) ) THEN
-                    ALLOCATE(nbrlists%SW)
-                    nbrl%SW => nbrlists%SW
-                ELSE
-                    ALLOCATE(nbrl%SW%next)
-                    nbrl%SW => nbrl%SW%next
-                END IF
-                nbrl%SW%ID = IBLK
-                NULLIFY(nbrl%SW%next)
-            END IF
-
+            CALL link_type(     NB%SW, &
+                           nbrlist%SW, &
+                              nbrl%SW, &
+                           mpilist%SW, &
+                              mpil%SW, &
+                           IBLK)
             ! NORTH WEST
-            IF (NB%NW > 0) THEN
-                IF ( .NOT. ASSOCIATED(nbrlists%NW) ) THEN
-                    ALLOCATE(nbrlists%NW)
-                    nbrl%NW => nbrlists%NW
-                ELSE
-                    ALLOCATE(nbrl%NW%next)
-                    nbrl%NW => nbrl%NW%next
-                END IF
-                nbrl%NW%ID = IBLK
-                NULLIFY(nbrl%NW%next)
-            END IF
+            CALL link_type(     NB%NW, &
+                           nbrlist%NW, &
+                              nbrl%NW, &
+                           mpilist%NW, &
+                              mpil%NW, &
+                           IBLK)
         END DO
     END SUBROUTINE init_linklists
 
-    SUBROUTINE update_ghosts(b, nbrlists)
-        ! Update ghost nodes of each block based on neightbor linked lists.
+    SUBROUTINE update_ghosts_sameproc(b, nbrlists)
+        ! Update ghost nodes of each block based on neightbor linked list for
+        ! neighbors on same processor as current block.
         ! Ghost nodes contain solution from respective block face/corner
         ! neighbor for use in current block solution.
 
@@ -1332,9 +1294,6 @@ CONTAINS
             IF ( .NOT. ASSOCIATED(nbrl%N) ) EXIT
 
             ! Otherwise, assign neighbor values to all ghost nodes:
-
-
-
 
             ! TEMPERATURE OF CURRENT BLOCK (CONTAINS GHOST NODES)
                 ! (identified by linked list id)
@@ -1451,114 +1410,172 @@ CONTAINS
             Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
             nbrl%NW => nbrl%NW%next
         END DO
-    END SUBROUTINE update_ghosts
+    END SUBROUTINE update_ghosts_sameproc
 
-    SUBROUTINE update_ghosts_debug(b)
-        ! Update ghost nodes of each block using logical statements.
-        ! used to debug linked lists
+    SUBROUTINE update_ghosts_diffproc_send(blocks, mpilists)
+        ! Gather information on different processors to update current ghosts.
+        ! store in buffers and send via MPI.  Buffers will be MPI recieved
+        ! and distributed to corresponding blocks
 
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE), TARGET :: b(:)
-        TYPE(NBRTYPE), POINTER :: NB
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: b(:)
         ! temperature information pointers for ghost and neighbor nodes
         REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
-        ! iteration parameters, index of neighbor
-        INTEGER :: I, J, INBR, IBLK
+        ! buffers to store temperature information for I/J faces, and corners
+        REAL(KIND=8) :: bufferI(IMAXBLK), bufferJ(JMAXBLK), buffer
+        ! Linked lists of neighbor communication instructions
+        TYPE(NBRLIST) :: mpilists
+        TYPE(NBRLIST) :: mpil
+        ! iteration parameters, index of neighbor, communication tag, destination
+        INTEGER :: I, J, INBR, tag, dest
 
+        !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! NORTH FACE GHOST NODES
+        mpil%N => mpilists%N
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
 
-        DO IBLK = 1, MYNBLK
-            NB => b(iblk)%NB
+            ! CURRENT BLOCK
+            b => blocks( nbrl%N%ID )
+            ! SEND FACE INFORMATION FOR THIS BLOCK TO NEIGHBORS ON OTHER PROCS
+            DO I = 1, IMAXBLK
+                ! FILL BUFFER WITH TEMPERATURE FROM THIS BLOCK FOR GHOSTS OF OTHER BLOCK
+                ! (indexing is opposite from project 3 as we are now sending
+                ! ghost info to neighbor rather than recieving it from them here)
+                bufferI(I) = b%mesh%T(I, JMAXBLK-1)
+            END DO
 
+            ! FIND DESITNATION OF GHOST INFO (proc id of neighbor)
+            dest = b%NP%N
+            ! MAKE UNIQUE TAG
+            tag = NBND
+            ! SEND INFO TO NEIGHBOR PROC AND CONTINUE OPERATIONS WITHOUT CONFIRMATION
+            CALL MPI_Isend(bufferI, IMAXBLK, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
 
-            !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            IF ( NB%N > 0 ) THEN
-                ! TEMPERATURE OF CURRENT BLOCK (CONTAINS GHOST NODES)
-                Tgh => b( IBLK )%mesh%T
-                ! index of north neighbor
-                INBR = NB%N
-                ! TEMPERATURE OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
-                Tnb => b( INBR )%mesh%T
-
-                DO I = 1, IMAXBLK
-!                     Tgh(I, JMAXBLK+1) = Tnb(I, 2)
-                    b(iblk)%mesh%T(I, JMAXBLK+1) = b(NB%N)%mesh%T(I, 2)
-                END DO
-            END IF
-
-            !south
-            IF ( NB%S > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = NB%S
-                Tnb => b( INBR )%mesh%T
-
-                DO I = 1, IMAXBLK
-                    ! ADD NORTH FACE OF SOUTH NEIGHBOR TO CURRENT SOUTH FACE GHOSTS
-                    Tgh(I, 0) = Tnb(I, JMAXBLK-1)
-                END DO
-            END IF
-
-            !EAST
-            IF ( NB%E > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = NB%E
-                Tnb => b( INBR )%mesh%T
-                DO J = 1, JMAXBLK
-                    ! ADD WEST FACE OF EAST NEIGHBOR TO CURRENT WEST FACE GHOSTS
-                    Tgh(IMAXBLK+1, J) = Tnb(2, J)
-                END DO
-            END IF
-
-            ! WEST FACE GHOST NODES
-            IF ( NB%W > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = b( IBLK )%NB%W
-                Tnb => b( INBR )%mesh%T
-                DO J = 1, JMAXBLK
-                    ! ADD EAST FACE OF WEST NEIGHBOR TO CURRENT EAST FACE GHOSTS
-                    Tgh(0, J) = Tnb(IMAXBLK-1, J)
-                END DO
-            END IF
-
-            !!! CORNERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            ! NORTH EAST CORNER GHOST NODES
-            IF ( NB%NE > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = b( IBLK )%NB%NE
-                Tnb => b( INBR )%mesh%T
-                ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
-                Tgh(IMAXBLK+1, JMAXBLK+1) = Tnb(2, 2)
-            END IF
-
-            ! SOUTH EAST CORNER GHOST NODE
-            IF ( NB%SE > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = b( IBLK )%NB%SE
-                Tnb => b( INBR )%mesh%T
-                ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
-                Tgh(IMAXBLK+1, 0) = Tnb(2, JMAXBLK-1)
-            END IF
-
-            ! SOUTH WEST CORNER GHOST NODES
-            IF ( NB%SW > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = b( IBLK )%NB%SW
-                Tnb => b( INBR )%mesh%T
-                ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
-                Tgh(0, 0) = Tnb(IMAXBLK-1, JMAXBLK-1)
-            END IF
-
-            ! NORTH WEST CORNER GHOST NODES
-            IF ( NB%NW > 0 ) THEN
-                Tgh => b( IBLK )%mesh%T
-                INBR = b( IBLK )%NB%NW
-                Tnb => b( INBR )%mesh%T
-                ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
-                Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
-            END IF
+            mpil%N => mpil%N%next
         END DO
-    END SUBROUTINE update_ghosts_debug
+
+        ! SOUTH FACE GHOST NODES
+        mpil%S => mpilists%S
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%S) ) EXIT
+
+            b => blocks( nbrl%S%ID )
+            DO I = 1, IMAXBLK
+                bufferI(I) = b%mesh%T(I, 2)
+            END DO
+
+            dest = b%NP%S
+            tag = SBND
+            CALL MPI_Isend(bufferI, IMAXBLK, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%S => mpil%S%next
+        END DO
+
+        ! EAST FACE GHOST NODES
+        mpil%E => mpilists%E
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
+
+            b => blocks( nbrl%E%ID )
+            DO J = 1, JMAXBLK
+                bufferJ(J) = b%mesh%T(IMAXBLK-1, J)
+            END DO
+
+            dest = b%NP%E
+            tag = EBND
+            CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%E => mpil%E%next
+        END DO
+
+        ! WEST FACE GHOST NODES
+        mpil%W => mpilists%W
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%W) ) EXIT
+
+            b => blocks( nbrl%W%ID )
+            DO J = 1, JMAXBLK
+                bufferJ(J) = b%mesh%T(2, J)
+            END DO
+
+            dest = b%NP%W
+            tag = WBND
+            CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%W => mpil%W%next
+        END DO
+
+        ! NORTH EAST CORNER GHOST NODES
+        mpil%NE => mpilists%NE
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%NE) ) EXIT
+
+            b => blocks( nbrl%NE%ID )
+            buffer = b%mesh%T(IMAXBLK-1, JMAXBLK-1)
+
+            dest = b%NP%NE
+            tag = NBND + EBND * 10
+            CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%NE => mpil%NE%next
+        END DO
+
+        ! SOUTH EAST CORNER GHOST NODES
+        mpil%SE => mpilists%SE
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%SE) ) EXIT
+
+            b => blocks( nbrl%SE%ID )
+            buffer = b%mesh%T(IMAXBLK-1, 2)
+
+            dest = b%NP%SE
+            tag = SBND + EBND * 10
+            CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%SE => mpil%SE%next
+        END DO
+
+        ! SOUTH WEST CORNER GHOST NODES
+        mpil%SW => mpilists%SW
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%SW) ) EXIT
+
+            b => blocks( nbrl%SW%ID )
+            buffer = b%mesh%T(2, 2)
+
+            dest = b%NP%SW
+            tag = SBND + WBND * 10
+            CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%SW => mpil%SW%next
+        END DO
+
+        ! NORTH WEST CORNER GHOST NODES
+        mpil%NW => mpilists%NW
+        DO
+            IF ( .NOT. ASSOCIATED(mpil%NW) ) EXIT
+
+            b => blocks( nbrl%NW%ID )
+            buffer = b%mesh%T(2, JMAXBLK-1)
+
+            dest = b%NP%NW
+            tag = NBND + WBND * 10
+            CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
+                            MPI_COMM_WORLD, REQUEST, IERROR)
+
+            mpil%NW => mpil%NW%next
+        END DO
+
+    END SUBROUTINE update_ghosts_diffproc_send
 
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes and constant terms in heat
