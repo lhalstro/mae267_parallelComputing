@@ -62,9 +62,6 @@ PROGRAM heatTrans
     ! ARGUMENTS: COMM, NPROCS, IERROR
     CALL MPI_Comm_size(MPI_COMM_WORLD, NPROCS, IERROR)
 
-!     ! SET NPROCS MANUALLY NOW FOR DEBUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     NPROCS = 4
-
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! INITIALIZE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -73,8 +70,6 @@ PROGRAM heatTrans
     IF(MYID == 0) THEN
 
         write(*,*) 'initializing'
-
-
 
         ! READ INPUTS FROM FILE
         CALL read_input()

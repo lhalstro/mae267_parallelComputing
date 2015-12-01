@@ -32,6 +32,11 @@ MODULE subroutines
 
     IMPLICIT NONE
 
+    ! SOLUTION BLOCKS
+    ! (initialized individually for each parallel processor,
+    !   holds specific blocks distributed to each specific processor)
+    TYPE(BLKTYPE) :: blocks(:)
+
 CONTAINS
     SUBROUTINE init_gridsystem(blocks, procs)
         ! Initialize the solution with dirichlet B.C.s.  Save to restart files.
@@ -53,8 +58,6 @@ CONTAINS
 
         ! WRITE BLOCK CONNECTIVITY FILE
         CALL write_config(procs)
-!         ! WRITE GRID AND INITIAL TEMPERATURE TO PLOT3D RESTART FILES
-!         CALL plot3D(blocks)
 
     END SUBROUTINE init_gridsystem
 

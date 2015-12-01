@@ -123,61 +123,83 @@ MODULE IO
         END DO
     END SUBROUTINE write_config
 
-    SUBROUTINE read_config(b)
-        ! Read block connectivity file with neighbor and BC info
-        ! for each processor.
-        ! Also read PLOT3D restart files for each processor.
-
-!         TYPE(PROCTYPE), TARGET :: procs(:)
-!         TYPE(PROCTYPE), POINTER :: p
-!         ! BLOCK DATA TYPE
-!         TYPE(BLKTYPE), POINTER :: b
-!         INTEGER :: IP, IB, BLKFILE = 99
-!         CHARACTER(2) :: procname
-!         CHARACTER(20) :: xfile, qfile
-
-!         33 FORMAT(A)
-!         11 FORMAT( 3I7)
-!         22 FORMAT(33I7)
-!         44 FORMAT(33A7)
-
-
-
-
+    SUBROUTINE read_config(blocks)
+        ! Called by each processor individually for its own blocks
+        ! For given processor, read corresponding configuration file.
+        ! Get neighbor connectivity info
+        ! Also read PLOT3D restart files for grids for given processor
 
         ! BLOCK DATA TYPE
-        TYPE(BLKTYPE) :: b(:)
-        INTEGER :: I, BLKFILE = 99
-        ! READ INFOR FOR BLOCK DIMENSIONS
-        INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+        TYPE(BLKTYPE), POINTER :: b
+        INTEGER :: IP, IB, BLKFILE = 99
+        CHARACTER(2) :: procname
+        CHARACTER(20) :: xfile, qfile
 
-        11 FORMAT(3I5)
         33 FORMAT(A)
-        22 FORMAT(33I5)
-        44 FORMAT(33A5)
+        11 FORMAT( 3I7)
+        22 FORMAT(33I7)
+        44 FORMAT(33A7)
 
-        OPEN (UNIT = BLKFILE , FILE = "blockconfig.dat", form='formatted')
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! READ CONFIG FILE FOR GIVEN PRO!SSOR !!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+        ! FILE NAME (i.e. 'p01.config')
+        IF (MYID<10) THEN
+            ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+            WRITE(procname, '(A,I1)') '0', MYID
+        ELSE
+            WRITE(procname, '(I2)') MYID
+        END IF
+
+        OPEN (UNIT = BLKFILE , FILE = TRIM("p" // procname // ".config"), form='formatted')
+
         ! WRITE AMOUNT OF BLOCKS AND DIMENSIONS
-        READ(BLKFILE,*)
-        READ(BLKFILE, 11) NBLK, IMAXBLK, JMAXBLK
-        READ(BLKFILE,*)
-        DO I = 1, NBLK
-            ! FOR EACH BLOCK, WRITE BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
+        READ(BLKFILE, *)
+        READ(BLKFILE, 11) MYNBLK, IMAXBLK, JMAXBLK
+        ! (MYNBLK is global variable on this processor that is the number of
+        !   blocks allocated to this processor)
+
+        ! ALLOCATE BLOCKS FOR THIS PROCESSOR
+        ! ('blocks' stores just the blocks for this processor.  It is
+        !  in parallel for each processor)
+        ALLOCATE( blocks(1:MYNBLK) )
+
+        ! HEADER
+        READ(BLKFILE, *)
+        DO IB = 1, MYNBLK
+            b => blocks(IB)
+            ! FOR EACH BLOCK, READ BLOCK NUMBER, STARTING/ENDING GLOBAL INDICES.
             ! THEN BOUNDARY CONDITION AND NEIGHBOR NUMBER FOR EACH FACE:
             ! NORTH EAST SOUTH WEST
-            READ(BLKFILE, 22) b(I)%ID, &
-                b(I)%IMIN, b(I)%JMIN, &
-                b(I)%NB%N, &
-                b(I)%NB%NE, &
-                b(I)%NB%E, &
-                b(I)%NB%SE, &
-                b(I)%NB%S, &
-                b(I)%NB%SW, &
-                b(I)%NB%W, &
-                b(I)%NB%NW, &
-                b(I)%ORIENT
+            READ(BLKFILE, 22) b%ID, b%IMIN, b%JMIN, b%SIZE, &
+                               b%NB%N,  b%NP%N,  b%NBLOC%N, &
+                               b%NB%S,  b%NP%S,  b%NBLOC%S, &
+                               b%NB%E,  b%NP%E,  b%NBLOC%E, &
+                               b%NB%W,  b%NP%W,  b%NBLOC%W, &
+                               b%NB%NE, b%NP%NE, b%NBLOC%NE, &
+                               b%NB%SE, b%NP%SE, b%NBLOC%SE, &
+                               b%NB%SW, b%NP%SW, b%NBLOC%SW, &
+                               b%NB%NW, b%NP%NW, b%NBLOC%NW, &
+                               b%ORIENT
         END DO
         CLOSE(BLKFILE)
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!! READ SOLUTION RESTART FILES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        ! MAKE FILE NAME
+        IF (MYID<10) THEN
+            ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+            WRITE(procname, '(A,I1)') '0', MYID
+        ELSE
+            WRITE(procname, '(I2)') MYID
+        END IF
+        xfile = "p" // procname // ".grid"
+        qfile = "p" // procname // ".T"
+        CALL plot3D(blocks, MYNBLK, xfile, qfile)
     END SUBROUTINE read_config
 
 
@@ -268,14 +290,13 @@ MODULE IO
         CLOSE(tempUnit)
     END SUBROUTINE plot3D
 
-    SUBROUTINE readPlot3D(blocks)
+    SUBROUTINE readPlot3D(blocks, xfile, qfile)
         IMPLICIT NONE
 
         TYPE(BLKTYPE) :: blocks(:)
-        INTEGER :: IBLK, I, J
-        ! READ INFO FOR BLOCK DIMENSIONS
+        INTEGER :: IBLK, I, J, NBLKS
         INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
-        ! OUTPUT FILES
+        ! OUTPUT FILES (without file exension)
         CHARACTER(20) :: xfile, qfile
 
         ! FORMAT STATEMENTS
@@ -292,38 +313,93 @@ MODULE IO
         !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         ! OPEN FILES
-!         OPEN(UNIT=gridUnit,FILE= TRIM(casedir) // 'grid_form.xyz',FORM='formatted')
-!         OPEN(UNIT=tempUnit,FILE= TRIM(casedir) // 'T_form.dat',FORM='formatted')
-        OPEN(UNIT=gridUnit,FILE= 'grid_form.xyz',FORM='formatted')
-        OPEN(UNIT=tempUnit,FILE= 'T_form.dat',FORM='formatted')
+        OPEN(UNIT=gridUnit,FILE = TRIM(xfile) // '.form.xyz',FORM='formatted')
+        OPEN(UNIT=tempUnit,FILE = TRIM(qfile) // '.form.dat',FORM='formatted')
 
         ! READ GRID FILE
         READ(gridUnit, 10) NBLKREAD
         READ(gridUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
-!         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
-        DO IBLK = 1, NBLKREAD
-            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+        DO IBLK = 1, NBLKS
+            READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
+                               ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD)
         END DO
 
 
         ! READ TEMPERATURE FILE
-            ! When read in paraview, 'density' will be equivalent to temperature
         READ(tempUnit, 10) NBLKREAD
         READ(tempUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
         DO IBLK = 1, NBLKREAD
 
             READ(tempUnit, 30) tRef,dum,dum,dum
-            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
-                                ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+            READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD), &
+                               ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLKREAD), J=1,JMAXBLKREAD)
         END DO
 
         ! CLOSE FILES
         CLOSE(gridUnit)
         CLOSE(tempUnit)
+
+
     END SUBROUTINE readPlot3D
+
+!     SUBROUTINE readPlot3D(blocks)
+!         IMPLICIT NONE
+
+!         TYPE(BLKTYPE) :: blocks(:)
+!         INTEGER :: IBLK, I, J
+!         ! READ INFO FOR BLOCK DIMENSIONS
+!         INTEGER :: NBLKREAD, IMAXBLKREAD, JMAXBLKREAD
+!         ! OUTPUT FILES
+!         CHARACTER(20) :: xfile, qfile
+
+!         ! FORMAT STATEMENTS
+!             ! I --> Integer, number following is number of sig figs
+!             ! E --> scientific notation,
+!                         ! before decimal is sig figs of exponent?
+!                         ! after decimal is sig figs of value
+!             ! number before letter is how many entries on single line
+!                 ! before newline (number of columns)
+!         10     FORMAT(I10)
+!         20     FORMAT(10I10)
+!         30     FORMAT(10E20.8)
+
+!         !!! FORMATTED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!         ! OPEN FILES
+! !         OPEN(UNIT=gridUnit,FILE= TRIM(casedir) // 'grid_form.xyz',FORM='formatted')
+! !         OPEN(UNIT=tempUnit,FILE= TRIM(casedir) // 'T_form.dat',FORM='formatted')
+!         OPEN(UNIT=gridUnit,FILE= 'grid_form.xyz',FORM='formatted')
+!         OPEN(UNIT=tempUnit,FILE= 'T_form.dat',FORM='formatted')
+
+!         ! READ GRID FILE
+!         READ(gridUnit, 10) NBLKREAD
+!         READ(gridUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
+! !         WRITE(gridUnit, 20) ( blocks(IBLK)%IMAX, blocks(IBLK)%JMAX, IBLK=1, NBLK)
+!         DO IBLK = 1, NBLKREAD
+!             READ(gridUnit, 30) ( (blocks(IBLK)%mesh%x(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+!                                 ( (blocks(IBLK)%mesh%y(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+!         END DO
+
+
+!         ! READ TEMPERATURE FILE
+!             ! When read in paraview, 'density' will be equivalent to temperature
+!         READ(tempUnit, 10) NBLKREAD
+!         READ(tempUnit, 20) ( IMAXBLKREAD, JMAXBLKREAD, IBLK=1, NBLKREAD)
+!         DO IBLK = 1, NBLKREAD
+
+!             READ(tempUnit, 30) tRef,dum,dum,dum
+!             READ(tempUnit, 30) ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+!                                 ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+!                                 ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK), &
+!                                 ( (blocks(IBLK)%mesh%T(I,J), I=1,IMAXBLK), J=1,JMAXBLK)
+!         END DO
+
+!         ! CLOSE FILES
+!         CLOSE(gridUnit)
+!         CLOSE(tempUnit)
+!     END SUBROUTINE readPlot3D
 
 
 

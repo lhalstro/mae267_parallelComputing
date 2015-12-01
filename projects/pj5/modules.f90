@@ -82,8 +82,9 @@ MODULE CONSTANTS
 
     ! INCLUDE MPI FOR ALL SUBROUTINES THAT USE CONSTANTS
     INCLUDE "mpif.h"
-    ! MPI PROCESSOR ID
-    INTEGER :: MYID
+    ! MPI PROCESSOR ID, NUMBER OF BLOCKS PER PROCESSOR
+    ! (initialized by each processor in parallel)
+    INTEGER :: MYID, MYNBLK
     ! MPI ERROR STATUS, NUMBER OF MPI PROCESSORS
     INTEGER :: IERROR, NPROCS, request
     INTEGER :: STATUS(MPI_STATUS_SIZE)
@@ -144,9 +145,9 @@ CONTAINS
         READ(1,*) nx
         ! READ BLOCKS (6th and 8th line)
         READ(1,*)
-        READ(1,*) M
-        READ(1,*)
         READ(1,*) N
+        READ(1,*)
+        READ(1,*) M
         ! DEBUG MODE (10th line)
         READ(1,*)
         READ(1,*) DEBUG
