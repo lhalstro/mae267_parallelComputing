@@ -88,10 +88,14 @@ CONTAINS
 
         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
         write(*,*) 'make linked lists', MYID
-        CALL init_linklists(blocks, nbrlists)
+        CALL init_linklists(blocks, nbrlists, mpilists)
         ! POPULATE BLOCK GHOST NODES
         write(*,*) 'update ghosts', MYID
-        CALL update_ghosts(blocks, nbrlists)
+        CALL update_ghosts_sameproc(blocks, nbrlists)
+        write(*,*) 'send mpi ghosts', MYID
+        CALL update_ghosts_diffproc_send(blocks, mpilists)
+        write(*,*) 'recieve mpi ghosts', MYID
+        CALL update_ghosts_diffproc_recv(blocks, mpilists)
 
 !         CALL update_ghosts_debug(blocks)
 
@@ -138,7 +142,9 @@ CONTAINS
             CALL calc_temp(blocks)
 
             ! UPDATE GHOST NODES WITH NEW TEMPERATURE SOLUTION
-            CALL update_ghosts(blocks, nbrlists)
+            CALL update_ghosts_sameproc(blocks, nbrlists)
+            CALL update_ghosts_diffproc_send(blocks, mpilists)
+            CALL update_ghosts_diffproc_recv(blocks, mpilists)
 !             CALL update_ghosts_debug(blocks)
 
             ! CALC RESIDUAL

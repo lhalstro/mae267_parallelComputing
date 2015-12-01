@@ -1157,16 +1157,16 @@ CONTAINS
         ! Neighbor information pointer
         INTEGER :: NB, ID
         ! Linked lists of neighbor communication instructions
-        TYPE(LNKLIST), POINTER :: list, nbrl, list, nbrl
+        TYPE(LNKLIST), POINTER :: list, nbrl, mpi, mpil
 
         ! If block face is internal, add it to appropriate linked list
         ! for internal faces of a certian face (i.e. north).
         IF (NB > 0) THEN
             ! NEIGHBOR IS ON SAME PROCESSOR
-            CALL make_link(NB, nbrlists, nbrl, IBLK)
+            CALL make_link(NB, list, nbrl, ID)
         ELSE IF (NB < 0) THEN
             ! NEIGHBOR IS ON DIFFERENT PROCESSOR
-            CALL make_link(NB, mpi, mpil, IBLK)
+            CALL make_link(NB, mpi, mpil, ID)
         END IF
     END SUBROUTINE link_type
 
@@ -1210,62 +1210,41 @@ CONTAINS
             NB => blocks(IBLK)%NB
 
             ! NORTH
-            CALL link_type(     NB%N, &
-                           nbrlist%N, &
-                              nbrl%N, &
-                           mpilist%N, &
-                              mpil%N, &
-                           IBLK)
+!             IF (NB%N > 0) THEN
+!                 ! NEIGHBOR IS ON SAME PROCESSOR
+!                 CALL make_link(NB%N, nbrlists%N, nbrl%N, ID%N)
+!             ELSE IF (NB%N < 0) THEN
+!                 ! NEIGHBOR IS ON DIFFERENT PROCESSOR
+!                 CALL make_link(NB%N, mpi%N, mpil%N, ID%N)
+!             END IF
+            CALL link_type(NB%N, nbrlists%N, nbrl%N, mpilists%N, mpil%N, IBLK)
             ! SOUTH
-            CALL link_type(     NB%S, &
-                           nbrlist%S, &
-                              nbrl%S, &
-                           mpilist%S, &
-                              mpil%S, &
-                           IBLK)
+            CALL link_type(NB%S, nbrlists%S, nbrl%S, mpilists%S, mpil%S, IBLK)
             ! EAST
-            CALL link_type(     NB%E, &
-                           nbrlist%E, &
-                              nbrl%E, &
-                           mpilist%E, &
-                              mpil%E, &
-                           IBLK)
+            CALL link_type(NB%E, nbrlists%E, nbrl%E, mpilists%E, mpil%E, IBLK)
             ! WEST
-            CALL link_type(     NB%W, &
-                           nbrlist%W, &
-                              nbrl%W, &
-                           mpilist%W, &
-                              mpil%W, &
-                           IBLK)
+            CALL link_type(NB%W, nbrlists%W, nbrl%W, mpilists%W, mpil%W, IBLK)
             ! NORTH EAST
-            CALL link_type(     NB%NE, &
-                           nbrlist%NE, &
-                              nbrl%NE, &
-                           mpilist%NE, &
-                              mpil%NE, &
-                           IBLK)
+            CALL link_type(NB%NE, nbrlists%NE, nbrl%NE, mpilists%NE, mpil%NE, IBLK)
             ! SOUTH EAST
-            CALL link_type(     NB%SE, &
-                           nbrlist%SE, &
-                              nbrl%SE, &
-                           mpilist%SE, &
-                              mpil%SE, &
-                           IBLK)
+            CALL link_type(NB%SE, nbrlists%SE, nbrl%SE, mpilists%SE, mpil%SE, IBLK)
             ! SOUTH WEST
-            CALL link_type(     NB%SW, &
-                           nbrlist%SW, &
-                              nbrl%SW, &
-                           mpilist%SW, &
-                              mpil%SW, &
-                           IBLK)
+            CALL link_type(NB%SW, nbrlists%SW, nbrl%SW, mpilists%SW, mpil%SW, IBLK)
             ! NORTH WEST
-            CALL link_type(     NB%NW, &
-                           nbrlist%NW, &
-                              nbrl%NW, &
-                           mpilist%NW, &
-                              mpil%NW, &
-                           IBLK)
+            CALL link_type(NB%NW, nbrlists%NW, nbrl%NW, mpilists%NW, mpil%NW, IBLK)
         END DO
+
+!         if (myid == 0) then
+!             write(*,*) "proc 0 north internal boundaries"
+!             nbrl%N => nbrlists%N
+!             do
+!                 IF ( .NOT. ASSOCIATED(nbrl%N) ) EXIT
+!                 write(*,*) nbrl%N%ID
+!                 nbrl%N => nbrl%N%next
+!             end do
+!         end if
+
+
     END SUBROUTINE init_linklists
 
     SUBROUTINE update_ghosts_sameproc(b, nbrlists)
@@ -1285,7 +1264,7 @@ CONTAINS
         INTEGER :: I, J, INBR
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        write(*,*) "north ghosts ", MYID
+
         ! NORTH FACE GHOST NODES
         nbrl%N => nbrlists%N
         ! Step through linked list of north faces with ghosts until end of list
@@ -1300,28 +1279,26 @@ CONTAINS
             Tgh => b( nbrl%N%ID )%mesh%T
 
             ! index of north neighbor
-            INBR = b( nbrl%N%ID )%NB%N
+            INBR = b( nbrl%N%ID )%NBLOC%N
             ! TEMPERATURE OF NEIGHBOR BLOCK (UPDATE GHOSTS WITH THIS)
             Tnb => b( INBR )%mesh%T
 
             DO I = 1, IMAXBLK
-                write(*,*) "in north loop ", I
                 ! NORTH FACE GHOST NODE TEMPERATURE IS EQUAL TO TEMPERATURE OF
                 ! SECOND-FROM-SOUTH FACE OF NORTH NEIGHBOR
                 ! (Remember face nodes are shared between blocks)
                 Tgh(I, JMAXBLK+1) = Tnb(I, 2)
-                write(*,*) "end north loop ", I
             END DO
             ! switch pointer to next link in list
             nbrl%N => nbrl%N%next
         END DO
-        write(*,*) "south ghosts ", MYID
+
         ! SOUTH FACE GHOST NODES
         nbrl%S => nbrlists%S
         DO
             IF ( .NOT. ASSOCIATED(nbrl%S) ) EXIT
             Tgh => b( nbrl%S%ID )%mesh%T
-            INBR = b( nbrl%S%ID )%NB%S
+            INBR = b( nbrl%S%ID )%NBLOC%S
             Tnb => b( INBR )%mesh%T
 
             DO I = 1, IMAXBLK
@@ -1336,7 +1313,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%E) ) EXIT
             Tgh => b( nbrl%E%ID )%mesh%T
-            INBR = b( nbrl%E%ID )%NB%E
+            INBR = b( nbrl%E%ID )%NBLOC%E
             Tnb => b( INBR )%mesh%T
 
             DO J = 1, JMAXBLK
@@ -1351,7 +1328,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%W) ) EXIT
             Tgh => b( nbrl%W%ID )%mesh%T
-            INBR = b( nbrl%W%ID )%NB%W
+            INBR = b( nbrl%W%ID )%NBLOC%W
             Tnb => b( INBR )%mesh%T
 
             DO J = 1, JMAXBLK
@@ -1368,7 +1345,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%NE) ) EXIT
             Tgh => b( nbrl%NE%ID )%mesh%T
-            INBR = b( nbrl%NE%ID )%NB%NE
+            INBR = b( nbrl%NE%ID )%NBLOC%NE
             Tnb => b( INBR )%mesh%T
             ! ADD SW CORNER OF NE NEIGHBOR TO CURRENT NE CORNER GHOSTS
             Tgh(IMAXBLK+1, JMAXBLK+1) = Tnb(2, 2)
@@ -1380,7 +1357,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%SE) ) EXIT
             Tgh => b( nbrl%SE%ID )%mesh%T
-            INBR = b( nbrl%SE%ID )%NB%SE
+            INBR = b( nbrl%SE%ID )%NBLOC%SE
             Tnb => b( INBR )%mesh%T
             ! ADD NW CORNER OF SE NEIGHBOR TO CURRENT SE CORNER GHOSTS
             Tgh(IMAXBLK+1, 0) = Tnb(2, JMAXBLK-1)
@@ -1392,7 +1369,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%SW) ) EXIT
             Tgh => b( nbrl%SW%ID )%mesh%T
-            INBR = b( nbrl%SW%ID )%NB%SW
+            INBR = b( nbrl%SW%ID )%NBLOC%SW
             Tnb => b( INBR )%mesh%T
             ! ADD NE CORNER OF SW NEIGHBOR TO CURRENT SW CORNER GHOSTS
             Tgh(0, 0) = Tnb(IMAXBLK-1, JMAXBLK-1)
@@ -1404,7 +1381,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(nbrl%NW) ) EXIT
             Tgh => b( nbrl%NW%ID )%mesh%T
-            INBR = b( nbrl%NW%ID )%NB%NW
+            INBR = b( nbrl%NW%ID )%NBLOC%NW
             Tnb => b( INBR )%mesh%T
             ! ADD SE CORNER OF NW NEIGHBOR TO CURRENT NW CORNER GHOSTS
             Tgh(0, JMAXBLK+1) = Tnb(IMAXBLK-1, 2)
@@ -1419,7 +1396,7 @@ CONTAINS
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
-        TYPE(BLKTYPE), POINTER :: b(:)
+        TYPE(BLKTYPE), POINTER :: b
         ! temperature information pointers for ghost and neighbor nodes
         REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
         ! buffers to store temperature information for I/J faces, and corners
@@ -1437,7 +1414,7 @@ CONTAINS
             IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
 
             ! CURRENT BLOCK
-            b => blocks( nbrl%N%ID )
+            b => blocks( mpil%N%ID )
             ! SEND FACE INFORMATION FOR THIS BLOCK TO NEIGHBORS ON OTHER PROCS
             DO I = 1, IMAXBLK
                 ! FILL BUFFER WITH TEMPERATURE FROM THIS BLOCK FOR GHOSTS OF OTHER BLOCK
@@ -1462,7 +1439,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%S) ) EXIT
 
-            b => blocks( nbrl%S%ID )
+            b => blocks( mpil%S%ID )
             DO I = 1, IMAXBLK
                 bufferI(I) = b%mesh%T(I, 2)
             END DO
@@ -1480,7 +1457,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
 
-            b => blocks( nbrl%E%ID )
+            b => blocks( mpil%E%ID )
             DO J = 1, JMAXBLK
                 bufferJ(J) = b%mesh%T(IMAXBLK-1, J)
             END DO
@@ -1498,7 +1475,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%W) ) EXIT
 
-            b => blocks( nbrl%W%ID )
+            b => blocks( mpil%W%ID )
             DO J = 1, JMAXBLK
                 bufferJ(J) = b%mesh%T(2, J)
             END DO
@@ -1516,7 +1493,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%NE) ) EXIT
 
-            b => blocks( nbrl%NE%ID )
+            b => blocks( mpil%NE%ID )
             buffer = b%mesh%T(IMAXBLK-1, JMAXBLK-1)
 
             dest = b%NP%NE
@@ -1532,7 +1509,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%SE) ) EXIT
 
-            b => blocks( nbrl%SE%ID )
+            b => blocks( mpil%SE%ID )
             buffer = b%mesh%T(IMAXBLK-1, 2)
 
             dest = b%NP%SE
@@ -1548,7 +1525,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%SW) ) EXIT
 
-            b => blocks( nbrl%SW%ID )
+            b => blocks( mpil%SW%ID )
             buffer = b%mesh%T(2, 2)
 
             dest = b%NP%SW
@@ -1564,7 +1541,7 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%NW) ) EXIT
 
-            b => blocks( nbrl%NW%ID )
+            b => blocks( mpil%NW%ID )
             buffer = b%mesh%T(2, JMAXBLK-1)
 
             dest = b%NP%NW
@@ -1583,7 +1560,7 @@ CONTAINS
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET :: blocks(:)
-        TYPE(BLKTYPE), POINTER :: b(:)
+        TYPE(BLKTYPE), POINTER :: b
         ! temperature information pointers for ghost and neighbor nodes
         REAL(KIND=8), POINTER, DIMENSION(:, :) :: Tgh, Tnb
         ! buffers to store temperature information for I/J faces, and corners
@@ -1601,9 +1578,11 @@ CONTAINS
             IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
 
             ! CURRENT BLOCK
-            b => blocks( nbrl%N%ID )
+            b => blocks( mpil%N%ID )
             ! SOURCE PROCESSOR ID
             src = b%NP%N
+            ! TAG OF NEIGHBOR IS OPPOSITE OF THIS FACE
+            tag = SBND
             ! GET INFO FROM SOURCE PROCESSOR
             CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
@@ -1621,8 +1600,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%S) ) EXIT
 
-            b => blocks( nbrl%S%ID )
+            b => blocks( mpil%S%ID )
             src = b%NP%S
+            tag = NBND
             CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             DO I = 1, IMAXBLK
@@ -1637,8 +1617,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
 
-            b => blocks( nbrl%E%ID )
+            b => blocks( mpil%E%ID )
             src = b%NP%E
+            tag = WBND
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             DO J = 1, JMAXBLK
@@ -1653,8 +1634,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%W) ) EXIT
 
-            b => blocks( nbrl%W%ID )
+            b => blocks( mpil%W%ID )
             src = b%NP%W
+            tag = EBND
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             DO J = 1, JMAXBLK
@@ -1669,8 +1651,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%NE) ) EXIT
 
-            b => blocks( nbrl%NE%ID )
+            b => blocks( mpil%NE%ID )
             src = b%NP%NE
+            tag = SBND + WBND * 10
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(IMAXBLK+1, JMAXBLK+1)= buffer
@@ -1683,8 +1666,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%SE) ) EXIT
 
-            b => blocks( nbrl%SE%ID )
+            b => blocks( mpil%SE%ID )
             src = b%NP%SE
+            tag = NBND + WBND * 10
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(IMAXBLK+1, 0) = buffer
@@ -1697,8 +1681,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%SW) ) EXIT
 
-            b => blocks( nbrl%SW%ID )
+            b => blocks( mpil%SW%ID )
             src = b%NP%SW
+            tag = NBND + EBND * 10
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(0, 0) = buffer
@@ -1711,8 +1696,9 @@ CONTAINS
         DO
             IF ( .NOT. ASSOCIATED(mpil%NW) ) EXIT
 
-            b => blocks( nbrl%NW%ID )
+            b => blocks( mpil%NW%ID )
             src = b%NP%NW
+            tag = SBND + EBND * 10
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(0, JMAXBLK+1) = buffer
