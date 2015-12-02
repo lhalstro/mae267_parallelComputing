@@ -96,6 +96,7 @@ CONTAINS
         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
         CALL calc_constants(blocks)
+        write(*,*) 'calced solution stuff', MYID
 
     END SUBROUTINE init_solution
 

@@ -1,8 +1,8 @@
 #!/bin/bash -l
-#SBATCH -J PJ4MAE267
+#SBATCH -J PJ5MAE267
 #SBATCH -o slurm-%J.out
-#SBATCH -e slurm-%J.err
-NPROCS=4
+#SBATCH -e slurm-%J.err=
+NPROCS=1
 #SBATCH -n $NPROCS
 
 #Text with start time and location

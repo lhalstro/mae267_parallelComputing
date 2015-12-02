@@ -837,6 +837,22 @@ CONTAINS
             END DO
         END DO
 
+        ! INITIALIZE LOCAL PROCESSOR INDICIES OF BLOCKS
+        DO IPCUR = 1, NPROCS
+            pcur => procs(IPCUR)
+            DO IBCUR = 1, pcur%NBLK
+                bcur => pcur%blocks(IBCUR)
+                bcur%NBLOC%N  = 0
+                bcur%NBLOC%S  = 0
+                bcur%NBLOC%E  = 0
+                bcur%NBLOC%W  = 0
+                bcur%NBLOC%NE = 0
+                bcur%NBLOC%SE = 0
+                bcur%NBLOC%SW = 0
+                bcur%NBLOC%NW = 0
+            END DO
+        END DO
+
         ! FIND PROC WITH NEIGHBOR FOR EACH BLOCK
         DO IPCUR = 1, NPROCS
             pcur => procs(IPCUR)
