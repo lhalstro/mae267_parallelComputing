@@ -130,9 +130,9 @@ PROGRAM heatTrans
 !     CALL output(blocks, iter)
 
 
-    if (myid == 0) then
-        call compositePlot3D()
-    end if
+!     if (myid == 0) then
+!         call compositePlot3D()
+!     end if
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

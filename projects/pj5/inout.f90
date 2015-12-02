@@ -440,53 +440,53 @@ MODULE IO
 !         CLOSE(tempUnit)
 !     END SUBROUTINE readPlot3D
 
-    SUBROUTINE compositePlot3D()
-        type(blktype), ALLOCATABLE :: blocks(:)
-        type(proctype), target :: procs(nprocs)
-        type(proctype), pointer :: p
-        CHARACTER(2) :: procname
-        CHARACTER(20) :: xfile, qfile
+!     SUBROUTINE compositePlot3D()
+!         type(blktype), ALLOCATABLE :: blocks(:)
+!         type(proctype), target :: procs(nprocs)
+!         type(proctype), pointer :: p
+!         CHARACTER(2) :: procname
+!         CHARACTER(20) :: xfile, qfile
 
-        integer :: procsort(NBLK), IDsSort(NBLK), I, ii
-        allocate(blocks(NBLK))
-        ! read block amalgamation file
-        OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
-        read(55,*)
-        do I = 1, NBLK
-            read(55,*) Ii, procsort(I), IDsSort(I)
-        end do
-        CLOSE(55)
+!         integer :: procsort(NBLK), IDsSort(NBLK), I, ii
+!         allocate(blocks(NBLK))
+!         ! read block amalgamation file
+!         OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
+!         read(55,*)
+!         do I = 1, NBLK
+!             read(55,*) Ii, procsort(I), IDsSort(I)
+!         end do
+!         CLOSE(55)
 
-        OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
+!         OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
 
-        do i = 1, NPROCs
-            p => procs(I)
-            READ(65,*) p%NBLK
-            allocate(p%blocks(p%NBLK))
+!         do i = 1, NPROCs
+!             p => procs(I)
+!             READ(65,*) p%NBLK
+!             allocate(p%blocks(p%NBLK))
 
-            IF (p%ID<10) THEN
-                ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
-                WRITE(procname, '(A,I1)') '0', p%ID
-            ELSE
-                WRITE(procname, '(I2)') p%ID
-            END IF
-            xfile = "p" // procname // ".grid"
-            qfile = "p" // procname // ".T"
-            call readplot3d(p%blocks, xfile, qfile)
+!             IF (p%ID<10) THEN
+!                 ! IF SINGLE DIGIT, PAD WITH 0 IN FRONT
+!                 WRITE(procname, '(A,I1)') '0', p%ID
+!             ELSE
+!                 WRITE(procname, '(I2)') p%ID
+!             END IF
+!             xfile = "p" // procname // ".grid"
+!             qfile = "p" // procname // ".T"
+!             call readplot3d(p%blocks, xfile, qfile)
 
-        end do
-        CLOSE(65)
+!         end do
+!         CLOSE(65)
 
-        do i = 1, nblk
-            blocks(I) = procs( procsort(i) )%blocks( idsSort(i) )
-        end do
-
-
-        call plot3d(blocks, nblk, 'grid', 'T')
+!         do i = 1, nblk
+!             blocks(I) = procs( procsort(i) )%blocks( idsSort(i) )
+!         end do
 
 
+!         call plot3d(blocks, nblk, 'grid', 'T')
 
-    END SUBROUTINE compositePlot3D
+
+
+!     END SUBROUTINE compositePlot3D
 
 
     SUBROUTINE write_res(res_hist)

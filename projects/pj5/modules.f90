@@ -104,7 +104,7 @@ MODULE CONSTANTS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 100000
+    INTEGER :: max_iter = 200000
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)
@@ -1264,15 +1264,16 @@ CONTAINS
             CALL link_type(NB%NW, nbrlists%NW, nbrl%NW, mpilists%NW, mpil%NW, IBLK)
         END DO
 
-!         if (myid == 0) then
-!             write(*,*) "proc 0 north internal boundaries"
-!             nbrl%N => nbrlists%N
-!             do
-!                 IF ( .NOT. ASSOCIATED(nbrl%N) ) EXIT
-!                 write(*,*) nbrl%N%ID
-!                 nbrl%N => nbrl%N%next
-!             end do
-!         end if
+        if (myid == 0) then
+            write(*,*) "proc 0 east inter proc boundaries"
+            nbrl%N => nbrlists%N
+            mpil%E => mpilists%E
+            do
+                IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
+                write(*,*) mpil%E%ID
+                mpil%E => mpil%E%next
+            end do
+        end if
 
 
     END SUBROUTINE init_linklists
@@ -1421,6 +1422,7 @@ CONTAINS
 
     SUBROUTINE update_ghosts_diffproc_send(blocks, mpilists)
         ! Gather information on different processors to update current ghosts.
+        ! send ghost info to neighbor processor to buffer its ghost nodes
         ! store in buffers and send via MPI.  Buffers will be MPI recieved
         ! and distributed to corresponding blocks
 
@@ -1438,7 +1440,8 @@ CONTAINS
         INTEGER :: I, J, INBR, tag, dest
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ! NORTH FACE GHOST NODES
+        ! NORTH FACE GHOST INFO
+        ! Send north face data to north neighbor to put in neighbor's ghost nodes
         mpil%N => mpilists%N
         DO
             IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
@@ -1509,6 +1512,12 @@ CONTAINS
             DO J = 1, JMAXBLK
                 bufferJ(J) = b%mesh%T(2, J)
             END DO
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!             if (myid == 3) then
+!                 write(*,*) "send east ghosts from: ", b%ID
+!                 write(*,*) "buffer values: ", bufferJ(2)
+!             end if
 
             dest = b%NP%W
             tag = WBND
@@ -1603,6 +1612,7 @@ CONTAINS
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! NORTH FACE GHOST NODES
+        ! get info sent by north neighbor and add to ghost node
         mpil%N => mpilists%N
         DO
             IF ( .NOT. ASSOCIATED(mpil%N) ) EXIT
@@ -1652,6 +1662,13 @@ CONTAINS
             tag = WBND
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!             if (myid == 0) then
+!                 write(*,*) "recieve east ghosts for: ", b%ID
+!                 write(*,*) "buffer values: ", bufferJ(2)
+!             end if
+
             DO J = 1, JMAXBLK
                  b%mesh%T(IMAXBLK+1, J) = bufferJ(J)
             END DO
