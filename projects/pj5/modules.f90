@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 4
+! PROJECT 5
 ! LOGAN HALSTROM
-! 14 NOVEMBER 2015
+! 29 NOVEMBER 2015
 
 ! DESCRIPTION:  Modules used for solving heat conduction of steel plate.
 ! Initialize and store constants used in all subroutines.
