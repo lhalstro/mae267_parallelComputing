@@ -124,8 +124,10 @@ PROGRAM heatTrans
 
     !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!     ! SAVE RESIDUAL HISTORY
-!     CALL write_res(res_hist)
+    IF (MYID == 0) THEN
+        ! SAVE RESIDUAL HISTORY
+        CALL write_res(res_hist)
+    END IF
     ! SAVE SOLVER PERFORMANCE PARAMETERS
 !     CALL output(blocks, iter)
 

@@ -104,7 +104,7 @@ MODULE CONSTANTS
     ! Minimum Residual
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
-    INTEGER :: max_iter = 200000
+    INTEGER :: max_iter = 250000
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)
@@ -184,6 +184,7 @@ CONTAINS
         ! OUTPUT TO SCREEN
         WRITE(*,*) ''
         WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
+        WRITE(*,*) 'Number of processors:', NPROCS
         WRITE(*,*) 'With MxN blocks:', M, 'x', N
         WRITE(*,*) 'Number of blocks:', NBLK
         WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK

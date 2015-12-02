@@ -208,11 +208,14 @@ CONTAINS
             ! Find max of each block
             resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
             ! keep biggest residual
-            IF (resmax < resloc) THEN
+            IF (resloc > resmax) THEN
                 resmax = resloc
                 IRES = IBLK
             END IF
         END DO
+
+        CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
+!         CALL MPI_Bcast(MPI_COMM_WORLD, IERROR)
 
 
         ! Write final maximum residual and location of max residual
