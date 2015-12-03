@@ -19,4 +19,4 @@ mpirun -n $NPROCS ./main >> "a.out"
 # ./main >> "a.out"
 
 # Move files to case directory
-#python3 move.py
+python3 move.py
