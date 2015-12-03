@@ -1484,7 +1484,7 @@ CONTAINS
             ! FIND DESITNATION OF GHOST INFO (proc id of neighbor)
             dest = b%NP%N
             ! MAKE UNIQUE TAG
-            tag = NBND
+            CALL make_mpi_tag(NBND, b%ID, tag)
             ! SEND INFO TO NEIGHBOR PROC AND CONTINUE OPERATIONS WITHOUT CONFIRMATION
             CALL MPI_Isend(bufferI, IMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
@@ -1503,7 +1503,7 @@ CONTAINS
             END DO
 
             dest = b%NP%S
-            tag = SBND
+            CALL make_mpi_tag(SBND, b%ID, tag)
             CALL MPI_Isend(bufferI, IMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
@@ -1521,7 +1521,7 @@ CONTAINS
             END DO
 
             dest = b%NP%E
-            tag = EBND
+            CALL make_mpi_tag(EBND, b%ID, tag)
             CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
@@ -1539,7 +1539,7 @@ CONTAINS
             END DO
 
             dest = b%NP%W
-            tag = WBND
+            CALL make_mpi_tag(WBND, b%ID, tag)
             CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
@@ -1658,7 +1658,7 @@ CONTAINS
             ! SOURCE PROCESSOR ID
             src = b%NP%N
             ! TAG OF NEIGHBOR IS OPPOSITE OF THIS FACE
-            tag = SBND
+            CALL make_mpi_tag(SBND, ABS(b%NB%N), tag)
             ! GET INFO FROM SOURCE PROCESSOR
             CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
@@ -1678,7 +1678,7 @@ CONTAINS
 
             b => blocks( mpil%S%ID )
             src = b%NP%S
-            tag = NBND
+            CALL make_mpi_tag(NBND, ABS(b%NB%S), tag)
             CALL MPI_RECV(bufferI, IMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             DO I = 1, IMAXBLK
@@ -1695,7 +1695,7 @@ CONTAINS
 
             b => blocks( mpil%E%ID )
             src = b%NP%E
-            tag = WBND
+            CALL make_mpi_tag(WBND, ABS(b%NB%E), tag)
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
 
@@ -1720,7 +1720,7 @@ CONTAINS
 
             b => blocks( mpil%W%ID )
             src = b%NP%W
-            tag = EBND
+            CALL make_mpi_tag(EBND, ABS(b%NB%W), tag)
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             DO J = 1, JMAXBLK
