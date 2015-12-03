@@ -61,12 +61,20 @@ def GetCaseInfo(configfile='config.in'):
         nproc = len(configs)
     return nx, M, N, nproc, configs
 
+def CaseDir(nproc, nx, N, M, savedir='Results'):
+    #MAKE CASE DIRECTORY (i.e. np4_nx101_n5_m4)
+    outdir = '{}/np{}_nx{}_n{}_m{}'.format(savedir, nproc, nx, N, M)
+    return outdir
+
+
+savedir = 'Results'
+
 def main():
 
     #GET CASE INFO
     nx, M, N, nproc, configs = GetCaseInfo()
     #MAKE CASE DIRECTORY (i.e. np4_nx101_n5_m4)
-    outdir = 'Results/np{}_nx{}_n{}_m{}'.format(nproc, nx, N, M)
+    outdir = CaseDir(nproc, nx, N, M, savedir)
     MakeOutputDir(outdir)
     #MOVE FILES
     filelist = [

@@ -13,49 +13,88 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+from move import CaseDir, savedir
+
+
+def PlotResid(ax, iter, res, label, color='blue', marker='.', spacing=100):
+    """Plot residual convergence history on log-scale y axis
+
+    """
+    ax.semilogy(iter, res, label=label,
+                        color=color, linewidth=line,
+                        marker=marker, markersize=mark, markevery=spacing)
+
+
+
+
+
+#INPUTS
+
 
 markers = ['x', 'o', '.']
 colors = ['blue', 'green', 'red']
+#point spacing
+spacing = 100
+# savedir = 'Results'
+savetype = '.png'
 
-
-def main():
+def main(nprocs, nx, Ns, Ms, name=''):
+    """
+    name --> text to include in file name after ResHist
+    """
 
 
     # READ DATA
     filename = 'res_hist.dat'
-    folders = ['finalSingle', 'finalMulti']
-    savedir = 'Results'
-    savetype = '.png'
 
-    sing = {}
-    path = '{}/{}/{}'.format(savedir, folders[0], filename)
-    sing['iter'], sing['res'] = np.loadtxt(path, skiprows=1, unpack=True)
+    #ADD SERIAL, MULTI-BLOCK CASE
+    nprocs = list([1 ]) + list(nprocs)
+    Ns     = list([10]) + list(Ns)
+    Ms     = list([10]) + list(Ms)
 
-    mult = {}
-    path = '{}/{}/{}'.format(savedir, folders[1], filename)
-    mult['iter'], mult['res'] = np.loadtxt(path, skiprows=1, unpack=True)
+    #ADD SERIAL, SINGLE-BLOCK CASE
+    nprocs = list([1]) + list(nprocs)
+    Ns     = list([1]) + list(Ns)
+    Ms     = list([1]) + list(Ms)
+
+    #LOCATE CASE DIRECTORIES
+    folders = []
+    cases = []
+    for nproc, N, M in zip(nprocs, Ns, Ms):
+        #File path to load
+        case = CaseDir(nproc, nx, N, M, savedir)
+        path = '{}/{}'.format(case, filename)
+        #Add empty dict to cases
+        cases.append( {} )
+        #Populate dict with data
+        cases[-1]['itr'], cases[-1]['res'] = np.loadtxt(path, skiprows=1, unpack=True)
+        #make name for case
+        cases[-1]['label'] = 'NP={}, NxM=({}x{})'.format(nproc, N, M)
+
+    #Special labels for simple cases
+    for c, l in zip(cases[:2],['Serial, Single-Block', 'Serial, Multi (10x10)'] ):
+        c['label'] = l
 
 
-    title = 'Residual History of Single and Multi-Block Solvers'
+    #RESIDUAL PLOT
+
+    title = 'Residual Convergence History\n({}x{} Mesh)'.format(nx, nx)
     _, ax = PlotStart(title, 'ITER', 'RESID', horzy='vertical', figsize='tex')
 
     # ax.axis('equal')
+    ax.set_yscale("log", nonposy='clip')
     ax.grid(True)
-    xmin = 1500
-    ax.set_ylim([0, mult['res'][xmin] * 1.25])
-    ax.set_xlim([50, 80000])
+    # xmin = 1500
+    # ax.set_ylim([0, mult['res'][xmin] * 1.25])
+    # ax.set_xlim([50, 80000])
 
-
-    spacing = 100
-    ax.plot(sing['iter'], sing['res'], color='red', label='Single Block',
-                    linewidth=line, marker='x', markersize=mark, markevery=spacing)
-    ax.plot(mult['iter'], mult['res'], color='blue', label='Multi Block',
-                    linewidth=line, marker='.', markersize=mark, markevery=spacing)
-
+    for c, clr, mkr in zip(cases, colors, markers):
+        PlotResid(ax, c['itr'], c['res'], c['label'], clr, mkr, spacing)
 
     PlotLegend(ax, loc='best')
 
-    savename = '{}/ResHist{}'.format(savedir, savetype)
+    text = 'ResHist' + name
+    savename = '{}/{}{}'.format(savedir, text, savetype)
     SavePlot(savename)
     plt.show()
 
@@ -64,4 +103,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    NPROCS = [4]
+    NX = 101
+    NS = [10] * len(NPROCS)
+    MS = [10] * len(NPROCS)
+
+    main(NPROCS, NX, NS, MS)

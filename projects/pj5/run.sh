@@ -12,7 +12,7 @@ echo $START
 #Print to output file
 echo $START > "a.out"
 
-module load openmpi hwloc
+#module load openmpi hwloc
 
 # '&' will run process in background until it is complete
 mpirun -n $NPROCS ./main >> "a.out"
