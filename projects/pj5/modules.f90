@@ -1597,15 +1597,6 @@ CONTAINS
             CALL make_mpi_tag(SWBND, b%ID, tag)
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
-
-                        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (myid == 2 .and. b%ID == 17) then
-                write(*,*)
-                write(*,*) "send sw ghosts from: ", b%ID, "tag: ", tag, "dest", dest
-                write(*,*) "buffer values: ", buffer
-            end if
-
-
             mpil%SW => mpil%SW%next
         END DO
 
@@ -1742,13 +1733,6 @@ CONTAINS
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(IMAXBLK+1, JMAXBLK+1)= buffer
 
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (myid == 3 .and. b%ID == 11) then
-                write(*,*)
-                write(*,*) "recv ne ghosts for: ", b%ID, "tag: ", tag, "src", src
-                write(*,*) "buffer values: ", buffer
-            end if
-
             mpil%NE => mpil%NE%next
         END DO
 
@@ -1814,8 +1798,6 @@ CONTAINS
         CHARACTER(len=1) :: dirstr
         CHARACTER(len=25) :: srcstr
         CHARACTER(LEN=50) :: tagstr
-
-!         write(*,*)
 
         ! CONVERT INTEGERS TO STRINGS
         WRITE(dirstr, '(I1)') dir

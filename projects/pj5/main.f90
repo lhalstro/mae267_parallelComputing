@@ -103,42 +103,42 @@ PROGRAM heatTrans
     write(*,*) "Initialize for proc ", MYID
     CALL init_solution(blocks, nbrlists, mpilists)
 
-    if (nprocs == 4) then
-        if (myid == 3) then
-            write(*,*) "block ",   blocks(4)%ID
-!             write(*,*) "iminloc ", blocks(3)%IMINLOC
-!             write(*,*) "Imaxloc ", blocks(3)%IMaxLOC
-!             write(*,*) "jminloc ", blocks(3)%jMINLOC
-!             write(*,*) "jmaxloc ", blocks(3)%jmaxLOC
+!     if (nprocs == 4) then
+!         if (myid == 3) then
+!             write(*,*) "block ",   blocks(4)%ID
+! !             write(*,*) "iminloc ", blocks(3)%IMINLOC
+! !             write(*,*) "Imaxloc ", blocks(3)%IMaxLOC
+! !             write(*,*) "jminloc ", blocks(3)%jMINLOC
+! !             write(*,*) "jmaxloc ", blocks(3)%jmaxLOC
 
-            write(*,*) blocks(4)%mesh%term( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(4)%mesh%V2nd( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(4)%mesh%V   ( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(4)%mesh%dt(   imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(4)%mesh%xp(   imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(4)%mesh%x(    imaxblk+1, jmaxblk+1)
-
-
-        end if
+!             write(*,*) blocks(4)%mesh%term( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(4)%mesh%V2nd( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(4)%mesh%V   ( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(4)%mesh%dt(   imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(4)%mesh%xp(   imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(4)%mesh%x(    imaxblk+1, jmaxblk+1)
 
 
-    else if (nprocs == 1) then
-        if (myid == 0) then
-            write(*,*) "block ",   blocks(9)%ID
-!             write(*,*) "iminloc ", blocks(10)%IMINLOC
-!             write(*,*) "Imaxloc ", blocks(10)%IMaxLOC
-!             write(*,*) "jminloc ", blocks(10)%jMINLOC
-!             write(*,*) "jmaxloc ", blocks(10)%jmaxLOC
-            write(*,*) blocks(14)%mesh%term( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(14)%mesh%V2nd( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(14)%mesh%V   ( imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(14)%mesh%dt(   imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(14)%mesh%xp(   imaxblk+1, jmaxblk+1)
-            write(*,*) blocks(14)%mesh%x(    imaxblk+1, jmaxblk+1)
-            write(*,*) Imax
-        end if
+!         end if
 
-    end if
+
+!     else if (nprocs == 1) then
+!         if (myid == 0) then
+!             write(*,*) "block ",   blocks(9)%ID
+! !             write(*,*) "iminloc ", blocks(10)%IMINLOC
+! !             write(*,*) "Imaxloc ", blocks(10)%IMaxLOC
+! !             write(*,*) "jminloc ", blocks(10)%jMINLOC
+! !             write(*,*) "jmaxloc ", blocks(10)%jmaxLOC
+!             write(*,*) blocks(14)%mesh%term( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(14)%mesh%V2nd( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(14)%mesh%V   ( imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(14)%mesh%dt(   imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(14)%mesh%xp(   imaxblk+1, jmaxblk+1)
+!             write(*,*) blocks(14)%mesh%x(    imaxblk+1, jmaxblk+1)
+!             write(*,*) Imax
+!         end if
+
+!     end if
 
 
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
@@ -186,27 +186,6 @@ PROGRAM heatTrans
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! CLEAN UP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-!     DO IBLK = 1, NBLK
-!         DEALLOCATE( blocks(IBLK)%mesh%xp   )
-!         DEALLOCATE( blocks(IBLK)%mesh%yp   )
-!         DEALLOCATE( blocks(IBLK)%mesh%x    )
-!         DEALLOCATE( blocks(IBLK)%mesh%y    )
-!         DEALLOCATE( blocks(IBLK)%mesh%T    )
-!         DEALLOCATE( blocks(IBLK)%mesh%Ttmp )
-!         DEALLOCATE( blocks(IBLK)%mesh%dt   )
-!         DEALLOCATE( blocks(IBLK)%mesh%V  )
-!         DEALLOCATE( blocks(IBLK)%mesh%V2nd )
-!         DEALLOCATE( blocks(IBLK)%mesh%term )
-!         DEALLOCATE( blocks(IBLK)%mesh%yPP)
-!         DEALLOCATE( blocks(IBLK)%mesh%yNP)
-!         DEALLOCATE( blocks(IBLK)%mesh%yNN)
-!         DEALLOCATE( blocks(IBLK)%mesh%yPN)
-!         DEALLOCATE( blocks(IBLK)%mesh%xNN)
-!         DEALLOCATE( blocks(IBLK)%mesh%xPN)
-!         DEALLOCATE( blocks(IBLK)%mesh%xPP)
-!         DEALLOCATE( blocks(IBLK)%mesh%xNP)
-!     END DO
 
     DEALLOCATE(blocks)
 

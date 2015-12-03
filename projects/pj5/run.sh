@@ -13,7 +13,7 @@ echo $START
 echo $START > "a.out"
 
 # '&' will run process in background until it is complete
-mpirun -n $NPROCS main >> "a.out"
+mpirun -n $NPROCS ./main >> "a.out"
 # ./main >> "a.out"
 
 # Move files to case directory
