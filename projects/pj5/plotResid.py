@@ -3,7 +3,7 @@ Logan Halstrom
 MAE 267
 Created:  11/05/15
 
-Description:  Source in freestream flow
+Description:  plot residual history
 """
 
 import sys

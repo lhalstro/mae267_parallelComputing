@@ -1,7 +1,7 @@
 ! MAE 267
-! PROJECT 4
+! PROJECT 5
 ! LOGAN HALSTROM
-! 14 NOVEMBER 2015
+! 29 NOVEMBER 2015
 
 ! DESCRIPTION:  Subroutines used for solving heat conduction of steel plate.
 ! Subroutines utilizing linked lists are here so that linked lists do not need
@@ -78,25 +78,24 @@ CONTAINS
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists, mpilists
 
-        write(*,*) "read config", MYID
+!         write(*,*) "read config", MYID
         ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
         CALL read_config(blocks)
 
         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
-        write(*,*) 'make linked lists', MYID
+!         write(*,*) 'make linked lists', MYID
         CALL init_linklists(blocks, nbrlists, mpilists)
         ! POPULATE BLOCK GHOST NODES
-        write(*,*) 'update ghosts', MYID
+!         write(*,*) 'update ghosts', MYID
         CALL update_ghosts_sameproc(blocks, nbrlists)
         CALL update_ghosts_diffproc_send(blocks, mpilists)
         CALL update_ghosts_diffproc_recv(blocks, mpilists)
 
         ! CALC AREAS FOR SECONDARY FLUXES
-        write(*,*) 'calc solution stuff', MYID
+!         write(*,*) 'calc solution  stuff', MYID
         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
         CALL calc_constants(blocks)
-        write(*,*) 'calced solution stuff', MYID
 
     END SUBROUTINE init_solution
 
@@ -131,6 +130,70 @@ CONTAINS
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
             ! iteration count reaches given maximum
+
+
+
+!             if (myid == 2 .or. myid == 3) then
+!                 write(*,*) "Proc, iter: ", myid, iter
+!             end if
+
+!             if (nprocs == 4) then
+
+!                 ! 4 proc 5x4
+! !                 if (myid == 0) then
+! !                     write(*,*) "blk3 east interior values ", blocks(3)%mesh%T(IMAXBLK-1, 2)
+! !                     write(*,*) "blk3 east face values ",     blocks(3)%mesh%T(IMAXBLK,   2)
+! !                     write(*,*) "blk3 east ghost values ",    blocks(3)%mesh%T(IMAXBLK+1, 2)
+! !                 end if
+
+! !                 if (myid == 3) then
+! !                     write(*,*) "blk4 west ghost values ",    blocks(3)%mesh%T(0, 2)
+! !                     write(*,*) "blk4 west face values ",     blocks(3)%mesh%T(1, 2)
+! !                     write(*,*) "blk4 west interior values ", blocks(3)%mesh%T(2, 2)
+! !                 end if
+
+! !                 ! compare node value, should be the same
+! !                 if (myid == 2) then
+! !                     write(*,*) "        block", blocks(3)%ID, &
+! !                                      "SW node", blocks(3)%mesh%T(1, 1)
+! !                     write(*,*) "        block", blocks(1)%ID, &
+! !                                      "NW node", blocks(1)%mesh%T(1, jmaxblk)
+! !                 end if
+! !                 if (myid == 3) then
+! !                     write(*,*) "        block", blocks(4 )%ID, &
+! !                                      "NE node", blocks(4 )%mesh%T(IMAXBLK, JMAXBLK)
+! !                     write(*,*) "        block", blocks(5)%ID, &
+! !                                      "SE node", blocks(5)%mesh%T(IMAXBLK, 1)
+! !                 end if
+
+!                 ! compare ghost info transfer
+!                 if (myid == 2) then
+!                     write(*,*) "        block", blocks(3)%ID, &
+!                                 "send SW node", blocks(3)%mesh%T(2, 2)
+!                 end if
+!                 if (myid == 3) then
+!                     write(*,*) "        block", blocks(4)%ID, &
+!                                 "recv NE node", blocks(4)%mesh%T(imaxblk+1, jmaxblk+1)
+!                 end if
+
+
+
+
+!             else if (nprocs == 1) then
+
+!                 ! 1 proc 5x4
+!                 if (myid == 0) then
+!                     write(*,*) "blk3 east interior values ", blocks(11)%mesh%T(IMAXBLK-1, 2)
+!                     write(*,*) "blk3 east face values ",     blocks(11)%mesh%T(IMAXBLK,   2)
+!                     write(*,*) "blk3 east ghost values ",    blocks(11)%mesh%T(IMAXBLK+1, 2)
+!                     write(*,*)
+!                     write(*,*) "blk4 west ghost values ",    blocks(10)%mesh%T(0, 2)
+!                     write(*,*) "blk4 west face values ",     blocks(10)%mesh%T(1, 2)
+!                     write(*,*) "blk4 west interior values ", blocks(10)%mesh%T(2, 2)
+!                 end if
+!             end if
+
+
 
             ! CALC NEW TEMPERATURE AT ALL POINTS
             CALL calc_temp(blocks)
@@ -208,11 +271,14 @@ CONTAINS
             ! Find max of each block
             resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
             ! keep biggest residual
-            IF (resmax < resloc) THEN
+            IF (resloc > resmax) THEN
                 resmax = resloc
                 IRES = IBLK
             END IF
         END DO
+
+        CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
+!         CALL MPI_Bcast(MPI_COMM_WORLD, IERROR)
 
 
         ! Write final maximum residual and location of max residual
