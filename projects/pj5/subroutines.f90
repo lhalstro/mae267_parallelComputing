@@ -213,11 +213,9 @@ CONTAINS
                     resmax = resloc
                 END IF
             END DO
-!             write(*,*) "before mpiallreduce:", MYID, resmax
             ! FINAL MAX RESIDUAL (FOR ALL PROCESSORS)
             CALL MPI_ALLREDUCE(resmax, res, 1, MPI_REAL8, MPI_MAX, &
                                     MPI_COMM_WORLD, IERROR)
-!             write(*,*) "after mpiallreduce:", MYID, res
 
             ! SWITCH TO NEXT LINK
                 ! (skip first entry)
@@ -241,16 +239,18 @@ CONTAINS
         iter = iter - 1
 
         IF (MYID == 0) THEN
+
             ! CALC SOLVER WALL CLOCK TIME
             end_solve = MPI_Wtime()
             wall_time_solve = end_solve - start_solve
-        END IF
 
-        IF (iter > max_iter) THEN
-          WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
-        ELSE
-          WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
-          WRITE(*,*) '          (MAXIMUM RESIDUAL    :', res,  ')'
+            IF (iter > max_iter) THEN
+              WRITE(*,*) 'DID NOT CONVERGE (NUMBER OF ITERATIONS:', iter, ')'
+            ELSE
+              WRITE(*,*) 'CONVERGED (NUMBER OF ITERATIONS:', iter, ')'
+              WRITE(*,*) '          (MAXIMUM RESIDUAL    :', res,  ')'
+            END IF
+
         END IF
     END SUBROUTINE solve
 
@@ -258,9 +258,10 @@ CONTAINS
         ! Save solution performance parameters to file
 
         TYPE(BLKTYPE), TARGET :: blocks(:)
+        TYPE(BLKTYPE), POINTER :: b
         REAL(KIND=8), POINTER :: tmpT(:,:), tempTemperature(:,:)
         REAL(KIND=8) :: resloc, resmax
-        INTEGER :: iter, I, J, IBLK, IRES
+        INTEGER :: iter, I, J, IBLK, IRES, iresmax, jresmax
 
 !         Temperature => mesh%T(2:IMAX-1, 2:JMAX-1)
 !         tempTemperature => mesh%Ttmp(2:IMAX-1, 2:JMAX-1)
@@ -268,17 +269,39 @@ CONTAINS
         ! CALC RESIDUAL
         resmax = 0.D0
         DO IBLK = 1, MYNBLK
-            ! Find max of each block
-            resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
-            ! keep biggest residual
-            IF (resloc > resmax) THEN
-                resmax = resloc
-                IRES = IBLK
-            END IF
+            b => blocks(IBLK)
+            DO J = b%JMINLOC, B%JMAXLOC
+                DO I = b%IMINLOC, b%IMAXLOC
+                    resloc = ABS( b%mesh%Ttmp(I, J) )
+                    IF (resloc > resmax) THEN
+                        ! MAX LOCAL RESIDUAL ON PROC
+                        resmax = resloc
+                        ! Local index of block with max residual
+                        IRES = IBLK
+                        ! local indices of max residual
+                        iresmax = I
+                        jresmax = J
+                        ! Global indices of max residual
+                        iresmax = b%imin + iresmax - 2
+                        jresmax = b%jmin + jresmax - 2
+                    END IF
+                END DO
+            END DO
         END DO
 
+
+
+!             ! Find max of each block
+!             resloc = MAXVAL( ABS( blocks(IBLK)%mesh%Ttmp(2:IMAXBLK-1, 2:JMAXBLK-1) ) )
+!             ! keep biggest residual
+!             IF (resloc > resmax) THEN
+!                 resmax = resloc
+!                 IRES = IBLK
+!             END IF
+!         END DO
+
         CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
-!         CALL MPI_Bcast(MPI_COMM_WORLD, IERROR)
+        CALL MPI_Bcast(wall_time_solve, 1, MPI_REAL8, 0, mpi_comm_world, ierror)
 
 
         ! Write final maximum residual and location of max residual
@@ -291,17 +314,20 @@ CONTAINS
 !         CLOSE (1)
 
         ! Screen output
-        tmpT => blocks(IRES)%mesh%Ttmp
-        WRITE (*,*), "IMAX/JMAX", IMAX, JMAX
-        WRITE (*,*), "N/M", N, M
-        WRITE (*,*), "iters", iter
-        WRITE (*,*), "max residual", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
-        WRITE (*,*), "on block id", IRES
-        WRITE (*,*), "residual ij", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+!         tmpT => blocks(IRES)%mesh%Ttmp
+!         WRITE (*,*), "IMAX/JMAX", IMAX, JMAX
+!         WRITE (*,*), "N/M", N, M
+!         WRITE (*,*), "iters", iter
+!         WRITE (*,*), "max residual", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+!         WRITE (*,*), "on block id", IRES
+!         WRITE (*,*), "residual ij", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+
+
+
+
 
         ! Write to file
         IF (MYID == 0) THEN
-    !         OPEN (UNIT = 2, FILE = TRIM(casedir) // "SolnInfo.dat")
             OPEN (UNIT = 2, FILE = "SolnInfo.dat")
             WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
             WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
@@ -309,12 +335,33 @@ CONTAINS
 !             WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
             WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
     !         WRITE (2,*), wall_time_iter, "seconds (Iteration CPU walltime)"
-            WRITE (2,*)
-            WRITE (2,*), "Found max residual of ", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
-            WRITE (2,*), "on block id", IRES
-            WRITE (2,*), "At ij of ", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
             CLOSE (2)
         END IF
+
+        ! WRITE RESIDUAL FOR EACH PROC SEQUESENTIALLY
+        DO I = 0, NPROCS-1
+
+            IF (MYID == I) THEN
+                ! WRITE MAX RESIDUAL/LOCATION FOR EACH PROC
+                tmpT => blocks(IRES)%mesh%Ttmp
+                WRITE (*,*)
+!                 WRITE (*,*), "MAX RESIDUAL FOR PROCESSOR ", MYID
+!                 WRITE (*,*), "Found max residual of ", MAXVAL(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+!                 WRITE (*,*), "on block id", blocks(IRES)%ID
+!                 WRITE (*,*), "At ij of ", MAXLOC(tmpT(2:IMAXBLK-1, 2:JMAXBLK-1))
+                WRITE (*,*), "MAX RESIDUAL FOR PROCESSOR ", MYID
+                WRITE (*,*), "Found max residual of ", resmax
+                WRITE (*,*), "on block id", blocks(IRES)%ID
+                WRITE (*,*), "At ij of ", iresmax, jresmax
+
+
+            END IF
+            ! WAIT FOR CURRENT PROC TO WRITE
+            CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
+        END DO
+
+
+
     END SUBROUTINE output
 
 

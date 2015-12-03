@@ -176,7 +176,7 @@ PROGRAM heatTrans
         CALL write_res(res_hist)
     END IF
     ! SAVE SOLVER PERFORMANCE PARAMETERS
-!     CALL output(blocks, iter)
+    CALL output(blocks, iter)
 
 
 !     if (myid == 0) then
@@ -189,7 +189,9 @@ PROGRAM heatTrans
 
     DEALLOCATE(blocks)
 
-    WRITE(*,*) 'Done!'
+    IF (MYID == 0) THEN
+        WRITE(*,*) 'Done!'
+    END IF
 
     CALL MPI_Finalize(ierror)
 
