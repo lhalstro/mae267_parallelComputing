@@ -105,6 +105,7 @@ MODULE CONSTANTS
     REAL(KIND=8) :: min_res = 0.00001D0
     ! Maximum number of iterations
     INTEGER :: max_iter = 250000
+!     INTEGER :: max_iter = 1+1
     ! CPU Wall Times
     REAL(KIND=8) :: wall_time_total, wall_time_solve, wall_time_iter(1:5)
     ! read square grid size, Total grid size, size of grid on each block (local)
@@ -1012,6 +1013,7 @@ CONTAINS
                             ! Iglobal = Block%IMIN + (Ilocal - 1)
                     m%xp(I, J) = COS( 0.5D0 * PI * DFLOAT(IMAX - ( b(IBLK)%IMIN + I - 1) ) / DFLOAT(IMAX - 1) )
                     m%yp(I, J) = COS( 0.5D0 * PI * DFLOAT(JMAX - ( b(IBLK)%JMIN + J - 1) ) / DFLOAT(JMAX - 1) )
+
                     ! ROTATE GRID
                     m%x(I, J) = m%xp(I, J) * COS(rot) + (1.D0 - m%yp(I, J) ) * SIN(rot)
                     m%y(I, J) = m%yp(I, J) * COS(rot) + (       m%xp(I, J) ) * SIN(rot)
@@ -1530,16 +1532,17 @@ CONTAINS
                 bufferJ(J) = b%mesh%T(2, J)
             END DO
 
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!             if (myid == 3) then
-!                 write(*,*) "send east ghosts from: ", b%ID
-!                 write(*,*) "buffer values: ", bufferJ(2)
-!             end if
-
             dest = b%NP%W
             tag = WBND
             CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (myid == 3 .and. b%ID == 4) then
+                write(*,*)
+                write(*,*) "send east ghosts from: ", b%ID
+                write(*,*) "buffer values: ", bufferJ(2)
+            end if
 
             mpil%W => mpil%W%next
         END DO
@@ -1680,11 +1683,12 @@ CONTAINS
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
 
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!             if (myid == 0) then
-!                 write(*,*) "recieve east ghosts for: ", b%ID
-!                 write(*,*) "buffer values: ", bufferJ(2)
-!             end if
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (myid == 0 .and. b%ID == 3) then
+                write(*,*)
+                write(*,*) "recieve east ghosts for: ", b%ID
+                write(*,*) "buffer values: ", bufferJ(2)
+            end if
 
             DO J = 1, JMAXBLK
                  b%mesh%T(IMAXBLK+1, J) = bufferJ(J)

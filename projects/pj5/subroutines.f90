@@ -78,25 +78,24 @@ CONTAINS
         ! LINKED LISTS STORING NEIGHBOR INFO
         TYPE(NBRLIST) :: nbrlists, mpilists
 
-        write(*,*) "read config", MYID
+!         write(*,*) "read config", MYID
         ! READ BLOCK CONFIGURATION INFORMATION FROM CONFIG FILE
         CALL read_config(blocks)
 
         ! INITIALIZE LINKED LISTS CONTAINING BOUNDARY INFORMATION
-        write(*,*) 'make linked lists', MYID
+!         write(*,*) 'make linked lists', MYID
         CALL init_linklists(blocks, nbrlists, mpilists)
         ! POPULATE BLOCK GHOST NODES
-        write(*,*) 'update ghosts', MYID
+!         write(*,*) 'update ghosts', MYID
         CALL update_ghosts_sameproc(blocks, nbrlists)
         CALL update_ghosts_diffproc_send(blocks, mpilists)
         CALL update_ghosts_diffproc_recv(blocks, mpilists)
 
         ! CALC AREAS FOR SECONDARY FLUXES
-        write(*,*) 'calc solution stuff', MYID
+!         write(*,*) 'calc solution  stuff', MYID
         CALL calc_cell_params(blocks)
         ! CALC CONSTANTS OF INTEGRATION
         CALL calc_constants(blocks)
-        write(*,*) 'calced solution stuff', MYID
 
     END SUBROUTINE init_solution
 
@@ -131,6 +130,43 @@ CONTAINS
         iter_loop: DO WHILE (res >= min_res .AND. iter <= max_iter)
             ! Iterate FV solver until residual becomes less than cutoff or
             ! iteration count reaches given maximum
+
+
+
+            if (myid == 0 .or. myid == 3) then
+                write(*,*) "Proc, iter: ", myid, iter
+            end if
+
+            if (nprocs == 4) then
+
+                ! 4 proc 5x4
+                if (myid == 0) then
+                    write(*,*) "blk3 east interior values ", blocks(3)%mesh%T(IMAXBLK-1, 2)
+                    write(*,*) "blk3 east face values ",     blocks(3)%mesh%T(IMAXBLK,   2)
+                    write(*,*) "blk3 east ghost values ",    blocks(3)%mesh%T(IMAXBLK+1, 2)
+                end if
+
+                if (myid == 3) then
+                    write(*,*) "blk4 west ghost values ",    blocks(3)%mesh%T(0, 2)
+                    write(*,*) "blk4 west face values ",     blocks(3)%mesh%T(1, 2)
+                    write(*,*) "blk4 west interior values ", blocks(3)%mesh%T(2, 2)
+                end if
+
+            else if (nprocs == 1) then
+
+                ! 1 proc 5x4
+                if (myid == 0) then
+                    write(*,*) "blk3 east interior values ", blocks(11)%mesh%T(IMAXBLK-1, 2)
+                    write(*,*) "blk3 east face values ",     blocks(11)%mesh%T(IMAXBLK,   2)
+                    write(*,*) "blk3 east ghost values ",    blocks(11)%mesh%T(IMAXBLK+1, 2)
+                    write(*,*)
+                    write(*,*) "blk4 west ghost values ",    blocks(10)%mesh%T(0, 2)
+                    write(*,*) "blk4 west face values ",     blocks(10)%mesh%T(1, 2)
+                    write(*,*) "blk4 west interior values ", blocks(10)%mesh%T(2, 2)
+                end if
+            end if
+
+
 
             ! CALC NEW TEMPERATURE AT ALL POINTS
             CALL calc_temp(blocks)

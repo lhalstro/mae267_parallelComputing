@@ -84,6 +84,11 @@ PROGRAM heatTrans
         DEALLOCATE(allblocks, procs)
     END IF
 
+    ! ONLY PROC 0 READS IN CONFIG DATA, SO BRODCAST TO ALL PROCS
+    ! (syntax: variable to brodcast, size, type, which proc to bcast from, otherstuff)
+    CALL MPI_Bcast(IMAX, 1, MPI_INT, 0, mpi_comm_world, ierror)
+    CALL MPI_Bcast(JMAX, 1, MPI_INT, 0, mpi_comm_world, ierror)
+
     ! HOLD ALL PROCESSORS UNTIL INITIALIZATION IS COMPLETE
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
 
@@ -94,6 +99,41 @@ PROGRAM heatTrans
     ! INITIALIZE SOLUTION
     write(*,*) "Initialize for proc ", MYID
     CALL init_solution(blocks, nbrlists, mpilists)
+
+    if (nprocs == 4) then
+        if (myid == 3) then
+            write(*,*) "block ",   blocks(3)%ID
+!             write(*,*) "iminloc ", blocks(3)%IMINLOC
+!             write(*,*) "Imaxloc ", blocks(3)%IMaxLOC
+!             write(*,*) "jminloc ", blocks(3)%jMINLOC
+!             write(*,*) "jmaxloc ", blocks(3)%jmaxLOC
+            write(*,*) blocks(3)%mesh%term( 1, 2)
+            write(*,*) blocks(3)%mesh%V2nd( 1, 2)
+            write(*,*) blocks(3)%mesh%dt(   1, 2)
+            write(*,*) blocks(3)%mesh%xp(   1, 2)
+            write(*,*) imax
+
+
+        end if
+
+
+    else if (nprocs == 1) then
+        if (myid == 0) then
+            write(*,*) "block ",   blocks(10)%ID
+!             write(*,*) "iminloc ", blocks(10)%IMINLOC
+!             write(*,*) "Imaxloc ", blocks(10)%IMaxLOC
+!             write(*,*) "jminloc ", blocks(10)%jMINLOC
+!             write(*,*) "jmaxloc ", blocks(10)%jmaxLOC
+            write(*,*) blocks(10)%mesh%term( 1, 2)
+            write(*,*) blocks(10)%mesh%V2nd( 1, 2)
+            write(*,*) blocks(10)%mesh%dt(   1, 2)
+            write(*,*) blocks(10)%mesh%xp(   1, 2)
+            write(*,*) Imax
+        end if
+
+    end if
+
+
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
     ! SOLVE
     WRITE(*,*) 'Solving heat conduction with Processor ', MYID
