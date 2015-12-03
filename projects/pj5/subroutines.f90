@@ -133,24 +133,51 @@ CONTAINS
 
 
 
-            if (myid == 0 .or. myid == 3) then
+            if (myid == 2 .or. myid == 3) then
                 write(*,*) "Proc, iter: ", myid, iter
             end if
 
             if (nprocs == 4) then
 
                 ! 4 proc 5x4
-                if (myid == 0) then
-                    write(*,*) "blk3 east interior values ", blocks(3)%mesh%T(IMAXBLK-1, 2)
-                    write(*,*) "blk3 east face values ",     blocks(3)%mesh%T(IMAXBLK,   2)
-                    write(*,*) "blk3 east ghost values ",    blocks(3)%mesh%T(IMAXBLK+1, 2)
+!                 if (myid == 0) then
+!                     write(*,*) "blk3 east interior values ", blocks(3)%mesh%T(IMAXBLK-1, 2)
+!                     write(*,*) "blk3 east face values ",     blocks(3)%mesh%T(IMAXBLK,   2)
+!                     write(*,*) "blk3 east ghost values ",    blocks(3)%mesh%T(IMAXBLK+1, 2)
+!                 end if
+
+!                 if (myid == 3) then
+!                     write(*,*) "blk4 west ghost values ",    blocks(3)%mesh%T(0, 2)
+!                     write(*,*) "blk4 west face values ",     blocks(3)%mesh%T(1, 2)
+!                     write(*,*) "blk4 west interior values ", blocks(3)%mesh%T(2, 2)
+!                 end if
+
+!                 ! compare node value, should be the same
+!                 if (myid == 2) then
+!                     write(*,*) "        block", blocks(3)%ID, &
+!                                      "SW node", blocks(3)%mesh%T(1, 1)
+!                     write(*,*) "        block", blocks(1)%ID, &
+!                                      "NW node", blocks(1)%mesh%T(1, jmaxblk)
+!                 end if
+!                 if (myid == 3) then
+!                     write(*,*) "        block", blocks(4 )%ID, &
+!                                      "NE node", blocks(4 )%mesh%T(IMAXBLK, JMAXBLK)
+!                     write(*,*) "        block", blocks(5)%ID, &
+!                                      "SE node", blocks(5)%mesh%T(IMAXBLK, 1)
+!                 end if
+
+                ! compare ghost info transfer
+                if (myid == 2) then
+                    write(*,*) "        block", blocks(3)%ID, &
+                                "send SW node", blocks(3)%mesh%T(2, 2)
+                end if
+                if (myid == 3) then
+                    write(*,*) "        block", blocks(4)%ID, &
+                                "recv NE node", blocks(4)%mesh%T(imaxblk+1, jmaxblk+1)
                 end if
 
-                if (myid == 3) then
-                    write(*,*) "blk4 west ghost values ",    blocks(3)%mesh%T(0, 2)
-                    write(*,*) "blk4 west face values ",     blocks(3)%mesh%T(1, 2)
-                    write(*,*) "blk4 west interior values ", blocks(3)%mesh%T(2, 2)
-                end if
+
+
 
             else if (nprocs == 1) then
 

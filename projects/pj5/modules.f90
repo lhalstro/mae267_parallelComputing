@@ -113,9 +113,10 @@ MODULE CONSTANTS
     ! Dimensions of block layout, Number of Blocks
     INTEGER :: M, N, NBLK
     ! Block boundary condition identifiers
-        ! If block face is on North,east,south,west of main grid, identify
         ! If boundary is on a different proc, multiply bnd type by proc boundary
-    INTEGER :: NBND = 1, EBND = 2, SBND = 3, WBND = 4, BND=0, PROCBND = -1
+    INTEGER :: BND=0, PROCBND = -1
+    ! boundary indicators for each direction, use for mpi sends
+    INTEGER :: NBND = 1, NEBND=2, EBND = 3, SEBND=4, SBND = 5, SWBND = 6, WBND=7, NWBND=8
     ! Output directory
     CHARACTER(LEN=18) :: casedir
     ! Debug mode = 1
@@ -182,17 +183,19 @@ CONTAINS
 !         ! MAKE DIRECTORIES (IF THEY DONT ALREADY EXIST)
 !         CALL EXECUTE_COMMAND_LINE ("mkdir -p " // TRIM(casedir) )
 
-        ! OUTPUT TO SCREEN
-        WRITE(*,*) ''
-        WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
-        WRITE(*,*) 'Number of processors:', NPROCS
-        WRITE(*,*) 'With MxN blocks:', M, 'x', N
-        WRITE(*,*) 'Number of blocks:', NBLK
-        WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
-        IF (DEBUG == 1) THEN
-            WRITE(*,*) 'RUNNING IN DEBUG MODE'
+        IF (MYID == 0) THEN
+            ! OUTPUT TO SCREEN
+            WRITE(*,*) ''
+            WRITE(*,*) 'Solving Mesh of size ixj:', IMAX, 'x', JMAX
+            WRITE(*,*) 'Number of processors:', NPROCS
+            WRITE(*,*) 'With MxN blocks:', M, 'x', N
+            WRITE(*,*) 'Number of blocks:', NBLK
+            WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
+            IF (DEBUG == 1) THEN
+                WRITE(*,*) 'RUNNING IN DEBUG MODE'
+            END IF
+            WRITE(*,*) ''
         END IF
-        WRITE(*,*) ''
     END SUBROUTINE read_input
 END MODULE CONSTANTS
 
@@ -1283,16 +1286,17 @@ CONTAINS
             CALL link_type(NB%NW, nbrlists%NW, nbrl%NW, mpilists%NW, mpil%NW, IBLK)
         END DO
 
-        if (myid == 0) then
-            write(*,*) "proc 0 east inter proc boundaries"
-            nbrl%N => nbrlists%N
-            mpil%E => mpilists%E
-            do
-                IF ( .NOT. ASSOCIATED(mpil%E) ) EXIT
-                write(*,*) mpil%E%ID
-                mpil%E => mpil%E%next
-            end do
-        end if
+!         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!         if (myid == 2) then
+!             write(*,*) "proc ", myid, "sw mpi list"
+!             nbrl%N => nbrlists%N
+!             mpil%sw => mpilists%sw
+!             do
+!                 IF ( .NOT. ASSOCIATED(mpil%sw) ) EXIT
+!                 write(*,*) blocks(mpil%sw%ID)%ID
+!                 mpil%sw => mpil%sw%next
+!             end do
+!         end if
 
 
     END SUBROUTINE init_linklists
@@ -1457,6 +1461,8 @@ CONTAINS
         TYPE(NBRLIST) :: mpil
         ! iteration parameters, index of neighbor, communication tag, destination
         INTEGER :: I, J, INBR, tag, dest
+        ! counts number of sends in certian direction by proc
+        INTEGER :: sends
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! NORTH FACE GHOST INFO
@@ -1537,12 +1543,12 @@ CONTAINS
             CALL MPI_Isend(bufferJ, JMAXBLK, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (myid == 3 .and. b%ID == 4) then
-                write(*,*)
-                write(*,*) "send east ghosts from: ", b%ID
-                write(*,*) "buffer values: ", bufferJ(2)
-            end if
+!             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!             if (myid == 3 .and. b%ID == 4) then
+!                 write(*,*)
+!                 write(*,*) "send east ghosts from: ", b%ID
+!                 write(*,*) "buffer values: ", bufferJ(2)
+!             end if
 
             mpil%W => mpil%W%next
         END DO
@@ -1556,7 +1562,7 @@ CONTAINS
             buffer = b%mesh%T(IMAXBLK-1, JMAXBLK-1)
 
             dest = b%NP%NE
-            tag = NBND + EBND * 10
+            CALL make_mpi_tag(NEBND, b%ID, tag)
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
@@ -1572,7 +1578,7 @@ CONTAINS
             buffer = b%mesh%T(IMAXBLK-1, 2)
 
             dest = b%NP%SE
-            tag = SBND + EBND * 10
+            CALL make_mpi_tag(SEBND, b%ID, tag)
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
 
@@ -1588,9 +1594,17 @@ CONTAINS
             buffer = b%mesh%T(2, 2)
 
             dest = b%NP%SW
-            tag = SBND + WBND * 10
+            CALL make_mpi_tag(SWBND, b%ID, tag)
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
+
+                        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (myid == 2 .and. b%ID == 17) then
+                write(*,*)
+                write(*,*) "send sw ghosts from: ", b%ID, "tag: ", tag, "dest", dest
+                write(*,*) "buffer values: ", buffer
+            end if
+
 
             mpil%SW => mpil%SW%next
         END DO
@@ -1604,7 +1618,7 @@ CONTAINS
             buffer = b%mesh%T(2, JMAXBLK-1)
 
             dest = b%NP%NW
-            tag = NBND + WBND * 10
+            CALL make_mpi_tag(NWBND, b%ID, tag)
             CALL MPI_Isend(buffer, 1, MPI_REAL8, dest, tag, &
                             MPI_COMM_WORLD, REQUEST, IERROR)
             mpil%NW => mpil%NW%next
@@ -1629,6 +1643,8 @@ CONTAINS
         TYPE(NBRLIST) :: mpil
         ! iteration parameters, index of neighbor, communication tag, source proc id
         INTEGER :: I, J, INBR, tag, src
+        ! counts number of sends in certian direction by proc
+        INTEGER :: sends
 
         !!! FACES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! NORTH FACE GHOST NODES
@@ -1683,12 +1699,12 @@ CONTAINS
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
 
-            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (myid == 0 .and. b%ID == 3) then
-                write(*,*)
-                write(*,*) "recieve east ghosts for: ", b%ID
-                write(*,*) "buffer values: ", bufferJ(2)
-            end if
+!             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!             if (myid == 0 .and. b%ID == 3) then
+!                 write(*,*)
+!                 write(*,*) "recieve east ghosts for: ", b%ID
+!                 write(*,*) "buffer values: ", bufferJ(2)
+!             end if
 
             DO J = 1, JMAXBLK
                  b%mesh%T(IMAXBLK+1, J) = bufferJ(J)
@@ -1721,10 +1737,17 @@ CONTAINS
 
             b => blocks( mpil%NE%ID )
             src = b%NP%NE
-            tag = SBND + WBND * 10
+            CALL make_mpi_tag(SWBND, ABS(b%NB%NE), tag)
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(IMAXBLK+1, JMAXBLK+1)= buffer
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (myid == 3 .and. b%ID == 11) then
+                write(*,*)
+                write(*,*) "recv ne ghosts for: ", b%ID, "tag: ", tag, "src", src
+                write(*,*) "buffer values: ", buffer
+            end if
 
             mpil%NE => mpil%NE%next
         END DO
@@ -1736,7 +1759,7 @@ CONTAINS
 
             b => blocks( mpil%SE%ID )
             src = b%NP%SE
-            tag = NBND + WBND * 10
+            CALL make_mpi_tag(NWBND, ABS(b%NB%SE), tag)
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(IMAXBLK+1, 0) = buffer
@@ -1751,7 +1774,7 @@ CONTAINS
 
             b => blocks( mpil%SW%ID )
             src = b%NP%SW
-            tag = NBND + EBND * 10
+            CALL make_mpi_tag(NEBND, ABS(b%NB%SW), tag)
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(0, 0) = buffer
@@ -1766,7 +1789,8 @@ CONTAINS
 
             b => blocks( mpil%NW%ID )
             src = b%NP%NW
-            tag = SBND + EBND * 10
+            CALL make_mpi_tag(SEBND, ABS(b%NB%NW), tag)
+
             CALL MPI_RECV(buffer, 1, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
             b%mesh%T(0, JMAXBLK+1) = buffer
@@ -1775,6 +1799,37 @@ CONTAINS
         END DO
 
     END SUBROUTINE update_ghosts_diffproc_recv
+
+    SUBROUTINE make_mpi_tag(dir, srcblk, tag)
+        ! Make unique tag for mpi send/revieve.  Sends are always from one
+        ! proc to another, so we just need unique tags for each block in each
+        ! direction.
+        ! Accomplish this by making a unique number for each direction and
+        ! concatenating the global block number of the sending block to it
+
+        ! dir --> direction of send
+        ! srcblk --> global id of block sending information
+
+        INTEGER :: dir, srcblk, tag
+        CHARACTER(len=1) :: dirstr
+        CHARACTER(len=25) :: srcstr
+        CHARACTER(LEN=50) :: tagstr
+
+!         write(*,*)
+
+        ! CONVERT INTEGERS TO STRINGS
+        WRITE(dirstr, '(I1)') dir
+        WRITE(srcstr, *) srcblk
+
+        ! CONCATENATE STRINGS INTO INTEGER VALUE
+        ! (direction, then block number)
+        ! adjust right and left so numbers line up
+        tagstr = ADJUSTR(TRIM(dirstr)) // ADJUSTL(TRIM(srcstr))
+        ! CONVERT TO INTEGER
+        READ(tagstr, *) tag
+
+    END SUBROUTINE make_mpi_tag
+
 
     SUBROUTINE calc_cell_params(blocks)
         ! calculate areas for secondary fluxes and constant terms in heat
@@ -1791,8 +1846,8 @@ CONTAINS
         DO IBLK = 1, MYNBLK
             m => blocks(IBLK)%mesh
 
-            DO J = 0, JMAXBLK
-                DO I = 0, IMAXBLK
+            DO J = 0, JMAXBLK+1
+                DO I = 0, IMAXBLK+1
                     ! CALC CELL VOLUME
                         ! cross product of cell diagonals p, q
                         ! where p has x,y components px, py and q likewise.
@@ -1803,10 +1858,6 @@ CONTAINS
                                   * ( m%y(I,  J+1) - m%y(I+1,J) ) &
                                   - ( m%x(I,  J+1) - m%x(I+1,J) ) &
                                   * ( m%y(I+1,J+1) - m%y(I,  J) ) )
-                    if (m%V(I,j) == 0) then
-                        write(*,*) I, j
-                        write(*,*) m%x(I+1,J+1)
-                    end if
                 END DO
             END DO
 
