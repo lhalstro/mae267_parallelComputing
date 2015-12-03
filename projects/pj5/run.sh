@@ -2,7 +2,7 @@
 #SBATCH -J PJ5MAE267
 #SBATCH -o slurm-%J.out
 #SBATCH -e slurm-%J.err=
-NPROCS=1
+NPROCS=4
 #SBATCH -n $NPROCS
 
 #Text with start time and location
@@ -12,8 +12,10 @@ echo $START
 #Print to output file
 echo $START > "a.out"
 
+module load openmpi hwloc
+
 # '&' will run process in background until it is complete
-mpirun -n $NPROCS main >> "a.out"
+mpirun -n $NPROCS ./main >> "a.out"
 # ./main >> "a.out"
 
 # Move files to case directory
