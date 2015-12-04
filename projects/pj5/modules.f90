@@ -119,8 +119,8 @@ MODULE CONSTANTS
     INTEGER :: NBND = 1, NEBND=2, EBND = 3, SEBND=4, SBND = 5, SWBND = 6, WBND=7, NWBND=8
     ! Output directory
     CHARACTER(LEN=18) :: casedir
-    ! Debug mode = 1
-    INTEGER :: DEBUG
+    ! RUN MODE: debug = 0, normal =1, optimizd for 10x10 blocks = 2
+    INTEGER :: OPT
     ! Value for constant temperature BCs for debugging
     REAL(KIND=8), PARAMETER :: TDEBUG = T0 - T0 * 0.5
 
@@ -152,7 +152,7 @@ CONTAINS
         READ(1,*) M
         ! DEBUG MODE (10th line)
         READ(1,*)
-        READ(1,*) DEBUG
+        READ(1,*) OPT
 
         ! SET GRID SIZE
         IMAX = nx
@@ -191,7 +191,8 @@ CONTAINS
             WRITE(*,*) 'With MxN blocks:', M, 'x', N
             WRITE(*,*) 'Number of blocks:', NBLK
             WRITE(*,*) 'Block size ixj:', IMAXBLK, 'x', JMAXBLK
-            IF (DEBUG == 1) THEN
+            WRITE(*,*) 'OPT=', OPT
+            IF (OPT == 0) THEN
                 WRITE(*,*) 'RUNNING IN DEBUG MODE'
             END IF
             WRITE(*,*) ''
@@ -690,6 +691,15 @@ CONTAINS
             sorted(IBLK) = IMAXSIZE
         END DO
 
+        ! write block size order
+        write(*,*) " "
+        write(*,*) "Blocks ordered by size, greatest to least, with sizes:"
+        DO I = 1, NBLK
+            b => blocks( sorted(I) )
+            write(*,*) b%ID, b%SIZE
+        END DO
+        write(*,*) " "
+
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! INITIALIZE PROCS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -703,15 +713,6 @@ CONTAINS
             ! so we dont have to reallocate)
             ALLOCATE( procs(IPROC)%blocks(NBLK) )
         END DO
-
-        ! write block size order
-        write(*,*) " "
-        write(*,*) "Blocks ordered by size, greatest to least, with sizes:"
-        DO I = 1, NBLK
-            b => blocks( sorted(I) )
-            write(*,*) b%ID, b%SIZE
-        END DO
-        write(*,*) " "
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
@@ -1027,7 +1028,7 @@ CONTAINS
 
     SUBROUTINE init_temp(blocks)
         ! Initialize temperature across mesh with dirichlet BCs
-        ! or constant temperature BCs for DEBUG=1
+        ! or constant temperature BCs for OPT=0
 
         ! BLOCK DATA TYPE
         TYPE(BLKTYPE), TARGET  :: blocks(:)
@@ -1043,7 +1044,7 @@ CONTAINS
             ! FIRST, INITIALIZE ALL POINT TO INITIAL TEMPERATURE (T0)
             m%T(0:IMAXBLK+1, 0:JMAXBLK+1) = T0
             ! THEN, INITIALIZE BOUNDARIES DIRICHLET B.C.
-            IF (DEBUG /= 1) THEN
+            IF (OPT /= 0) THEN
 
                 ! DIRICHLET B.C.
                 ! face on north boundary

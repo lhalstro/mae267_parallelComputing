@@ -34,7 +34,7 @@ def PlotResid(ax, iter, res, label, color='blue', marker='.', spacing=100):
 markers = ['x',   'o',     '.',   '^',    'sq']
 colors = ['blue', 'green', 'red', 'cyan', 'magenta']
 #point spacing
-spacing = 100
+spacing = 2000
 # savedir = 'Results'
 savetype = '.png'
 
@@ -105,7 +105,7 @@ def main(nprocs, nx, Ns, Ms, name=''):
 if __name__ == "__main__":
 
     NPROCS = [4]
-    NX = 101
+    NX = 501
     NS = [10] * len(NPROCS)
     MS = [10] * len(NPROCS)
 
