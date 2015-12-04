@@ -80,7 +80,7 @@ def main(nprocs, nx, N, M, name=''):
 
     #SPEEDUP PLOT
 
-    title = 'Parallel Speedups\n({}x{} Blocks, {}x{} Mesh)'.format(N, M, nx, nx)
+    title = 'Parallel Speedup\n({}x{} Blocks, {}x{} Mesh)'.format(N, M, nx, nx)
     _, ax = PlotStart(title, 'NPROCS', '$S_P$', horzy='horizontal')
     # , figsize='tex'
 
@@ -94,15 +94,14 @@ def main(nprocs, nx, N, M, name=''):
 
     # for c, clr, mkr in zip(cases, colors, markers):
 
-
     #PLOT IDEAL SPEEDUP
     ax.plot(allprocs, allprocs, label='Ideal',
                     color='black', linewidth=line,
-                    marker='^', markersize=mark)
+                    marker='^', markersize=mark*1.5)
     #PLOT ACTUAL SPEEDUP
     ax.plot(list([1]) + list(nprocs), list([1]) + list(Sps), label='Parallel',
                     color='blue', linewidth=line,
-                    marker='.', markersize=mark)
+                    marker='x', markersize=mark*1.5)
 
     PlotLegend(ax, loc='best')
 
@@ -123,7 +122,7 @@ if __name__ == "__main__":
     # M = 10
 
     NPROCS = [2, 4, 6, 8]
-    NX = 101
+    NX = 501
     N = 10
     M = 10
 

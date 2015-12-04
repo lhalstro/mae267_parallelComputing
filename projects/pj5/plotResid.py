@@ -21,22 +21,20 @@ def PlotResid(ax, iter, res, label, color='blue', marker='.', spacing=100):
 
     """
     ax.semilogy(iter, res, label=label,
-                        color=color, linewidth=line,
+                        color=color, linewidth=line*.75,
                         marker=marker, markersize=mark, markevery=spacing)
-
-
 
 
 
 #INPUTS
 
 
-markers = ['x',   'o',     '.',   '^',    'sq']
+markers = ['o',   '^',     'x',   '.'    'sq']
 colors = ['blue', 'green', 'red', 'cyan', 'magenta']
 #point spacing
 spacing = 2000
 # savedir = 'Results'
-savetype = '.png'
+savetype = '.pdf'
 
 def main(nprocs, nx, Ns, Ms, name=''):
     """
@@ -83,6 +81,7 @@ def main(nprocs, nx, Ns, Ms, name=''):
 
     # ax.axis('equal')
     ax.set_yscale("log", nonposy='clip')
+    ax.xaxis.get_major_formatter().set_powerlimits((0, 1))
     ax.grid(True)
     # xmin = 1500
     # ax.set_ylim([0, mult['res'][xmin] * 1.25])
