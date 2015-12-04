@@ -11,6 +11,7 @@ main
 *.dat
 *.pdf
 *.png
+*.config
 #i/o output record files
 output.txt
 

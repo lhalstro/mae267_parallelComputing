@@ -102,44 +102,6 @@ PROGRAM heatTrans
     write(*,*) "Initialize for proc ", MYID
     CALL init_solution(blocks, nbrlists, mpilists)
 
-!     if (nprocs == 4) then
-!         if (myid == 3) then
-!             write(*,*) "block ",   blocks(4)%ID
-! !             write(*,*) "iminloc ", blocks(3)%IMINLOC
-! !             write(*,*) "Imaxloc ", blocks(3)%IMaxLOC
-! !             write(*,*) "jminloc ", blocks(3)%jMINLOC
-! !             write(*,*) "jmaxloc ", blocks(3)%jmaxLOC
-
-!             write(*,*) blocks(4)%mesh%term( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(4)%mesh%V2nd( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(4)%mesh%V   ( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(4)%mesh%dt(   imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(4)%mesh%xp(   imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(4)%mesh%x(    imaxblk+1, jmaxblk+1)
-
-
-!         end if
-
-
-!     else if (nprocs == 1) then
-!         if (myid == 0) then
-!             write(*,*) "block ",   blocks(9)%ID
-! !             write(*,*) "iminloc ", blocks(10)%IMINLOC
-! !             write(*,*) "Imaxloc ", blocks(10)%IMaxLOC
-! !             write(*,*) "jminloc ", blocks(10)%jMINLOC
-! !             write(*,*) "jmaxloc ", blocks(10)%jmaxLOC
-!             write(*,*) blocks(14)%mesh%term( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(14)%mesh%V2nd( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(14)%mesh%V   ( imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(14)%mesh%dt(   imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(14)%mesh%xp(   imaxblk+1, jmaxblk+1)
-!             write(*,*) blocks(14)%mesh%x(    imaxblk+1, jmaxblk+1)
-!             write(*,*) Imax
-!         end if
-
-!     end if
-
-
     CALL MPI_Barrier(MPI_COMM_WORLD, IERROR)
     ! SOLVE
     WRITE(*,*) 'Solving heat conduction with Processor ', MYID
@@ -167,8 +129,6 @@ PROGRAM heatTrans
     ! CALC TOTAL WALL TIME
 !     end_total = MPI_Wtime()
 !     wall_time_total = end_total - start_total
-
-    !TURN THIS ON FOR PJ5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     IF (MYID == 0) THEN
         ! SAVE RESIDUAL HISTORY

@@ -1121,20 +1121,6 @@ CONTAINS
                 END DO
             END DO
         END DO
-
-!         10      FORMAT(10A12)
-!         WRITE(*,*)
-!         WRITE(*,*) 'Check proc neighbors'
-!         WRITE(*,10) 'BLKID', 'NB%N', 'NP%N', 'NBLOC%N'
-!         DO IPCUR = 1, NPROCS
-!             pcur => procs(IPCUR)
-!             WRITE(*,*) 'Proc:', pcur%ID
-!             DO IBCUR = 1, pcur%NBLK
-!                 bcur => pcur%blocks(IBCUR)
-!                 WRITE(*,*) bcur%ID, bcur%NB%N, bcur%NP%N, bcur%NBLOC%N
-!             END DO
-!         END DO
-
     END SUBROUTINE init_neighbor_procs
 
     SUBROUTINE init_mesh(b)
@@ -1452,20 +1438,6 @@ CONTAINS
             ! NORTH WEST
             CALL link_type(NB%NW, nbrlists%NW, nbrl%NW, mpilists%NW, mpil%NW, IBLK)
         END DO
-
-!         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!         if (myid == 2) then
-!             write(*,*) "proc ", myid, "sw mpi list"
-!             nbrl%N => nbrlists%N
-!             mpil%sw => mpilists%sw
-!             do
-!                 IF ( .NOT. ASSOCIATED(mpil%sw) ) EXIT
-!                 write(*,*) blocks(mpil%sw%ID)%ID
-!                 mpil%sw => mpil%sw%next
-!             end do
-!         end if
-
-
     END SUBROUTINE init_linklists
 
     SUBROUTINE update_ghosts_sameproc(b, nbrlists)
@@ -1856,13 +1828,6 @@ CONTAINS
             CALL make_mpi_tag(WBND, ABS(b%NB%E), tag)
             CALL MPI_RECV(bufferJ, JMAXBLK, MPI_REAL8, src, tag, &
                 MPI_COMM_WORLD, STATUS, IERROR)
-
-!             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!             if (myid == 0 .and. b%ID == 3) then
-!                 write(*,*)
-!                 write(*,*) "recieve east ghosts for: ", b%ID
-!                 write(*,*) "buffer values: ", bufferJ(2)
-!             end if
 
             DO J = 1, JMAXBLK
                  b%mesh%T(IMAXBLK+1, J) = bufferJ(J)

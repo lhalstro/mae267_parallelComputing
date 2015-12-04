@@ -1,0 +1,15 @@
+
+codename$(O): $(codename_SRC)/codename.f
+	$(FC) $(PROC) $(FFLAGS_codename) $(codename_SRC)/codename.f
+#if additional routines are used, place a \ at the end of previous line
+#and list further routines similarly under it.  the last line should not
+#have a \
+
+OBJ_PI_base= codename$(O)
+#if additional routines are used, place a \ at the end of previous line
+#and list further routines similarly under it.  the last line should not
+#have a \
+
+OBJ_PI_codename= $(OBJ_PI_base)
+
+INCL_DIRS_codename= -I$(codename_SRC)

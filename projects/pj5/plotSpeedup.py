@@ -37,9 +37,6 @@ def PlotResid(ax, iter, res, label, color='blue', marker='.', spacing=100):
                         marker=marker, markersize=mark, markevery=spacing)
 
 
-
-
-
 #INPUTS
 from plotResid import markers, colors, savetype
 

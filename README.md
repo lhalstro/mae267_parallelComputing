@@ -26,19 +26,41 @@ Parallel computing methods for solving 2D heat transfer with explicity, finite-v
 
 ###### TO COMPILE A FORTRAN CODE (.f90 extension)
 
+    GNU Fortran:
     'gfortran -o outname progname.f90'
+
+    Open MPI (parallel, optimized):
+    'mpif90 -o outname -O3 progname.f90'
+
+    Using project specific makefile:
+    './make.sh'
 
 ###### INSTALL OPEN-MPI WITH FORTRAN SUPPORT
     Homebrew tends to install open-mpi without fortran support.  To Fix:
 
     'brew reinstall openmpi --build-from-source'
 
+###### RUNNING COMPILED CODES ON FRONT-END AND HPC1 BATCH SUBMISSION:
+    
+    MPI Parallel Run:
+    'mpirun -n NCPUS main > "a.out"'
+    
+    Batch Job Submission on HPC1:
+    'sbatch run.sh'
+
+###### BASH ALIASES FOR SLURM QUEUING SYSTEM:
+    alias fortmain='gfortran -o main main.f90'
+    alias q="squeue"
+    alias qq="squeue -u lhalstro"
+    alias qdel="scancel"
+    alias qsub="sbatch"
+
 ###### TO COPY FILES FROM REMOTE TO LOCAL (in local terminal):
 
     'scp username@remoteaddress:path/to/file path/to/copy/to'
 
     use -r to copy folders, i.e.:
-    'scp -r lhalstro@hpc1.cse.ucdavis.edu:mae267/code/pj1/results projects/ucd/mae267/code/pj1/.'
+    'scp -r lhalstro@hpc1.cse.ucdavis.edu:mae267/projects/pj5/Results projects/ucd/mae267/projects/pj5/.'
 
 ###### TO CHANGE FROM LOWER TO UPPER CASE IN SUBLIME TEXT:
 

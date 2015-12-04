@@ -1,0 +1,10 @@
+      CHARACTER *20 BASENAME /'BASENAME'/
+      CHARACTER *25 NEWNAME,STR
+
+      DO N = 1,10
+      WRITE(STR,*) N
+      NEWNAME = TRIM(BASENAME)//'.P'//ADJUSTL(STR)
+      PRINT *,NEWNAME
+      ENDDO
+      STOP
+      END
