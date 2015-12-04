@@ -1,4 +1,3 @@
-starting at Thu Dec 3 17:45:23 PST 2015 on c8-9
  starting mpi
  starting mpi
  starting mpi
@@ -9,6 +8,7 @@ starting at Thu Dec 3 17:45:23 PST 2015 on c8-9
  With MxN blocks:          10 x          10
  Number of blocks:         100
  Block size ixj:          51 x          51
+ OPT=           2
  
  initializing
  Making mesh...
@@ -223,122 +223,12 @@ starting at Thu Dec 3 17:45:23 PST 2015 on c8-9
           10        3904
            1        3904
   
-  
- Block ID assigned to Proc ID:
-          89           0
-          88           1
-          87           2
-          86           3
-          85           0
-          84           1
-          83           2
-          82           3
-          79           0
-          78           1
-          77           2
-          76           3
-          75           0
-          74           1
-          73           2
-          72           3
-          69           0
-          68           1
-          67           2
-          66           3
-          65           0
-          64           1
-          63           2
-          62           3
-          59           0
-          58           1
-          57           2
-          56           3
-          55           0
-          54           1
-          53           2
-          52           3
-          49           0
-          48           1
-          47           2
-          46           3
-          45           0
-          44           1
-          43           2
-          42           3
-          39           0
-          38           1
-          37           2
-          36           3
-          35           0
-          34           1
-          33           2
-          32           3
-          29           0
-          28           1
-          27           2
-          26           3
-          25           0
-          24           1
-          23           2
-          22           3
-          19           0
-          18           1
-          17           2
-          16           3
-          15           0
-          14           1
-          13           2
-          12           3
-          99           0
-          98           1
-          97           2
-          96           3
-          95           0
-          94           1
-          93           2
-          92           3
-          90           0
-          81           1
-          80           2
-          71           3
-          70           0
-          61           1
-          60           2
-          51           3
-          50           0
-          41           1
-          40           2
-          31           3
-          30           0
-          21           1
-          20           2
-          11           3
-           9           0
-           8           1
-           7           2
-           6           3
-           5           0
-           4           1
-           3           2
-           2           3
-         100           0
-          91           1
-          10           2
-           1           3
-
- Processor Load Balancing:
-           ID LOAD BALANCE
-           0   1.0000000000000000     
-           1   1.0000000000000000     
-           2   1.0000000000000000     
-           3   1.0000000000000000     
-
- Initialize for proc            0
  Initialize for proc            2
- Initialize for proc            3
+ Initialize for proc            0
  Initialize for proc            1
- Solving heat conduction with Processor            2
+ Initialize for proc            3
  Solving heat conduction with Processor            0
+ Solving heat conduction with Processor            2
  Solving heat conduction with Processor            1
  Solving heat conduction with Processor            3
  Writing results...
@@ -348,22 +238,22 @@ starting at Thu Dec 3 17:45:23 PST 2015 on c8-9
  Writing results...
  Writing results...
 
- MAX RESIDUAL FOR PROCESSOR            0
- Found max residual of    1.3296698297909129E-002
- on block id          75
- At ij of          242         349
-
  MAX RESIDUAL FOR PROCESSOR            1
- Found max residual of    1.6050725873656187E-002
- on block id          74
- At ij of          192         349
+ Found max residual of    4.9295591999481509E-003
+ on block id          46
+ At ij of          292         199
+
+ MAX RESIDUAL FOR PROCESSOR            0
+ Found max residual of    1.0010658565799904E-002
+ on block id          43
+ At ij of          142         199
 
  MAX RESIDUAL FOR PROCESSOR            2
  Found max residual of    1.6677517297645231E-002
- on block id          73
- At ij of          150         349
 
  MAX RESIDUAL FOR PROCESSOR            3
- Found max residual of    1.4747442001664734E-002
- on block id          72
- At ij of          100         349
+ on block id          73
+ At ij of          150         349
+ Found max residual of    9.4461039922363061E-003
+ on block id          76
+ At ij of          292         349

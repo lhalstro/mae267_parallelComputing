@@ -1,4 +1,4 @@
  Running a         501 by         501 grid,
- With NxM:          10 x          10 blocks took:
+ On           4 processors, With NxM:          10 x          10 blocks,
        75128 iterations
-   622.24686694145203      seconds (Solver CPU walltime)
+   91.942606925964355      seconds (Solver CPU walltime)

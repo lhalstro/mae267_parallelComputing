@@ -335,7 +335,7 @@ CONTAINS
         IF (MYID == 0) THEN
             OPEN (UNIT = 2, FILE = "SolnInfo.dat")
             WRITE (2,*), "Running a", IMAX, "by", JMAX, "grid,"
-            WRITE (2,*), "With NxM:", N, "x", M, "blocks took:"
+            WRITE (2,*), "On", NPROCS, "processors, With NxM:", N, "x", M, "blocks,"
             WRITE (2,*), iter, "iterations"
 !             WRITE (2,*), wall_time_total, "seconds (Total CPU walltime)"
             WRITE (2,*), wall_time_solve, "seconds (Solver CPU walltime)"
