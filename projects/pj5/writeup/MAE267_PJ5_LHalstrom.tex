@@ -497,35 +497,26 @@ This course is highly recommended for students interested in numerical solutions
 
 
 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % \clearpage
-% \onecolumn
-% \appendix       %%% starting appendix
-
-% \section*{Appendix A: Sample Connectivity Files} \label{configs}
-% \lstinputlisting[caption=4 processors 5x4 blocks processor0, language={}]{../Results/working_np4_nx501_n5_m4/p00.config}
-% \lstinputlisting[caption=4 processors 10x10 blocks processor0, language={}]{../Results/np4_nx501_n10_m10/p00.config}
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \clearpage
+\onecolumn
+\appendix       %%% starting appendix
 
-% \lstinputlisting[caption=6 processors 5x4 blocks processor0, language={}]{../Results/working_np6_nx501_n5_m4/p00.config}
-% \lstinputlisting[caption=6 processors 10x10 blocks processor0, language={}]{../Results/np6_nx501_n10_m10/p00.config}
+\section*{Appendix A: Parallel, Multi-Block Grid Wrapper Code}
+\lstinputlisting[caption=Wrapper program that performs domain decomposition on a single processor and then independently reads in solution for solver, language=Fortran]{../main.f90}
 
-% \clearpage
+\clearpage
 
-% \section*{Appendix A: Parallel, Multi-Block Grid Wrapper Code}
-% \lstinputlisting[caption=Wrapper program that performs domain decomposition on a single processor and then independently reads in solution for solver, language=Fortran]{../main.f90}
+\section*{Appendix B: Parallel, Multi-Block Grid Solver Code}
+\lstinputlisting[caption=Grid decomposition and solution processess are organized in this code, language=Fortran]{../subroutines.f90}
 
-% \section*{Appendix B: Parallel, Multi-Block Grid Solver Code}
-% \lstinputlisting[caption=Grid decomposition and solution processess are organized in this code, language=Fortran]{../subroutines.f90}
+\section*{Appendix C: Parallel, Multi-Block Grid Decomposition Code}
+\lstinputlisting[caption=Grids are decomposed into blocks and mapped onto NPROCS processors and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
 
-% \section*{Appendix C: Parallel, Multi-Block Grid Decomposition Code}
-% \lstinputlisting[caption=Grids are decomposed into blocks and mapped onto NPROCS processors and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
+\clearpage
 
-% \clearpage
-
-% \section*{Appendix C: Multi-Block Plot3D Reader-Writer}
-% \lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
+\section*{Appendix D: Multi-Block Plot3D Reader-Writer}
+\lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
 
 % \clearpage
 
