@@ -1,0 +1,42 @@
+starting at Thu Dec 3 18:27:07 PST 2015 on c8-9
+ starting mpi
+ 
+ Solving Mesh of size ixj:         501 x         501
+ Number of processors:           1
+ With MxN blocks:           1 x           1
+ Number of blocks:           1
+ Block size ixj:         501 x         501
+ 
+ initializing
+ Making mesh...
+
+ Processor Load Weighting Factors:
+ WGEOM=   1.0000000000000000      WCOMM=   126.00049800796813     
+
+ SIZE = WGEOM*GEOM + WCOMM*COMM
+
+ Block Load Factors:
+       BLKID        GEOM        COMM        SIZE
+           1      249001           0      249001
+  
+ Blocks ordered by size, greatest to least, with sizes:
+           1      249001
+  
+  
+ Block ID assigned to Proc ID:
+           1           0
+
+ Processor Load Balancing:
+           ID LOAD BALANCE
+           0   1.0000000000000000     
+
+ Initialize for proc            0
+ Solving heat conduction with Processor            0
+ CONVERGED (NUMBER OF ITERATIONS:       75128 )
+           (MAXIMUM RESIDUAL    :   9.9999667101755702E-006 )
+ Writing results...
+
+ MAX RESIDUAL FOR PROCESSOR            0
+ Found max residual of    9.6290306931812973E-003
+ on block id           1
+ At ij of          167           0
