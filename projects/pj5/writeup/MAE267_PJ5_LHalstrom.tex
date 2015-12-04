@@ -69,7 +69,7 @@
 %
 %% The default is oneside, onecolumn, 10pt, final
 
-\title{MAE 267 -- Project 4\\Parallel, Multi-Block, Finite-Volume Methods\\For Solving 2D Heat Conduction}
+\title{MAE 267 -- Project 5\\Parallel, Multi-Block, Finite-Volume Methods\\For Solving 2D Heat Conduction}
 
 %%% first author
 \author{Logan Halstrom
@@ -116,7 +116,7 @@ The demonstration of parallel computing techniques was accomplished in stages, s
 
 The next stage was to divide the grid into NxM subdomains (blocks), on each of which the solution for a given iteration was calculated independently.  5x4 and 10x10 block decompositions of both previous grid dimensions were solved to demonstrate compartmentalization of solver processes, which is a necessary step for distributing processes in parallel computing.
 
-Finally, the code will be adapted to solve multi-block decompositions on multiple processors for the 501x501 grid decomposed into 10x10 blocks running on 4 to 8 processors.  This stage steps closer to that solution by performing domain decomposition and processor distribution for 5x4 and 10x10 blocks on 4 and 6 processors, and saving the decompositions to restart files to be loaded by the parallel solver.
+Finally, the code was adapted to solve multi-block decompositions on multiple processors for the 501x501 grid decomposed into 10x10 blocks running on 1 to 8 processors.  For this solution, the domain is decomposed and blocks are distributed on to processors. Decompositions are saved to restart files for each processor to be loaded by each processor in the parallel solver.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -285,7 +285,7 @@ Neighbor information is used to populate a linked list for each boundary type wi
 When moving to parallel computing, the ID of the neighbor block’s processor must also be bookeeped, as it is required information for accessing the neighbor block for ghost updating.  In addition to the neighbor block’s processor, the local index of the neighbor block on it’s processor must also be stored for this same reason.  Thus, this data is stored in corresponding $NBRTYPEs$.  Neighbor processor ID’s are stored in the variable $NP$.  If a block boundary is a BC, the processor ID is negated to indicate as such.  Local indices of neighbor blocks on neighbor processors are stored in $NBLOC$ and are set to 0 if a boundary is a BC.
 
 \subsection{Configuration Restart Files}
-After all of the above mentioned initialization processes have been completed, this information is stored in restart files so that the solver may start up independently from these files without needing to determine boundary procedures.  Neighbor information, grid, and temperature files are written for each processor.
+After all of the above mentioned initialization processes have been completed, this information is stored in individual restart files for each processor so that the solver may start up independently from these files without needing to determine boundary procedures.  Neighbor information, grid, and temperature files are written \textbf{for each processor}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
