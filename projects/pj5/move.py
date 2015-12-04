@@ -63,10 +63,10 @@ def GetCaseInfo(configfile='config.in'):
 
 def CaseDir(nproc, nx, N, M, savedir='Results'):
     #MAKE CASE DIRECTORY (i.e. np4_nx101_n5_m4)
-    # outdir = '{}/np{}_nx{}_n{}_m{}'.format(savedir, nproc, nx, N, M)
+    outdir = '{}/np{}_nx{}_n{}_m{}'.format(savedir, nproc, nx, N, M)
 
-    #python 2 version
-    outdir = '%s/np%d_nx%d_n%d_m%d'%(savedir, nproc, nx, N, M)
+    # #python 2 version
+    # outdir = '%s/np%d_nx%d_n%d_m%d'%(savedir, nproc, nx, N, M)
     return outdir
 
 
@@ -89,10 +89,10 @@ def main():
     #add config files to move
     filelist += configs
     for f in filelist:
-        # cmd( 'mv {} {}/.'.format(f, outdir) )
-        cmd( 'mv %s %s/.'.%(f, outdir) )
+        cmd( 'mv {} {}/.'.format(f, outdir) )
+        # cmd( 'mv %s %s/.'.%(f, outdir) )
 
-    # print( 'Case files moved to {}'.format(outdir) )
+    print( 'Case files moved to {}'.format(outdir) )
 
 if __name__ == "__main__":
     main()

@@ -194,14 +194,19 @@ CONTAINS
 !             end if
 
 
+!             write(*,*) "calc temp ", myid
 
             ! CALC NEW TEMPERATURE AT ALL POINTS
             CALL calc_temp(blocks)
+
+!             write(*,*) "update ghosts ", myid
 
             ! UPDATE GHOST NODES WITH NEW TEMPERATURE SOLUTION
             CALL update_ghosts_sameproc(blocks, nbrlists)
             CALL update_ghosts_diffproc_send(blocks, mpilists)
             CALL update_ghosts_diffproc_recv(blocks, mpilists)
+
+!             write(*,*) "residual ", myid
 
             ! CALC RESIDUAL FOR LOCAL BLOCKS
             resmax = 0.D0
