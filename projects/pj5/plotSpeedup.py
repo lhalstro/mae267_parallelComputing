@@ -79,10 +79,9 @@ def main(nprocs, nx, N, M, name=''):
 
 
     #SPEEDUP PLOT
-
     title = 'Parallel Speedup\n({}x{} Blocks, {}x{} Mesh)'.format(N, M, nx, nx)
-    _, ax = PlotStart(title, 'NPROCS', '$S_P$', horzy='horizontal')
-    # , figsize='tex'
+    _, ax = PlotStart(title, 'NPROCS', '$S_P$', horzy='horizontal', figsize='tex')
+
 
     # ax.axis('equal')
     ax.grid(True)
@@ -97,11 +96,11 @@ def main(nprocs, nx, N, M, name=''):
     #PLOT IDEAL SPEEDUP
     ax.plot(allprocs, allprocs, label='Ideal',
                     color='black', linewidth=line,
-                    marker='^', markersize=mark*1.5)
+                    marker='x', markersize=mark*1.5)
     #PLOT ACTUAL SPEEDUP
     ax.plot(list([1]) + list(nprocs), list([1]) + list(Sps), label='Parallel',
                     color='blue', linewidth=line,
-                    marker='x', markersize=mark*1.5)
+                    marker='^', markersize=mark*1.5)
 
     PlotLegend(ax, loc='best')
 
@@ -110,7 +109,31 @@ def main(nprocs, nx, N, M, name=''):
     SavePlot(savename)
     plt.show()
 
+    #EFFICIENCY PLOT
+    title = 'Parallel Computational Efficiency\n({}x{} Blocks, {}x{} Mesh)'.format(N, M, nx, nx)
+    _, ax = PlotStart(title, 'NPROCS', '$E_P$', horzy='horizontal', figsize='tex')
 
+    # ax.axis('equal')
+    ax.grid(True)
+    ax.set_xlim( [0, max(nprocs)] )
+    allprocs = np.linspace(0, max(nprocs), max(nprocs)+1 )
+    plt.xticks( allprocs )
+
+
+    # #PLOT IDEAL EFFICIENCY
+    ax.plot(allprocs, np.ones(len(allprocs)), label='Ideal',
+                    color='black', linewidth=line)
+    #PLOT ACTUAL EFFICIENCY
+    ax.plot(nprocs, Eps, label='Parallel',
+                    color='blue', linewidth=line,
+                    marker='^', markersize=mark*1.5)
+
+    PlotLegend(ax, loc='best')
+
+    text = 'Efficiency' + name
+    savename = '{}/{}{}'.format(savedir, text, savetype)
+    SavePlot(savename)
+    plt.show()
 
 
 

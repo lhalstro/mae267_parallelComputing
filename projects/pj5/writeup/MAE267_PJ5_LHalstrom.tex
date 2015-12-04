@@ -287,6 +287,39 @@ When moving to parallel computing, the ID of the neighbor block’s processor mu
 \subsection{Configuration Restart Files}
 After all of the above mentioned initialization processes have been completed, this information is stored in individual restart files for each processor so that the solver may start up independently from these files without needing to determine boundary procedures.  Neighbor information, grid, and temperature files are written \textbf{for each processor}.
 
+\subsection{Parallel Performance}
+Performance of the parallel solver is measured in the results section using Amdahl's Law and the concepts of parallel speedup $S_P$ (Eqn~\ref{speedupEqn}) and parallel computational efficiency $E_P$ (Eqn~\ref{effishEqn}).
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+S_P = \frac{t_s}{t_p}
+\end{split}
+\label{speedupEqn}
+\end{equation}
+\noindent where $t_s$ is the serial solution time and $t_p$ is the parallel solution time.
+
+Ideal speedup produces a line with a slope of 1, with the serial solution time decreasing by exactly the amount of processors used.  Ideal efficiency is 1, and corresponds to the ideal speedup.
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+E_P = \frac{S_p}{N_P}
+\end{split}
+\label{effishEqn}
+\end{equation}
+\noindent where $N_P$ is the number of processors in the parallel solution.
+
+Speedup can be predicted as a function of the fraction of the code that is run in parallel according to Eqn~\ref{OptimalSpeedup}.  Because only the parallel portion of this code is timed, optimal speedup is expected to by near-ideal.
+
+\vspace{-1em}
+\begin{equation}
+\begin{split}
+S_{P,Opt} = \frac{N_P}{f + (1-f)N_P}
+\end{split}
+\label{OptimalSpeedup}
+\end{equation}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%\vspace{-2em}
@@ -311,34 +344,109 @@ After all of the above mentioned initialization processes have been completed, t
 
 \section{Results and Discussion} \label{results}
 
-Neighbor connectivity files were written for each processor for each case and samples are shown in Appendix A.  From these files, neighbor block, processor, neighbor block local index, block dimmension, and block size can be read.
+Solutions of a 501x501 grid decomposed into 10x10 blocks were solved on 2, 4, 6, and 8 processors on the hpc1 front end (Batch jobs on hpc1 took significantly longer, which seemed to be due to running more processes than allocated cores).
 
-Theoretical load balance was also calculated for each processor based on the load determined by the previously described criteria.  Load balance results are presented below in Table~\ref{lbtable}.
+Another important lesson learned from this project was the importance of shared variables in MPI.  Many days of debugging ultimatley resulted in discovering that the global grid size was only read in by Processor 0, and was not available to the other processors for calculation of mesh parameters.  This was solved with a simple MPI_BCAST.
+
+Another pitfall was in creating unique tag IDs for MPI sends and recieves.  Each send is identified by the sending and recieving processor, as well as a tag, so the first attempt used 8 independent tags for the 8 directions of communication.  This proved to be non-unique as one processor could send to another processor more than once in the same direction for a given iteration.  In the end, a unique tag was created for each send as the concatination of the direction number with the global sending block ID.
+
+Convergence history for the serial, single-block and multi-block cases are compared to the parallel case in Fig~\ref{ResHist}.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/ResHist.pdf}
+\caption{Serial and parallel convergence history demonstrating similar performance between all solution methods}
+\label{ResHist}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+It can be seen from the convergence comparison that the parallel solver performs almost identically to its serial analogs, and Fig~\ref{Temp} demonstrates that the parallel solution is accurate.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/np4_nx501_n10_m10/Composite.png}
+\caption{Serial and parallel convergence history demonstrating similar performance between all solution methods}
+\label{Temp}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+After much deliberation with hpc1, results demonstrating actual parallel speedup were produced and total solution wall times are presented for serial and parallel runs of the Project 5 code in Table!\ref{Times}.
+
+
+%Solver Times
+\vspace{-1.8em}
+\begin{table}[htb]
+\begin{center}
+\caption{Serial (Left) and Parallel (Right) Solutions Times}
+\begin{tabular}{|c |c c | c c c c|}
+\hline
+\textbf{$N_P$} &(1x1) & (10x10) &  2 & 4 & 6  & 8     \\
+\hline
+ \textbf{t (s)} &360.7  & 377.8 & 179.4 & 91.95 & 70.56 & 76.09 \\
+\hline
+\end{tabular}
+\label{Times}
+\end{center}
+\end{table}
+\vspace{-2.3em}
+
+It can be seen that the parallel code does indeed reach a solution faster than its serial analogs.  The speedup and efficiency of the parallel calculations are further demonstrated in Figures ~\ref{Speedup} and ~\ref{Effish}.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/Speedup.pdf}
+\caption{Parallel speedup for a 501x501 grid decomposed into 10x10 blocks demonstrating an ideal speedup and sometimes super-linear that tapers off as the number of processors increases}
+\label{Speedup}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+Because near-perfect load balancing was accomplished (shown in Table~\ref{Load}) and because the timed portion of the code was entirely parallel (see Eqn~\ref{OptimalSpeedup}), it was expected that optimal speedups would be near the ideal case, as Fig~\ref{Speedup} demonstrates.
+
+Fig~\ref{Speedup} also demonstrates that the maximum possible speedup for this case is approximately 5.25 running on 6 processors, which is a significant improvement on the performance of the serial version.
 
 %LOAD BALANCING
 \vspace{-1.8em}
 \begin{table}[htb]
 \begin{center}
 \caption{Processor Theoretical Load Balances}
-\begin{tabular}{|c | c c c c|}
+\begin{tabular}{|c | c c|}
 \hline
-\textbf{$NPROCS$} & 4   & 4   & 6     & 6     \\
-\textbf{$MxN$}    & 5x4 & 10x10 & 5x4 & 10x10 \\
+\textbf{$NPROCS$} & 4   & 8     \\
 \hline
-\textbf{Proc0}    & 1.0133  & 1.0000 & 0.8802 & 1.0182 \\
-\textbf{Proc1}    & 1.0133  & 1.0000 & 0.8802 & 1.0182 \\
-\textbf{Proc2}    & 0.98672 & 1.0000 & 0.8802 & 0.9724 \\
-\textbf{Proc3}    & 0.98672 & 1.0000 & 1.0908 & 0.9724 \\
-\textbf{Proc4}    & N/A     & N/A    & 1.1005 & 1.0094 \\
-\textbf{Proc5}    & N/A     & N/A    & 0.8502 & 1.0094 \\
+\textbf{Proc0}    & 1.0000 & 1.0306 \\
+\textbf{Proc1}    & 1.0000 & 1.0306 \\
+\textbf{Proc2}    & 1.0000 & 1.0306 \\
+\textbf{Proc3}    & 1.0000 & 1.0306 \\
+\textbf{Proc4}    & N/A    & 0.96943 \\
+\textbf{Proc5}    & N/A    & 0.96943 \\
+\textbf{Proc6}    & N/A    & 0.96943 \\
+\textbf{Proc7}    & N/A    & 0.96943 \\
 \hline
 \end{tabular}
-\label{lbtable}
+\label{Load}
 \end{center}
 \end{table}
 \vspace{-2.3em}
 
-\noindent It can be seen that for these large-block decompositions, the code is well able to balance the loads of the processors.  4 processors proved to be better for load balancing as 4 is a multiple of the number of blocks for both decompositions.  Perfect balancing was achieved for the 4 processor 10x10 case, but not for the 4x5 case so I will look into why the distribution algorithm was not as efficient in this case.
+The parallel efficiency of the solver is greatest for lower processor numbers.  It actualy exceedes maximum efficiency for the 2 and 4 processor cases, but this phenomenon may be due to variation in loading of the hpc1 front-end cores between runs.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/Efficiency.pdf}
+\caption{Parallel efficiency for a 501x501 grid decomposed into 10x10 blocks demonstrating a greater than ideal efficiency for lower amounts of processors that may be due to variations in core loading}
+\label{Effish}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+A steep drop-off in efficiency is noted as the number of processors is increased.  To extend the curve further out, the solver could be applied to a larger grid system decomposed into more sub-domains.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
@@ -358,36 +466,38 @@ The core of the work in this project was the development of the processor distri
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \clearpage
-\onecolumn
-\appendix       %%% starting appendix
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % \clearpage
+% \onecolumn
+% \appendix       %%% starting appendix
 
-\section*{Appendix A: Sample Connectivity Files} \label{configs}
-\lstinputlisting[caption=4 processors 5x4 blocks processor0, language={}]{../Results/working_np4_nx501_n5_m4/p00.config}
-\lstinputlisting[caption=4 processors 10x10 blocks processor0, language={}]{../Results/working_np4_nx501_n10_m10/p00.config}
-
-\clearpage
-
-\lstinputlisting[caption=6 processors 5x4 blocks processor0, language={}]{../Results/working_np6_nx501_n5_m4/p00.config}
-\lstinputlisting[caption=6 processors 10x10 blocks processor0, language={}]{../Results/working_np6_nx501_n10_m10/p00.config}
-
-\clearpage
-
-\section*{Appendix B: Parallel, Multi-Block Grid Decomposition Code}
-\lstinputlisting[caption=Grids are decomposed into blocks and mapped onto NPROCS processors and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
-
-% \section*{Appendix C: Multi-Block Solver Subroutines}
-% \lstinputlisting[caption=Main subroutines used for solving heat transfer on a multi-block grid, language=Fortran]{../subroutines.f90}
-
-\clearpage
-
-\section*{Appendix C: Multi-Block Plot3D Reader-Writer}
-\lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
+% \section*{Appendix A: Sample Connectivity Files} \label{configs}
+% \lstinputlisting[caption=4 processors 5x4 blocks processor0, language={}]{../Results/working_np4_nx501_n5_m4/p00.config}
+% \lstinputlisting[caption=4 processors 10x10 blocks processor0, language={}]{../Results/np4_nx501_n10_m10/p00.config}
 
 % \clearpage
-\section*{Appendix D: Other Relevant Codes}
-\lstinputlisting[caption=Wrapper program, language=Fortran]{../main.f90}
+
+% \lstinputlisting[caption=6 processors 5x4 blocks processor0, language={}]{../Results/working_np6_nx501_n5_m4/p00.config}
+% \lstinputlisting[caption=6 processors 10x10 blocks processor0, language={}]{../Results/np6_nx501_n10_m10/p00.config}
+
+% \clearpage
+
+% \section*{Appendix A: Parallel, Multi-Block Grid Wrapper Code}
+% \lstinputlisting[caption=Wrapper program that performs domain decomposition on a single processor and then independently reads in solution for solver, language=Fortran]{../main.f90}
+
+% \section*{Appendix B: Parallel, Multi-Block Grid Solver Code}
+% \lstinputlisting[caption=Grid decomposition and solution processess are organized in this code, language=Fortran]{../subroutines.f90}
+
+% \section*{Appendix C: Parallel, Multi-Block Grid Decomposition Code}
+% \lstinputlisting[caption=Grids are decomposed into blocks and mapped onto NPROCS processors and information pertaining to neighbors is stored using the GRIDMOD module, language=Fortran]{../modules.f90}
+
+% \clearpage
+
+% \section*{Appendix C: Multi-Block Plot3D Reader-Writer}
+% \lstinputlisting[caption=Code for saving formatted multiblock PLOT3D solution files and reading restart files, language=Fortran]{../inout.f90}
+
+% \clearpage
+
 
 
 
