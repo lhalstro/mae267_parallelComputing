@@ -31,8 +31,8 @@ def PlotResid(ax, iter, res, label, color='blue', marker='.', spacing=100):
 #INPUTS
 
 
-markers = ['x', 'o', '.']
-colors = ['blue', 'green', 'red']
+markers = ['x',   'o',     '.',   '^',    'sq']
+colors = ['blue', 'green', 'red', 'cyan', 'magenta']
 #point spacing
 spacing = 100
 # savedir = 'Results'
