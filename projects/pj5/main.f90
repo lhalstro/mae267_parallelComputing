@@ -20,10 +20,8 @@
 
 
 PROGRAM heatTrans
-!     USE CLOCK
-    USE CONSTANTS
+!     USE CONSTANTS
     USE subroutines
-    USE IO
 
     IMPLICIT NONE
 

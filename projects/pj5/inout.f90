@@ -12,7 +12,7 @@
     ! Change 'Coloring' from 'Solid' to 'vtkCompositeIndex'
 
 MODULE IO
-    USE CONSTANTS
+!     USE CONSTANTS
     USE BLOCKMOD
     IMPLICIT NONE
 

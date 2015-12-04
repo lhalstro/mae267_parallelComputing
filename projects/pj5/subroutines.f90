@@ -26,8 +26,8 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 MODULE subroutines
-    USE CONSTANTS
-    USE BLOCKMOD
+!     USE CONSTANTS
+!     USE BLOCKMOD
     USE IO
 
     IMPLICIT NONE
