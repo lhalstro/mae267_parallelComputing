@@ -346,11 +346,19 @@ S_{P,Opt} = \frac{N_P}{f + (1-f)N_P}
 
 Solutions of a 501x501 grid decomposed into 10x10 blocks were solved on 2, 4, 6, and 8 processors on the hpc1 front end (Batch jobs on hpc1 took significantly longer, which seemed to be due to running more processes than allocated cores).
 
-Another important lesson learned from this project was the importance of shared variables in MPI.  Many days of debugging ultimatley resulted in discovering that the global grid size was only read in by Processor 0, and was not available to the other processors for calculation of mesh parameters.  This was solved with a simple MPI_BCAST.
+Another important lesson learned from this project was the importance of shared variables in MPI.  Many days of debugging ultimatley resulted in discovering that the global grid size was only read in by Processor 0, and was not available to the other processors for calculation of mesh parameters.  This was solved with a simple MPI\_BCAST.
 
 Another pitfall was in creating unique tag IDs for MPI sends and recieves.  Each send is identified by the sending and recieving processor, as well as a tag, so the first attempt used 8 independent tags for the 8 directions of communication.  This proved to be non-unique as one processor could send to another processor more than once in the same direction for a given iteration.  In the end, a unique tag was created for each send as the concatination of the direction number with the global sending block ID.
 
-Convergence history for the serial, single-block and multi-block cases are compared to the parallel case in Fig~\ref{ResHist}.
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/np4_nx501_n10_m10/Composite.png}
+\caption{Steady-state heat transfer solution for a 501x501 grid decomposed into 10x10 blocks solved on 4 processors}
+\label{Temp}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
 
 %%\vspace{-2em}
 \begin{figure}[htb]
@@ -362,26 +370,28 @@ Convergence history for the serial, single-block and multi-block cases are compa
 \end{figure}
 %%\vspace{-2em}
 
+
+
+
+
+
+
+Convergence history for the serial, single-block and multi-block cases are compared to the parallel case in Fig~\ref{ResHist}.
+
+
+
 It can be seen from the convergence comparison that the parallel solver performs almost identically to its serial analogs, and Fig~\ref{Temp} demonstrates that the parallel solution is accurate.
 
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../Results/np4_nx501_n10_m10/Composite.png}
-\caption{Serial and parallel convergence history demonstrating similar performance between all solution methods}
-\label{Temp}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
 
-After much deliberation with hpc1, results demonstrating actual parallel speedup were produced and total solution wall times are presented for serial and parallel runs of the Project 5 code in Table!\ref{Times}.
+
+After much deliberation with hpc1, results demonstrating actual parallel speedup were produced and total solution wall times are presented for serial and parallel runs of the Project 5 code in Table~\ref{Times}.
 
 
 %Solver Times
 \vspace{-1.8em}
 \begin{table}[htb]
 \begin{center}
-\caption{Serial (Left) and Parallel (Right) Solutions Times}
+\caption{\textbf{Serial (Left) and Parallel (Right) Solutions Times}}
 \begin{tabular}{|c |c c | c c c c|}
 \hline
 \textbf{$N_P$} &(1x1) & (10x10) &  2 & 4 & 6  & 8     \\
@@ -396,6 +406,19 @@ After much deliberation with hpc1, results demonstrating actual parallel speedup
 
 It can be seen that the parallel code does indeed reach a solution faster than its serial analogs.  The speedup and efficiency of the parallel calculations are further demonstrated in Figures ~\ref{Speedup} and ~\ref{Effish}.
 
+
+
+
+
+
+
+
+
+
+Because near-perfect load balancing was accomplished (shown in Table~\ref{Load}) and because the timed portion of the code was entirely parallel (see Eqn~\ref{OptimalSpeedup}), it was expected that optimal speedups would be near the ideal case, as Fig~\ref{Speedup} demonstrates.
+
+
+
 %%\vspace{-2em}
 \begin{figure}[htb]
 \begin{center}
@@ -406,15 +429,31 @@ It can be seen that the parallel code does indeed reach a solution faster than i
 \end{figure}
 %%\vspace{-2em}
 
-Because near-perfect load balancing was accomplished (shown in Table~\ref{Load}) and because the timed portion of the code was entirely parallel (see Eqn~\ref{OptimalSpeedup}), it was expected that optimal speedups would be near the ideal case, as Fig~\ref{Speedup} demonstrates.
-
 Fig~\ref{Speedup} also demonstrates that the maximum possible speedup for this case is approximately 5.25 running on 6 processors, which is a significant improvement on the performance of the serial version.
+
+
+
+The parallel efficiency of the solver is greatest for lower processor numbers.  It actualy exceedes maximum efficiency for the 2 and 4 processor cases, but this phenomenon may be due to variation in loading of the hpc1 front-end cores between runs.
+
+
+
+A steep drop-off in efficiency is noted as the number of processors is increased.  To extend the curve further out, the solver could be applied to a larger grid system decomposed into more sub-domains.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/Efficiency.pdf}
+\caption{Parallel efficiency for a 501x501 grid decomposed into 10x10 blocks demonstrating a greater than ideal efficiency for lower amounts of processors that may be due to variations in core loading}
+\label{Effish}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
 
 %LOAD BALANCING
 \vspace{-1.8em}
 \begin{table}[htb]
 \begin{center}
-\caption{Processor Theoretical Load Balances}
+\caption{\textbf{Processor Theoretical Load Balances}}
 \begin{tabular}{|c | c c|}
 \hline
 \textbf{$NPROCS$} & 4   & 8     \\
@@ -433,20 +472,6 @@ Fig~\ref{Speedup} also demonstrates that the maximum possible speedup for this c
 \end{center}
 \end{table}
 \vspace{-2.3em}
-
-The parallel efficiency of the solver is greatest for lower processor numbers.  It actualy exceedes maximum efficiency for the 2 and 4 processor cases, but this phenomenon may be due to variation in loading of the hpc1 front-end cores between runs.
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../Results/Efficiency.pdf}
-\caption{Parallel efficiency for a 501x501 grid decomposed into 10x10 blocks demonstrating a greater than ideal efficiency for lower amounts of processors that may be due to variations in core loading}
-\label{Effish}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-A steep drop-off in efficiency is noted as the number of processors is increased.  To extend the curve further out, the solver could be applied to a larger grid system decomposed into more sub-domains.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
