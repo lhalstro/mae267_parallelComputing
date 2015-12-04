@@ -560,6 +560,8 @@ CONTAINS
         ! 'IMAXSIZE' is index of remaining block with greatest size
         INTEGER :: sorted(NBLK), claimed(NBLK), IMAXSIZE, IMINLOAD
         INTEGER :: locIDs(NBLK), proclist(NBLK), idsSort(Nblk), procSort(NBLK)
+        ! OPTIMIZED DISTRIBUTION
+        INTEGER :: METHOD
 
         ! INITIALIZE LISTS
         DO I = 1, NBLK
@@ -714,76 +716,223 @@ CONTAINS
             ALLOCATE( procs(IPROC)%blocks(NBLK) )
         END DO
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        write(*,*) " "
-        write(*,*) "Block ID assigned to Proc ID:"
+        IF (OPT == 2) THEN
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!! HARDCODED OPTIMIZED DIST FOR 10X10 BLOCKS !!!!!!!!!!!!!!!!!!
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        ! LOOP THROUGH BLOCKS IN DECREASING ORDER OF SIZE
-        DO I = 1, NBLK
-            ! sorted gives the indicies of blocks sorted by size
-            b => blocks( sorted(I) )
+            ! DISTRIBUTION OPTIONS
+            IF (NPROCS == 10) THEN
 
-            ! Reset minimum load
-            MINLOAD = 1000000
-            ! FIND CURRENT PROCESSOR WITH LEAST LOAD
-            DO IPROC = 1, NPROCS
-                p => procs(IPROC)
+                ! 10X10 BLOCKS, 10 PROCS
 
-                IF (p%load<MINLOAD) THEN
-                    MINLOAD = p%load
-                    IMINLOAD = IPROC
-                END IF
+                ! ASSIGN EACH ROW TO ONE INDIVIDUAL PROCESSOR
+                DO IPROC = 0, NPROCS-1
+                    DO I = 1, 10
+                        CALL assign_block( blocks( I + IPROC*10 ), procs(IPROC) )
+                    END DO
+                END DO
+
+            ELSE IF (NPROCS == 8) THEN
+                ! 10X10 BLOCKS, 8 PROCS
+
+                ! TRY TO ASSIGN AS MANY PROCESSORS IN ONE ROW TO ONE PROC
+                    ! (assign sequesentially)
+                DO I = 1, 13
+                    CALL assign_block( blocks(I), procs(1) )
+                END DO
+                DO I = 14, 25
+                    CALL assign_block( blocks(I), procs(2) )
+                END DO
+                DO I = 26, 37
+                    CALL assign_block( blocks(I), procs(3) )
+                END DO
+                DO I = 38, 50
+                    CALL assign_block( blocks(I), procs(4) )
+                END DO
+                DO I = 51, 63
+                    CALL assign_block( blocks(I), procs(5) )
+                END DO
+                DO I = 64, 75
+                    CALL assign_block( blocks(I), procs(6) )
+                END DO
+                DO I = 76, 87
+                    CALL assign_block( blocks(I), procs(7) )
+                END DO
+                DO I = 88, 100
+                    CALL assign_block( blocks(I), procs(8) )
+                END DO
+
+            ELSE IF (NPROCS == 6) THEN
+                ! 10X10 BLOCKS, 6 PROCS
+
+                ! ASSIGN FIRST 3 ROWS TO PROCS 1 & 2,
+                ! DIVIDED IN HALF (PROC1 LEFT, PROC2 RIGHT)
+                DO I = 0, 2
+                    DO II = 1, 5
+                        CALL assign_block( blocks( II + I*10 ), procs(1) )
+                    END DO
+                    DO II = 6, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(2) )
+                    END DO
+                END DO
+                ! GIVE CENTER BLOCKS OF 4TH ROW TO PROCS 1 & 2,
+                ! 2 TO EACH PROC ON EACH PROC'S SIDE
+                ! left 2 center blocks to proc 1
+                CALL assign_blocks( blocks, procs(1), [34, 35] )
+                ! right 2 center blocks to proc 2
+                CALL assign_blocks( blocks, procs(2), [36, 37] )
+                ! GIVE EDGE BLOCKS OF 4TH ROW TO PROCS 3 & 4
+                ! leftmost 3 blocks to proc 3
+                CALL assign_blocks( blocks, procs(3), [31, 32, 33] )
+                ! rightmost 3 blocks to proc 4
+                CALL assign_blocks( blocks, procs(4), [38, 39, 40] )
+                ! ASSIGN 5TH AND 6TH ROWS TO PROCS 3 & 4,
+                ! DIVIDED IN HALF
+                DO I = 4, 5
+                    DO II = 1, 5
+                        CALL assign_block( blocks( II + I*10 ), procs(1) )
+                    END DO
+                    DO II = 6, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(2) )
+                    END DO
+                END DO
+                ! GIVE EDGE BLOCKS OF 7TH ROW TO PROCS 3 & 4
+                ! leftmost 3 blocks to proc 3
+                CALL assign_blocks( blocks, procs(3), [61, 62, 63] )
+                ! rightmost 3 blocks to proc 4
+                CALL assign_blocks( blocks, procs(4), [68, 69, 60] )
+                ! GIVE CENTER BLOCKS OF 7TH ROW TO PROCS 3 & 4,
+                ! left 2 center blocks to proc 3
+                CALL assign_blocks( blocks, procs(3), [64, 65] )
+                ! right 2 center blocks to proc 4
+                CALL assign_blocks( blocks, procs(4), [66, 67] )
+                ! ASSIGN LAST 3 ROWS TO PROCS 5 & 6, DIVIDED IN HALF
+                DO I = 7, 9
+                    DO II = 1, 5
+                        CALL assign_block( blocks( II + I*10 ), procs(5) )
+                    END DO
+                    DO II = 6, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(6) )
+                    END DO
+                END DO
+
+            ELSE IF (NPROCS == 4) THEN
+                ! 10X10 BLOCKS, 4 PROCS
+                ! DIVIDE GRID INTO QUADRANTS
+
+                ! ASSIGN BOTTOM CORNERS TO PROCS 1 AND 2
+                DO I = 0, 4
+                    DO II = 1, 5
+                        CALL assign_block( blocks( II + I*10 ), procs(1) )
+                    END DO
+                    DO II = 6, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(2) )
+                    END DO
+                END DO
+                ! ASSIGN TOP CORNERS TO PROCS 3 AND 4
+                DO I = 5, 9
+                    DO II = 1, 5
+                        CALL assign_block( blocks( II + I*10 ), procs(3) )
+                    END DO
+                    DO II = 6, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(4) )
+                    END DO
+                END DO
+
+            ELSE IF (NPROCS == 2) THEN
+                ! 10X10 BLOCKS, 2 PROCS
+                ! DIVIDE GRID IN HALF (TOP AND BOTTOM)
+
+                ! ASSIGN BOTTOM BLOCKS TO PROC 1
+                DO I = 0, 4
+                    DO II = 1, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(3) )
+                    END DO
+                END DO
+                ! ASSIGN TOP BLOCKS TO PROC 2
+                DO I = 5, 9
+                    DO II = 1, 10
+                        CALL assign_block( blocks( II + I*10 ), procs(3) )
+                    END DO
+                END DO
+
+            END IF
+
+        ELSE
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!! DISTRIBUTE TO PROCESSOR WITH LEAST LOAD !!!!!!!!!!!!!!!!!!!!
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            write(*,*) " "
+            write(*,*) "Block ID assigned to Proc ID:"
+
+            ! LOOP THROUGH BLOCKS IN DECREASING ORDER OF SIZE
+            DO I = 1, NBLK
+                ! sorted gives the indicies of blocks sorted by size
+                b => blocks( sorted(I) )
+
+                ! Reset minimum load
+                MINLOAD = 1000000
+                ! FIND CURRENT PROCESSOR WITH LEAST LOAD
+                DO IPROC = 1, NPROCS
+                    p => procs(IPROC)
+
+                    IF (p%load<MINLOAD) THEN
+                        MINLOAD = p%load
+                        IMINLOAD = IPROC
+                    END IF
+                END DO
+                ! write block processor assignment
+                write(*,*) b%ID, procs(IMINLOAD)%ID
+                proclist(I) = procs(IMINLOAD)%ID
+                locIDs(I) = procs(IMINLOAD)%NBLK+1
+
+                ! ASSIGN BLOCK TO MIN. LOAD PROC
+                CALL assign_block( b, procs(IMINLOAD) )
             END DO
-            ! write block processor assignment
-            write(*,*) b%ID, procs(IMINLOAD)%ID
-            proclist(I) = procs(IMINLOAD)%ID
-            locIDs(I) = procs(IMINLOAD)%NBLK+1
 
-            ! ASSIGN BLOCK TO MIN. LOAD PROC
-            CALL assign_block( b, procs(IMINLOAD) )
-        END DO
+            ! CALC LOAD BALANCE
+            20      FORMAT(10A13)
+            WRITE(*,*)
+            WRITE(*,*) 'Processor Load Balancing:'
+            WRITE(*,20) 'ID', 'LOAD BALANCE'
 
-        ! CALC LOAD BALANCE
-        20      FORMAT(10A13)
-        WRITE(*,*)
-        WRITE(*,*) 'Processor Load Balancing:'
-        WRITE(*,20) 'ID', 'LOAD BALANCE'
+            DO IPROC = 1, NPROCS
+                procs(IPROC)%balance = DFLOAT( procs(IPROC)%load ) / DFLOAT( PLB )
 
-        DO IPROC = 1, NPROCS
-            procs(IPROC)%balance = DFLOAT( procs(IPROC)%load ) / DFLOAT( PLB )
-
-            WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
-        END DO
-        WRITE(*,*)
+                WRITE(*,*) procs(IPROC)%ID, procs(IPROC)%balance
+            END DO
+            WRITE(*,*)
 
 
 
-        do Iblk = 1, Nblk
-            do i = 1, nblk
-                if (sorted(I) == IBLK) then
-                    idsSort(Iblk) = locIds(I)
-                    procSort(Iblk) = proclist(I)
-                end if
+            do Iblk = 1, Nblk
+                do i = 1, nblk
+                    if (sorted(I) == IBLK) then
+                        idsSort(Iblk) = locIds(I)
+                        procSort(Iblk) = proclist(I)
+                    end if
+                end do
             end do
-        end do
 
 
-        ! write block amalgamation file
-        OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
-        write(55,*) "block, processor, local id"
-        do I = 1, NBLK
-            write(55,*) I, procsort(I), IDsSort(I)
-        end do
-        CLOSE(55)
+            ! write block amalgamation file
+            OPEN(UNIT=55,FILE = 'blockrebuild.dat',FORM='formatted')
+            write(55,*) "block, processor, local id"
+            do I = 1, NBLK
+                write(55,*) I, procsort(I), IDsSort(I)
+            end do
+            CLOSE(55)
 
-        OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
-        do I = 1, NPRocs
-            write(65,*) procs(I)%NBLK
-        end do
-        CLOSE(65)
+            OPEN(UNIT=65,FILE = 'procrebuild.dat',FORM='formatted')
+            do I = 1, NPRocs
+                write(65,*) procs(I)%NBLK
+            end do
+            CLOSE(65)
+
+        END IF
 
     END SUBROUTINE dist_blocks
 
@@ -805,6 +954,23 @@ CONTAINS
         p%blocks(p%NBLK) = b
 
     END SUBROUTINE assign_block
+
+    SUBROUTINE assign_blocks(blocks, proc, IDs)
+        ! Like assign_blocks, but assign multiple blocks
+
+        ! all blocks
+        TYPE(BLKTYPE), TARGET :: blocks(:)
+        ! Processor to assign to
+        TYPE(PROCTYPE), TARGET :: proc
+        ! IDs of blocks to assign
+        INTEGER :: IDs(:), I
+
+        ! assign each block in IDs to proc
+        DO I = 1, SIZE(IDs)
+            CALL assign_block( blocks( IDS(I) ), proc )
+        END DO
+    END SUBROUTINE assign_blocks
+
 
     SUBROUTINE init_neighbor_procs(blocks, procs)
         ! Initialize neighbor processor information for each block
