@@ -4,11 +4,9 @@
  starting mpi
  starting mpi
  starting mpi
- starting mpi
- starting mpi
  
  Solving Mesh of size ixj:         501 x         501
- Number of processors:           8
+ Number of processors:           6
  With MxN blocks:          10 x          10
  Number of blocks:         100
  Block size ixj:          51 x          51
@@ -227,24 +225,18 @@
           10        3904
            1        3904
   
- Initialize for proc            6
+ Initialize for proc            3
+ Initialize for proc            1
  Initialize for proc            2
  Initialize for proc            0
- Initialize for proc            3
- Initialize for proc            7
- Initialize for proc            1
  Initialize for proc            4
  Initialize for proc            5
- Solving heat conduction with Processor            5
- Solving heat conduction with Processor            7
- Solving heat conduction with Processor            6
- Solving heat conduction with Processor            0
- Solving heat conduction with Processor            3
- Solving heat conduction with Processor            4
- Solving heat conduction with Processor            1
  Solving heat conduction with Processor            2
- Writing results...
- Writing results...
+ Solving heat conduction with Processor            4
+ Solving heat conduction with Processor            5
+ Solving heat conduction with Processor            3
+ Solving heat conduction with Processor            0
+ Solving heat conduction with Processor            1
  Writing results...
  Writing results...
  CONVERGED (NUMBER OF ITERATIONS:       75128 )
@@ -254,42 +246,32 @@
  Writing results...
  Writing results...
 
+ MAX RESIDUAL FOR PROCESSOR            1
+ Found max residual of    3.9434400957742421E-003
+ on block id          36
+ At ij of          292         149
+
  MAX RESIDUAL FOR PROCESSOR            0
  Found max residual of    9.6290306931812973E-003
  on block id           4
  At ij of          167           0
 
- MAX RESIDUAL FOR PROCESSOR            1
- Found max residual of    7.0665466784183518E-003
- on block id          23
- At ij of          142          99
-
  MAX RESIDUAL FOR PROCESSOR            2
- Found max residual of    8.0777696730104410E-003
- on block id          33
- At ij of          140         149
-
- MAX RESIDUAL FOR PROCESSOR            3
- Found max residual of    1.0010658565799904E-002
- on block id          43
- At ij of          142         199
-
- MAX RESIDUAL FOR PROCESSOR            4
  Found max residual of    1.5310094956983020E-002
  on block id          63
  At ij of          150         299
 
- MAX RESIDUAL FOR PROCESSOR            5
+ MAX RESIDUAL FOR PROCESSOR            3
+ Found max residual of    6.3763315648852062E-003
+ on block id          56
+ At ij of          292         249
+
+ MAX RESIDUAL FOR PROCESSOR            4
  Found max residual of    1.6677517297645231E-002
  on block id          73
  At ij of          150         349
 
- MAX RESIDUAL FOR PROCESSOR            6
- Found max residual of    1.5015079337490994E-002
- on block id          83
- At ij of          150         399
-
- MAX RESIDUAL FOR PROCESSOR            7
- Found max residual of    9.1777452962507958E-003
- on block id          93
- At ij of          150         449
+ MAX RESIDUAL FOR PROCESSOR            5
+ Found max residual of    9.4461039922363061E-003
+ on block id          76
+ At ij of          292         349
