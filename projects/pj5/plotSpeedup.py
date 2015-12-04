@@ -117,8 +117,13 @@ def main(nprocs, nx, N, M, name=''):
 
 if __name__ == "__main__":
 
-    NPROCS = [4, 8]
-    NX = 501
+    # NPROCS = [4, 8]
+    # NX = 501
+    # N = 10
+    # M = 10
+
+    NPROCS = [2, 4, 6, 8]
+    NX = 101
     N = 10
     M = 10
 
