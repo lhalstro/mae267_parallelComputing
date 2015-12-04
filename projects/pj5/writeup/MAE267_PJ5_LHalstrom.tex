@@ -353,8 +353,9 @@ Another pitfall was in creating unique tag IDs for MPI sends and recieves.  Each
 %%\vspace{-2em}
 \begin{figure}[htb]
 \begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/np4_nx501_n10_m10/Grid.png}
 \includegraphics[width=0.5\textwidth]{../Results/np4_nx501_n10_m10/Composite.png}
-\caption{Steady-state heat transfer solution for a 501x501 grid decomposed into 10x10 blocks solved on 4 processors}
+\caption{Grid colored by processor distribution (Top) and steady-state heat transfer solution (Bottom) for a 501x501 grid decomposed into 10x10 blocks solved on 4 processors}
 \label{Temp}
 \end{center}
 \end{figure}
@@ -404,50 +405,8 @@ After much deliberation with hpc1, results demonstrating actual parallel speedup
 \end{table}
 \vspace{-2.3em}
 
+
 It can be seen that the parallel code does indeed reach a solution faster than its serial analogs.  The speedup and efficiency of the parallel calculations are further demonstrated in Figures ~\ref{Speedup} and ~\ref{Effish}.
-
-
-
-
-
-
-
-
-
-
-Because near-perfect load balancing was accomplished (shown in Table~\ref{Load}) and because the timed portion of the code was entirely parallel (see Eqn~\ref{OptimalSpeedup}), it was expected that optimal speedups would be near the ideal case, as Fig~\ref{Speedup} demonstrates.
-
-
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../Results/Speedup.pdf}
-\caption{Parallel speedup for a 501x501 grid decomposed into 10x10 blocks demonstrating an ideal speedup and sometimes super-linear that tapers off as the number of processors increases}
-\label{Speedup}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
-
-Fig~\ref{Speedup} also demonstrates that the maximum possible speedup for this case is approximately 5.25 running on 6 processors, which is a significant improvement on the performance of the serial version.
-
-
-
-The parallel efficiency of the solver is greatest for lower processor numbers.  It actualy exceedes maximum efficiency for the 2 and 4 processor cases, but this phenomenon may be due to variation in loading of the hpc1 front-end cores between runs.
-
-
-
-A steep drop-off in efficiency is noted as the number of processors is increased.  To extend the curve further out, the solver could be applied to a larger grid system decomposed into more sub-domains.
-
-%%\vspace{-2em}
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{../Results/Efficiency.pdf}
-\caption{Parallel efficiency for a 501x501 grid decomposed into 10x10 blocks demonstrating a greater than ideal efficiency for lower amounts of processors that may be due to variations in core loading}
-\label{Effish}
-\end{center}
-\end{figure}
-%%\vspace{-2em}
 
 %LOAD BALANCING
 \vspace{-1.8em}
@@ -472,6 +431,58 @@ A steep drop-off in efficiency is noted as the number of processors is increased
 \end{center}
 \end{table}
 \vspace{-2.3em}
+
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/Speedup.pdf}
+\caption{Parallel speedup for a 501x501 grid decomposed into 10x10 blocks demonstrating an ideal speedup and sometimes super-linear that tapers off as the number of processors increases}
+\label{Speedup}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+
+
+
+
+
+
+
+
+
+
+
+Because near-perfect load balancing was accomplished (shown in Table~\ref{Load}) and because the timed portion of the code was entirely parallel (see Eqn~\ref{OptimalSpeedup}), it was expected that optimal speedups would be near the ideal case, as Fig~\ref{Speedup} demonstrates.
+
+
+
+
+
+Fig~\ref{Speedup} also demonstrates that the maximum possible speedup for this case is approximately 5.25 running on 6 processors, which is a significant improvement on the performance of the serial version.
+
+
+
+The parallel efficiency of the solver is greatest for lower processor numbers.  It actualy exceedes maximum efficiency for the 2 and 4 processor cases, but this phenomenon may be due to variation in loading of the hpc1 front-end cores between runs.
+
+
+
+A steep drop-off in efficiency is noted as the number of processors is increased.  To extend the curve further out, the solver could be applied to a larger grid system decomposed into more sub-domains.
+
+%%\vspace{-2em}
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.5\textwidth]{../Results/Efficiency.pdf}
+\caption{Parallel efficiency for a 501x501 grid decomposed into 10x10 blocks demonstrating a greater than ideal efficiency for lower amounts of processors that may be due to variations in core loading}
+\label{Effish}
+\end{center}
+\end{figure}
+%%\vspace{-2em}
+
+
+
+% \clearpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
