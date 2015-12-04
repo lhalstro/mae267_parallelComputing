@@ -451,7 +451,13 @@ A steep drop-off in efficiency is noted as the number of processors is increased
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
 
-The core of the work in this project was the development of the processor distributing algorithm.  Many factors can go into optimizing processor load balancing, and it was an iteresting problem following the logic behind the process.  As my algorithm is currently designed, I believe the weighting of different communication costs will need to be tuned once I am producing results with which to benchmark.  I will also look deeper into the algorithm as it does not produce as consistent results as I would have thought.
+The product of this project is a parallel, multi-block heat conduction solver demonstrating the fundamental principles of computations in parallel.  It increased knowledge of parallel information passing, parallel speedup performance, load balancing optimization.
+
+The working code is just a beginning of what can be accomplished with parallel computing.  This code itself could be improved with better sub-domain decomposition optimization and optimization of calculations like send/recieve tags.  Beyond that, the principles of this code could be applied to numerical solvers of different principles such as fluid dynamics or structures.  Parallel computing could be adapted to GPUs instead of CPU cores.  The list is endless.
+
+These projects served as an effective introduction to parallel computing by gradually building on principles; starting with a standard numeric heat transfer solver and then incrementally incorperating parallel computing concepts like domain decomposition and solution restart files so that each concept could be solidified before the next was attempted.  Aside from developing a strong parallel computing basis from which to build off of, the course also developed skills for aquiring further knowledge, leaving the student prepared to delve further into the field of parallel computing.
+
+This course is highly recommended for students interested in numerical solutions of engineering problems, as the principles of these projects can be adapted to any application that may be of interest.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \section{References}
