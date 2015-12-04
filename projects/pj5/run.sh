@@ -2,7 +2,7 @@
 #SBATCH -J PJ5MAE267
 #SBATCH -o slurm-%J.out
 #SBATCH -e slurm-%J.err=
-NPROCS=1
+NPROCS=8
 #SBATCH -n $NPROCS
 
 #Text with start time and location
