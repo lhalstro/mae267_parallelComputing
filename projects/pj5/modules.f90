@@ -792,22 +792,22 @@ CONTAINS
                 ! DIVIDED IN HALF
                 DO I = 4, 5
                     DO II = 1, 5
-                        CALL assign_block( blocks( II + I*10 ), procs(1) )
+                        CALL assign_block( blocks( II + I*10 ), procs(3) )
                     END DO
                     DO II = 6, 10
-                        CALL assign_block( blocks( II + I*10 ), procs(2) )
+                        CALL assign_block( blocks( II + I*10 ), procs(4) )
                     END DO
                 END DO
                 ! GIVE EDGE BLOCKS OF 7TH ROW TO PROCS 3 & 4
                 ! leftmost 3 blocks to proc 3
                 CALL assign_blocks( blocks, procs(3), [61, 62, 63] )
                 ! rightmost 3 blocks to proc 4
-                CALL assign_blocks( blocks, procs(4), [68, 69, 60] )
-                ! GIVE CENTER BLOCKS OF 7TH ROW TO PROCS 3 & 4,
-                ! left 2 center blocks to proc 3
-                CALL assign_blocks( blocks, procs(3), [64, 65] )
-                ! right 2 center blocks to proc 4
-                CALL assign_blocks( blocks, procs(4), [66, 67] )
+                CALL assign_blocks( blocks, procs(4), [68, 69, 70] )
+                ! GIVE CENTER BLOCKS OF 7TH ROW TO PROCS 5 & 6,
+                ! left 2 center blocks to proc 5
+                CALL assign_blocks( blocks, procs(5), [64, 65] )
+                ! right 2 center blocks to proc 6
+                CALL assign_blocks( blocks, procs(6), [66, 67] )
                 ! ASSIGN LAST 3 ROWS TO PROCS 5 & 6, DIVIDED IN HALF
                 DO I = 7, 9
                     DO II = 1, 5
@@ -848,13 +848,13 @@ CONTAINS
                 ! ASSIGN BOTTOM BLOCKS TO PROC 1
                 DO I = 0, 4
                     DO II = 1, 10
-                        CALL assign_block( blocks( II + I*10 ), procs(3) )
+                        CALL assign_block( blocks( II + I*10 ), procs(1) )
                     END DO
                 END DO
                 ! ASSIGN TOP BLOCKS TO PROC 2
                 DO I = 5, 9
                     DO II = 1, 10
-                        CALL assign_block( blocks( II + I*10 ), procs(3) )
+                        CALL assign_block( blocks( II + I*10 ), procs(2) )
                     END DO
                 END DO
 
